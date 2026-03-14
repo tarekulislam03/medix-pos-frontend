@@ -1,7 +1,3 @@
-// cvUtils.js
-// JavaScript implementation equivalent to the provided Python document scanner
-// Requires: opencv.js
-
 import cv from "@techstark/opencv-js"
 
 export const waitForOpenCV = () => {
@@ -24,11 +20,9 @@ export class DocScanner {
   }
 
   filterCorners(corners, minDist = 20) {
-
     const filtered = []
 
     for (const c of corners) {
-
       let keep = true
 
       for (const r of filtered) {
@@ -39,26 +33,21 @@ export class DocScanner {
       }
 
       if (keep) filtered.push(c)
-
     }
 
     return filtered
   }
 
   angleBetween(u, v) {
-
     const dot = u[0] * v[0] + u[1] * v[1]
     const mu = Math.hypot(u[0], u[1])
     const mv = Math.hypot(v[0], v[1])
-
     return Math.acos(dot / (mu * mv)) * 180 / Math.PI
   }
 
   getAngle(p1, p2, p3) {
-
     const v1 = [p1[0] - p2[0], p1[1] - p2[1]]
     const v2 = [p3[0] - p2[0], p3[1] - p2[1]]
-
     return this.angleBetween(v1, v2)
   }
 
@@ -150,7 +139,6 @@ export class DocScanner {
       }
 
       c.delete()
-
     }
 
     if (!best) {
@@ -161,7 +149,6 @@ export class DocScanner {
         0, height,
         0, 0
       ])
-
     }
 
     gray.delete()
@@ -235,28 +222,23 @@ export class DocScanner {
 
   enhance(gray) {
 
+    const normalized = new cv.Mat()
+    cv.normalize(gray, normalized, 0, 255, cv.NORM_MINMAX)
+
+    const denoise = new cv.Mat()
+    cv.bilateralFilter(normalized, denoise, 9, 75, 75)
+
     const blur = new cv.Mat()
-    cv.GaussianBlur(gray, blur, new cv.Size(0, 0), 3)
+    cv.GaussianBlur(denoise, blur, new cv.Size(0, 0), 1)
 
     const sharp = new cv.Mat()
-    cv.addWeighted(gray, 1.5, blur, -0.5, 0, sharp)
+    cv.addWeighted(denoise, 1.5, blur, -0.5, 0, sharp)
 
-    const thresh = new cv.Mat()
-
-    cv.adaptiveThreshold(
-      sharp,
-      thresh,
-      255,
-      cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-      cv.THRESH_BINARY,
-      21,
-      15
-    )
-
+    normalized.delete()
+    denoise.delete()
     blur.delete()
-    sharp.delete()
 
-    return thresh
+    return sharp
   }
 
   async scan(source) {
@@ -272,7 +254,14 @@ export class DocScanner {
 
     const contour = this.getContour(resized)
 
-    const warped = this.perspectiveTransform(src, contour)
+    const scaled = new cv.Mat(4, 1, cv.CV_32SC2)
+
+    for (let i = 0; i < 4; i++) {
+      scaled.data32S[i * 2] = contour.data32S[i * 2] * ratio
+      scaled.data32S[i * 2 + 1] = contour.data32S[i * 2 + 1] * ratio
+    }
+
+    const warped = this.perspectiveTransform(src, scaled)
 
     const gray = new cv.Mat()
     cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY)
@@ -285,12 +274,12 @@ export class DocScanner {
     src.delete()
     resized.delete()
     contour.delete()
+    scaled.delete()
     warped.delete()
     gray.delete()
     result.delete()
 
     return canvas
-
   }
 
 }
