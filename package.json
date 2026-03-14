@@ -16,7 +16,9 @@
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/native-stack": "^7.13.0",
+    "@techstark/opencv-js": "^4.12.0-release.1",
     "axios": "^1.13.5",
+    "browser-image-compression": "^2.0.2",
     "expo": "~54.0.33",
     "expo-camera": "^17.0.10",
     "expo-linear-gradient": "~15.0.8",
@@ -27,7 +29,8 @@
     "react-native": "0.81.5",
     "react-native-safe-area-context": "^5.6.2",
     "react-native-screens": "^4.23.0",
-    "react-native-web": "^0.21.0"
+    "react-native-web": "^0.21.0",
+    "react-webcam": "^7.2.0"
   },
   "private": true
 }

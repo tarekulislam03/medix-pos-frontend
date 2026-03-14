@@ -1127,7 +1127,7 @@ export default function BillingScreen({ navigation }) {
 
     // Responsive panel flex ratios — tuned for 1280×800 (xlarge)
     const leftFlex = r.pick({ small: 1, medium: 2.2, large: 3, xlarge: 3.2 });
-    const rightFlex = r.pick({ small: 1, medium: 1.2, large: 1.3, xlarge: 1.4 });
+    const rightFlex = r.pick({ small: 0.6, medium: 1.2, large: 1.3, xlarge: 1.4 });
     const isStacked = r.isSmall;
     // Search box height responsive
     const searchBoxH = r.pick({ small: 48, medium: 52, large: 56, xlarge: 52 });
@@ -1268,15 +1268,18 @@ export default function BillingScreen({ navigation }) {
                 {/* ── Item Table ── */}
                 <View style={styles.tableContainer}>
                     {/* Table Header */}
-                    <View style={styles.tableHeader}>
-                        <Text style={[styles.th, { width: 36 }]}>#</Text>
-                        <Text style={[styles.th, { flex: 3 }]}>Item Info</Text>
-                        <Text style={[styles.th, { flex: 1.2, textAlign: 'center' }]}>Qty</Text>
-                        <Text style={[styles.th, { flex: 1.0, textAlign: 'center' }]}>Price</Text>
-                        <Text style={[styles.th, { flex: 0.8, textAlign: 'center' }]}>Disc%</Text>
-                        <Text style={[styles.th, { flex: 1.0, textAlign: 'right' }]}>Amount</Text>
-                        <View style={{ width: 40 }} />
-                    </View>
+                    {/* Table Header - Hidden on mobile */}
+                    {!r.isSmall && (
+                        <View style={styles.tableHeader}>
+                            <Text style={[styles.th, { width: 36 }]}>#</Text>
+                            <Text style={[styles.th, { flex: 3 }]}>Item Info</Text>
+                            <Text style={[styles.th, { flex: 1.2, textAlign: 'center' }]}>Qty</Text>
+                            <Text style={[styles.th, { flex: 1.0, textAlign: 'center' }]}>Price</Text>
+                            <Text style={[styles.th, { flex: 0.8, textAlign: 'center' }]}>Disc%</Text>
+                            <Text style={[styles.th, { flex: 1.0, textAlign: 'right' }]}>Amount</Text>
+                            <View style={{ width: 40 }} />
+                        </View>
+                    )}
 
                     {/* Table Body */}
                     {cart.length > 0 ? (
@@ -1293,6 +1296,92 @@ export default function BillingScreen({ navigation }) {
                                     ? (item.loose_total_price ?? 0)
                                     : price * qty * (1 - disc / 100);
                                 const canLoose = !!(item.tablets_per_strip && item.tablets_per_strip > 0);
+
+                                 if (r.isSmall) {
+                                    return (
+                                        <View style={styles.mobileCartRow}>
+                                            <View style={styles.mobileCartTop}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.mobileCartName}>{getName(item)}</Text>
+                                                    {canLoose && (
+                                                        <TouchableOpacity
+                                                            style={[looseStyles.modePill, isLoose && looseStyles.modePillLoose]}
+                                                            onPress={() => {
+                                                                toggleLooseMode(item);
+                                                                if (!isLoose) setTimeout(() => updateLooseTablets(item, item.loose_tablet_count ?? 1), 0);
+                                                            }}
+                                                        >
+                                                            <Ionicons name={isLoose ? 'tablet-portrait-outline' : 'layers-outline'} size={10} color={isLoose ? '#7C3AED' : COLORS.textMuted} />
+                                                            <Text style={[looseStyles.modePillText, isLoose && looseStyles.modePillTextLoose]}>{isLoose ? 'Loose' : 'Strip'}</Text>
+                                                        </TouchableOpacity>
+                                                    )}
+                                                </View>
+                                                <TouchableOpacity onPress={() => removeFromCart(item)} style={{ padding: 4 }}>
+                                                    <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                                                </TouchableOpacity>
+                                            </View>
+
+                                            <View style={styles.mobileCartControls}>
+                                                <View style={styles.mobileCartQty}>
+                                                    <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount - 1) : updateQuantity(item, qty - 1)} style={styles.qtyBtn}>
+                                                        <Ionicons name="remove" size={16} color={isLoose ? '#7C3AED' : COLORS.primary} />
+                                                    </TouchableOpacity>
+                                                    <TextInput
+                                                        style={[styles.qtyEditInput, { minWidth: 44, height: 34 }, isLoose && { color: '#7C3AED', borderColor: '#7C3AED' }]}
+                                                        value={String(isLoose ? tabletCount : qty)}
+                                                        onChangeText={(t) => {
+                                                            const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
+                                                            if (isLoose) {
+                                                                if (!isNaN(n) && n >= 1) updateLooseTablets(item, n);
+                                                                else if (t === '') updateLooseTablets(item, 1);
+                                                            } else {
+                                                                const maxStock = item.available_stock ?? item.quantity ?? item.stock ?? 999;
+                                                                if (!isNaN(n) && n >= 1 && n <= maxStock) updateQuantity(item, n);
+                                                                else if (t === '') updateQuantity(item, 1);
+                                                            }
+                                                        }}
+                                                        keyboardType="number-pad"
+                                                        textAlign="center"
+                                                    />
+                                                    <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount + 1) : updateQuantity(item, qty + 1)} style={styles.qtyBtn}>
+                                                        <Ionicons name="add" size={16} color={isLoose ? '#7C3AED' : COLORS.primary} />
+                                                    </TouchableOpacity>
+                                                </View>
+
+                                                {!isLoose && (
+                                                    <View style={[styles.discTap, disc > 0 && styles.discActive, { flexDirection: 'row', height: 34, paddingHorizontal: 6, minWidth: 60 }]}>
+                                                        <TextInput
+                                                            style={[styles.discEditInput, disc > 0 && styles.discActiveText, { minWidth: 30 }]}
+                                                            value={disc > 0 ? String(disc) : ''}
+                                                            onChangeText={(t) => {
+                                                                const cleaned = t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                                                                const n = parseFloat(cleaned);
+                                                                if (cleaned === '' || cleaned === '.') { updateDiscount(item, 0); return; }
+                                                                if (!isNaN(n) && n >= 0 && n <= 100) updateDiscount(item, n);
+                                                            }}
+                                                            placeholder="0"
+                                                            keyboardType="decimal-pad"
+                                                            textAlign="center"
+                                                        />
+                                                        <Text style={{ fontSize: 10, color: disc > 0 ? COLORS.error : COLORS.textMuted }}>% OFF</Text>
+                                                    </View>
+                                                )}
+
+                                                <View style={{ alignItems: 'flex-end' }}>
+                                                    <Text style={{ fontSize: 11, color: COLORS.textMuted }}>
+                                                        {isLoose ? `₹${Number(item.loose_price_per_tablet ?? 0).toFixed(2)}/tab` : `₹${Number(price).toFixed(2)}/unit`}
+                                                    </Text>
+                                                    <Text style={styles.mobileCartAmount}>₹{Number(lineTotal).toFixed(2)}</Text>
+                                                </View>
+                                            </View>
+                                            {isLoose && item.loose_error && (
+                                                <View style={[looseStyles.errorStrip, { borderRadius: 6, marginTop: 4 }]}>
+                                                    <Text style={looseStyles.errorText}>{item.loose_error}</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                    );
+                                }
 
                                 return (
                                     <View>
@@ -2150,6 +2239,45 @@ const styles = StyleSheet.create({
         fontSize: FONT_SIZES.xs,
         fontWeight: '700',
         color: COLORS.error,
+    },
+
+    // ── Mobile Cart Item ──
+    mobileCartRow: {
+        backgroundColor: COLORS.white,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.borderLight,
+        padding: 12,
+        gap: 10,
+    },
+    mobileCartTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    mobileCartName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: COLORS.textPrimary,
+        marginBottom: 2,
+    },
+    mobileCartControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: COLORS.bgInput,
+        padding: 8,
+        borderRadius: RADIUS.md,
+        gap: 8,
+    },
+    mobileCartQty: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    mobileCartAmount: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: COLORS.primary,
     },
 
     // ── Free / Manual Entry Row ──────────────────────────────────

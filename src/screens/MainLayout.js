@@ -156,7 +156,16 @@ export default function MainLayout({ navigation }) {
                         onPress={() => setSidebarOpen(false)}
                     />
                     {/* Floating panel - slides from left */}
-                    <View style={[styles.drawerPanel, { width: drawerWidth, borderRadius: r.pick({ small: 12, medium: 16, large: 18, xlarge: 18 }) }]}>
+                    <View style={[
+                        styles.drawerPanel,
+                        {
+                            width: drawerWidth,
+                            borderRadius: r.isSmall ? 0 : r.pick({ medium: 16, large: 18, xlarge: 18 }),
+                            height: r.isSmall ? '100%' : 'auto',
+                            maxHeight: r.isSmall ? '100%' : '90%',
+                            alignSelf: r.isSmall ? 'stretch' : 'center'
+                        }
+                    ]}>
                         <Sidebar
                             activeScreen={activeScreen}
                             onNavigate={navigateTo}

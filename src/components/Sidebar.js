@@ -5,9 +5,10 @@ import {
     TouchableOpacity,
     StyleSheet,
     Image,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT_SIZES, RADIUS, SPACING } from '../constants/theme';
+import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 
 // ── Add new pages here — they'll appear in the menu automatically ──
@@ -25,55 +26,59 @@ export default function Sidebar({ activeScreen, onNavigate, onLogout, onClose })
 
     return (
         <View style={styles.panel}>
-
             {/* ── Header ── */}
             <View style={styles.header}>
-                <View style={styles.brandRow}>
-                    <Image
-                        source={require('../../assets/icon.png')}
-                        style={{ width: 42, height: 42 }}
-                        resizeMode="contain"
-                    />
-                    <Text style={styles.brandName}>MediX</Text>
-                    <View style={styles.headerDivider} />
-                    <Text style={styles.headerSub}>Navigation</Text>
+                <View style={styles.brandGroup}>
+                    <View style={styles.logoCircle}>
+                        <Image
+                            source={require('../../assets/icon.png')}
+                            style={{ width: 34, height: 34 }}
+                            resizeMode="contain"
+                        />
+                    </View>
+                    <View>
+                        <Text style={styles.brandName}>MediX</Text>
+                        <Text style={styles.headerSub}>Control Center</Text>
+                    </View>
                 </View>
-                <Text style={styles.headerHint}>Select a page to navigate</Text>
+                <TouchableOpacity style={styles.closeIconBtn} onPress={onClose}>
+                    <Ionicons name="close-outline" size={24} color="rgba(255,255,255,0.6)" />
+                </TouchableOpacity>
             </View>
 
-            {/* ── 2-Column Nav Grid ── */}
+            {/* ── Navigation Grid ── */}
             <View style={styles.navGrid}>
                 {NAV_ITEMS.map((item) => {
                     const isActive = activeScreen === item.key;
-                    // Responsive width: 1 column on small screens, 2 columns otherwise
-                    const cardWidth = r.pick({ small: '100%', medium: '48%', large: '48%', xlarge: '31%' });
+                    const cardWidth = r.pick({ small: '47.5%', medium: '47.5%', large: '31%', xlarge: '31%' });
 
                     return (
                         <TouchableOpacity
                             key={item.key}
-                            style={[styles.navCard, isActive && styles.navCardActive, { width: cardWidth }]}
+                            style={[
+                                styles.navCard,
+                                isActive && styles.navCardActive,
+                                { width: cardWidth }
+                            ]}
                             onPress={() => onNavigate(item.key)}
-                            activeOpacity={0.7}
+                            activeOpacity={0.8}
                         >
-                            {/* Icon */}
-                            <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
+                            <View style={[styles.iconBox, isActive && styles.iconBoxActive]}>
                                 <Ionicons
                                     name={item.icon}
-                                    size={24}
+                                    size={22}
                                     color={isActive ? '#fff' : COLORS.primaryLight}
                                 />
                             </View>
-
-                            {/* Labels */}
-                            <Text style={[styles.navLabel, isActive && styles.navLabelActive]} numberOfLines={1}>
-                                {item.label}
-                            </Text>
-                            <Text style={[styles.navSub, isActive && styles.navSubActive]} numberOfLines={1}>
-                                {item.subLabel}
-                            </Text>
-
-                            {/* Active indicator dot */}
-                            {isActive && <View style={styles.activeDot} />}
+                            <View style={styles.cardLabels}>
+                                <Text style={[styles.navLabel, isActive && styles.navLabelActive]} numberOfLines={1}>
+                                    {item.label}
+                                </Text>
+                                <Text style={[styles.navSub, isActive && styles.navSubActive]} numberOfLines={1}>
+                                    {item.subLabel}
+                                </Text>
+                            </View>
+                            {isActive && <View style={styles.activePill} />}
                         </TouchableOpacity>
                     );
                 })}
@@ -81,200 +86,187 @@ export default function Sidebar({ activeScreen, onNavigate, onLogout, onClose })
 
             {/* ── Footer ── */}
             <View style={styles.footer}>
-                <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.8}>
-                    <Ionicons name="close" size={18} color="#fff" />
-                    <Text style={styles.closeBtnText}>Close</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.8}>
-                    <Ionicons name="log-out-outline" size={18} color="#fff" />
-                    <Text style={styles.logoutBtnText}>Logout</Text>
+                    <View style={styles.logoutIconBox}>
+                        <Ionicons name="log-out-outline" size={20} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.logoutText}>Logout session</Text>
+                        <Text style={styles.logoutSub}>Exit your account</Text>
+                    </View>
+                    <Ionicons name="chevron-forward-outline" size={18} color="rgba(255,255,255,0.2)" />
                 </TouchableOpacity>
             </View>
         </View>
     );
 }
 
+const PANEL_BG = '#152E2A';
 const CARD_BG = '#1E3D38';
 const CARD_BORDER = 'rgba(79,163,154,0.18)';
-const PANEL_BG = '#152E2A';
-const HEADER_BG = '#0F2320';
 
 const styles = StyleSheet.create({
     panel: {
         flex: 1,
         backgroundColor: PANEL_BG,
-        overflow: 'hidden',
+        paddingTop: Platform.OS === 'ios' ? 44 : 0,
     },
 
     /* Header */
     header: {
-        backgroundColor: HEADER_BG,
         paddingHorizontal: 24,
-        paddingVertical: 14,
+        paddingVertical: 24,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottomWidth: 1,
-        borderBottomColor: 'rgba(79,163,154,0.2)',
+        borderBottomColor: 'rgba(255,255,255,0.06)',
     },
-    brandRow: {
+    brandGroup: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 12,
     },
-    logoBox: {
-        width: 28,
-        height: 28,
-        borderRadius: 7,
-        backgroundColor: COLORS.primary,
+    logoCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    brandName: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#fff',
+        letterSpacing: 0.5,
+    },
+    headerSub: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.4)',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    closeIconBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
         justifyContent: 'center',
     },
-    brandName: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: '#fff',
-        letterSpacing: 0.3,
-    },
-    headerDivider: {
-        width: 1,
-        height: 14,
-        backgroundColor: 'rgba(255,255,255,0.18)',
-    },
-    headerSub: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.45)',
-        fontWeight: '500',
-    },
-    headerHint: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.28)',
-    },
 
-    /* 2-Column Grid — sizes to content, not flex-stretched */
+    /* Navigation Grid */
     navGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         padding: 16,
-        paddingBottom: 20,
         gap: 12,
         alignContent: 'flex-start',
+        justifyContent: 'center',
     },
     navCard: {
         backgroundColor: CARD_BG,
-        borderRadius: 14,
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: CARD_BORDER,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        minHeight: 60,
-        height: 'auto',
-        justifyContent: 'flex-end',
-        position: 'relative',
+        padding: 16,
+        minHeight: 120,
+        justifyContent: 'space-between',
         overflow: 'hidden',
     },
     navCardActive: {
         backgroundColor: COLORS.primary,
-        borderColor: COLORS.primaryLight,
+        borderColor: 'rgba(255,255,255,0.2)',
+        elevation: 8,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
 
-    /* Icon */
-    iconWrap: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: 'rgba(79,163,154,0.18)',
+    /* Icons */
+    iconBox: {
+        width: 42,
+        height: 42,
+        borderRadius: 14,
+        backgroundColor: 'rgba(79,163,154,0.12)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 8,
     },
-    iconWrapActive: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
+    iconBoxActive: {
+        backgroundColor: 'rgba(255,255,255,0.25)',
     },
 
-    /* Labels */
+    /* Card Labels */
+    cardLabels: {
+        marginTop: 10,
+    },
     navLabel: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: '700',
         color: '#fff',
-        marginBottom: 3,
+        marginBottom: 2,
     },
     navLabelActive: {
         color: '#fff',
     },
     navSub: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.4)',
-        fontWeight: '400',
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.45)',
+        fontWeight: '500',
     },
     navSubActive: {
-        color: 'rgba(255,255,255,0.7)',
+        color: 'rgba(255,255,255,0.8)',
     },
 
-    /* Active dot — top-right corner */
-    activeDot: {
+    /* Active indicator pill */
+    activePill: {
         position: 'absolute',
-        top: 14,
-        right: 14,
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        top: 16,
+        right: 16,
+        width: 4,
+        height: 20,
+        borderRadius: 2,
         backgroundColor: 'rgba(255,255,255,0.8)',
     },
 
     /* Footer */
     footer: {
-        backgroundColor: HEADER_BG,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-        paddingHorizontal: 20,
-        paddingVertical: 13,
+        marginTop: 'auto',
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 32,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(79,163,154,0.2)',
-    },
-    closeBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 7,
-        backgroundColor: '#C0392B',
-        paddingHorizontal: 18,
-        paddingVertical: 9,
-        borderRadius: 8,
-    },
-    closeBtnText: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#fff',
-        letterSpacing: 0.3,
+        borderTopColor: 'rgba(255,255,255,0.06)',
     },
     logoutBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 7,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingHorizontal: 16,
-        paddingVertical: 9,
-        borderRadius: 8,
+        gap: 14,
+        backgroundColor: 'rgba(231,76,60,0.1)',
+        padding: 16,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(231,76,60,0.2)',
     },
-    logoutBtnText: {
-        fontSize: 13,
+    logoutIconBox: {
+        width: 42,
+        height: 42,
+        borderRadius: 14,
+        backgroundColor: '#E74C3C',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    logoutText: {
+        fontSize: 16,
         fontWeight: '700',
         color: '#fff',
-        letterSpacing: 0.3,
     },
-    userInfo: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 7,
-    },
-    userText: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.45)',
-        fontWeight: '400',
+    logoutSub: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.5)',
     },
 });

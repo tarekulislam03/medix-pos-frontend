@@ -26,6 +26,8 @@ import {
 import { printLabels58mm } from '../utils/printLabel';
 import { useResponsive } from '../utils/responsive';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import BillScannerModal from '../components/BillScannerModal';
+
 
 // ─── FILTER TABS ────────────────────────────────
 const FILTERS = [
@@ -191,6 +193,8 @@ export default function InventoryScreen({ navigation }) {
     const [autoImportError, setAutoImportError] = useState(''); // in-app error (web-safe)
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [scannerVisible, setScannerVisible] = useState(false);
+
 
     // ─── FETCH ──────────────────────────────────────
     const fetchProducts = useCallback(async () => {
@@ -770,6 +774,57 @@ export default function InventoryScreen({ navigation }) {
         const stockStatus = getStockStatus(item);
         const expiryStatus = getExpiryStatus(item);
 
+        if (r.isSmall) {
+            return (
+                <TouchableOpacity
+                    style={styles.mobileCard}
+                    onPress={() => openViewModal(item)}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.mobileCardHeader}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.cellName} numberOfLines={2}>{item.medicine_name || '—'}</Text>
+                            <Text style={styles.cellSub}>{item.supplier_name || 'No supplier'}</Text>
+                        </View>
+                        <View style={styles.mobileCardPriceBox}>
+                            <Text style={styles.cellPrice}>₹{Number(item.mrp ?? 0).toFixed(2)}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.mobileCardBody}>
+                        <View style={styles.mobileCardStat}>
+                            <Text style={styles.mobileStatLabel}>Stock</Text>
+                            <Text style={[styles.mobileStatValue, { color: stockStatus.color }]}>
+                                {item.quantity ?? item.stock ?? 0}
+                            </Text>
+                        </View>
+                        <View style={styles.mobileCardStat}>
+                            <Text style={styles.mobileStatLabel}>Expiry</Text>
+                            <Text style={[styles.mobileStatValue, expiryStatus && { color: expiryStatus.color }]}>
+                                {formatDate(item.expiry_date)}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.mobileCardFooter}>
+                        <View style={styles.mobileActionGroup}>
+                            <TouchableOpacity style={styles.mobileActionBtn} onPress={() => openEditModal(item)}>
+                                <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+                                <Text style={styles.mobileActionText}>Edit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.mobileActionBtn} onPress={() => printLabels58mm([{ product: item, copies: 1 }])}>
+                                <Ionicons name="barcode-outline" size={20} color={COLORS.textSecondary} />
+                                <Text style={styles.mobileActionText}>Label</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <TouchableOpacity style={[styles.mobileActionBtn, { borderLeftWidth: 1, borderLeftColor: COLORS.borderLight }]} onPress={() => confirmDelete(item)}>
+                            <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            );
+        }
+
         return (
             <TouchableOpacity
                 style={[styles.tableRow, index % 2 === 0 && styles.tableRowAlt]}
@@ -852,51 +907,87 @@ export default function InventoryScreen({ navigation }) {
     return (
         <View style={styles.container}>
             {/* ─── HEADER ─── */}
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.headerTitle}>Inventory</Text>
-                    <Text style={styles.headerSub}>
-                        {products.length} products • {lowStockCount} low stock • {expiringSoonCount} expiring
-                        {expiredCount > 0 ? ` • ${expiredCount} expired` : ''}
-                        {zeroStockCount > 0 ? ` • ${zeroStockCount} out of stock` : ''}
-                    </Text>
+            <View style={[
+                styles.header,
+                r.isSmall && {
+                    paddingHorizontal: SPACING.md,
+                    paddingVertical: 6,
+                    gap: 8,
+                    height: 54
+                }
+            ]}>
+                <View style={{ flex: r.isSmall ? 0.8 : undefined }}>
+                    <Text style={[styles.headerTitle, r.isSmall && { fontSize: 16 }]} numberOfLines={1}>Inventory</Text>
+                    {!r.isSmall && (
+                        <Text style={styles.headerSub}>
+                            {products.length} products • {lowStockCount} low stock • {expiringSoonCount} expiring
+                        </Text>
+                    )}
                 </View>
-                <View style={styles.headerActions}>
-                    {/* Auto Bill Import */}
+
+                {/* headerActions row on mobile */}
+                <View style={[
+                    styles.headerActions,
+                    r.isSmall && {
+                        flex: 1.2,
+                        flexDirection: 'row',
+                        justifyContent: 'flex-end',
+                        gap: 6
+                    }
+                ]}>
                     <TouchableOpacity
-                        style={[styles.importBtn, autoImportUploading && styles.importBtnLoading]}
+                        style={[styles.importBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
+                        onPress={() => setScannerVisible(true)}
+                    >
+                        <Ionicons name="camera-outline" size={r.isSmall ? 20 : 20} color={COLORS.primary} />
+                        {!r.isSmall && <Text style={styles.importBtnText}>Scan Bill</Text>}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.importBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
                         onPress={handleAutoImportPress}
-                        activeOpacity={0.75}
                         disabled={autoImportUploading}
                     >
                         {autoImportUploading ? (
                             <ActivityIndicator size="small" color={COLORS.primary} />
                         ) : (
-                            <Ionicons name="scan-outline" size={20} color={COLORS.primary} />
+                            <Ionicons name="document-attach-outline" size={r.isSmall ? 20 : 20} color={COLORS.primary} />
                         )}
-                        <Text style={styles.importBtnText}>
-                            {autoImportUploading ? 'Processing...' : 'Auto Import Bill'}
-                        </Text>
+                        {!r.isSmall && <Text style={styles.importBtnText}>Upload Bill</Text>}
                     </TouchableOpacity>
+
                     <TouchableOpacity
-                        style={styles.printLabelsBtn}
+                        style={[styles.printLabelsBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
                         onPress={openLabelModal}
-                        activeOpacity={0.75}
                     >
-                        <Ionicons name="pricetag-outline" size={20} color={COLORS.accent} />
-                        <Text style={styles.printLabelsBtnText}>Print Labels</Text>
+                        <Ionicons name="pricetag-outline" size={r.isSmall ? 20 : 20} color={COLORS.accent} />
+                        {!r.isSmall && <Text style={styles.printLabelsBtnText}>Labels</Text>}
                     </TouchableOpacity>
+
                     <GradientButton
-                        title="Add Product"
+                        title={r.isSmall ? "" : "Add Product"}
                         onPress={openAddModal}
-                        icon={<Ionicons name="add-circle-outline" size={22} color={COLORS.white} />}
+                        icon={<Ionicons name="add-circle-outline" size={r.isSmall ? 22 : 22} color={COLORS.white} />}
+                        style={{ height: r.isSmall ? 38 : 46, minWidth: r.isSmall ? 40 : 140, paddingHorizontal: r.isSmall ? 0 : SPACING.md }}
                     />
                 </View>
             </View>
 
-            {/* ─── FILTER TABS ─── */}
-            <View style={[styles.filterBar, r.isSmall && { flexDirection: 'column', alignItems: 'stretch' }]}>
-                <View style={[styles.filterTabs, r.isSmall && { flexWrap: 'wrap' }]}>
+            <View style={[
+                styles.filterBar,
+                r.isSmall && {
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    gap: 8
+                }
+            ]}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={[styles.filterTabs, { paddingBottom: r.isSmall ? 4 : 0 }]}
+                >
                     {FILTERS.map((filter) => {
                         const isActive = activeFilter === filter.key;
                         const count =
@@ -910,71 +1001,53 @@ export default function InventoryScreen({ navigation }) {
                                             ? zeroStockCount
                                             : products.length;
 
-                        // Danger tabs (expired / zero_stock) get red styling
-                        const isExpiredTab = filter.key === 'expired';
-                        const isZeroTab = filter.key === 'zero_stock';
-                        const isDangerTab = isExpiredTab || isZeroTab;
-                        const dangerCount = isExpiredTab ? expiredCount : isZeroTab ? zeroStockCount : 0;
-                        const dangerActive = isActive && isDangerTab;
+                        const isDangerTab = filter.key === 'expired' || filter.key === 'zero_stock';
+                        const dangerCount = filter.key === 'expired' ? expiredCount : filter.key === 'zero_stock' ? zeroStockCount : 0;
 
                         return (
                             <TouchableOpacity
                                 key={filter.key}
                                 style={[
                                     styles.filterTab,
+                                    r.isSmall && { paddingHorizontal: 10, paddingVertical: 6 },
                                     isActive && styles.filterTabActive,
-                                    dangerActive && { backgroundColor: COLORS.error, borderColor: COLORS.error },
+                                    isActive && isDangerTab && dangerCount > 0 && { backgroundColor: COLORS.error, borderColor: COLORS.error },
                                 ]}
                                 onPress={() => setActiveFilter(filter.key)}
                                 activeOpacity={0.7}
                             >
                                 <Ionicons
                                     name={filter.icon}
-                                    size={18}
+                                    size={r.isSmall ? 14 : 18}
                                     color={isActive ? COLORS.white : (isDangerTab && dangerCount > 0 ? COLORS.error : COLORS.textMuted)}
                                 />
                                 <Text style={[
                                     styles.filterTabText,
+                                    r.isSmall && { fontSize: 11 },
                                     isActive && styles.filterTabTextActive,
-                                    !isActive && isDangerTab && dangerCount > 0 && { color: COLORS.error, fontWeight: '700' },
+                                    !isActive && isDangerTab && dangerCount > 0 && { color: COLORS.error },
                                 ]}>
                                     {filter.label}
                                 </Text>
-                                <View style={[
-                                    styles.filterCount,
-                                    isActive && styles.filterCountActive,
-                                    dangerActive && { backgroundColor: 'rgba(255,255,255,0.25)' },
-                                    !isActive && isDangerTab && dangerCount > 0 && { backgroundColor: COLORS.errorLight },
-                                ]}>
-                                    <Text style={[
-                                        styles.filterCountText,
-                                        isActive && styles.filterCountTextActive,
-                                        !isActive && isDangerTab && dangerCount > 0 && { color: COLORS.error, fontWeight: '800' },
-                                    ]}>
-                                        {count}
-                                    </Text>
-                                </View>
                             </TouchableOpacity>
                         );
                     })}
-                </View>
+                </ScrollView>
 
                 {/* Filters right side: Search */}
-                <View style={[styles.filterBarRight, r.isSmall && { marginTop: SPACING.md }]} >
-
-                    {/* Search */}
-                    <View style={styles.searchBox}>
-                        <Ionicons name="search-outline" size={20} color={COLORS.textMuted} />
+                <View style={[styles.filterBarRight, r.isSmall && { width: '100%', marginTop: 0 }]} >
+                    <View style={[styles.searchBox, r.isSmall && { flex: 1, height: 38 }]}>
+                        <Ionicons name="search-outline" size={r.isSmall ? 18 : 20} color={COLORS.textMuted} />
                         <TextInput
-                            style={styles.searchInput}
+                            style={[styles.searchInput, r.isSmall && { fontSize: 13 }]}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
-                            placeholder="Search medicines..."
+                            placeholder="Search products..."
                             placeholderTextColor={COLORS.textMuted}
                         />
                         {searchQuery.length > 0 && (
                             <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+                                <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -982,16 +1055,24 @@ export default function InventoryScreen({ navigation }) {
             </View>
 
             {/* ─── TABLE ─── */}
-            <View style={styles.tableContainer}>
-                {/* Table Header */}
-                <View style={styles.tableHeader}>
-                    <Text style={[styles.th, { flex: 2.5 }]}>Medicine</Text>
-                    <Text style={[styles.th, { flex: 0.8 }]}>MRP</Text>
-                    <Text style={[styles.th, { flex: 0.8, textAlign: 'center' }]}>Stock</Text>
-                    <Text style={[styles.th, { flex: 1.2, paddingLeft: SPACING.lg }]}>Expiry</Text>
-                    <Text style={[styles.th, { flex: 1.2, paddingLeft: SPACING.lg }]}>Last Updated</Text>
-                    <Text style={[styles.th, { flex: 1.1, textAlign: 'center' }]}>Actions</Text>
-                </View>
+            <View style={[
+                styles.tableContainer,
+                r.isSmall && {
+                    marginHorizontal: SPACING.md,
+                    marginTop: SPACING.md
+                }
+            ]}>
+                {/* Table Header - Hidden on Small screens */}
+                {!r.isSmall && (
+                    <View style={styles.tableHeader}>
+                        <Text style={[styles.th, { flex: 2.5 }]}>Medicine</Text>
+                        <Text style={[styles.th, { flex: 0.8 }]}>MRP</Text>
+                        <Text style={[styles.th, { flex: 0.8, textAlign: 'center' }]}>Stock</Text>
+                        <Text style={[styles.th, { flex: 1.2, paddingLeft: SPACING.lg }]}>Expiry</Text>
+                        <Text style={[styles.th, { flex: 1.2, paddingLeft: SPACING.lg }]}>Last Updated</Text>
+                        <Text style={[styles.th, { flex: 1.1, textAlign: 'center' }]}>Actions</Text>
+                    </View>
+                )}
 
                 {/* Table Body */}
                 {loading ? (
@@ -1502,8 +1583,8 @@ export default function InventoryScreen({ navigation }) {
                             </View>
                         )}
 
-                        {/* Column Headers — only show when there are items to review */}
-                        {!autoImportError && (
+                        {/* Column Headers — only show when there are items to review and NOT on small screen */}
+                        {!autoImportError && !r.isSmall && (
                             <View style={styles.aiTableHeader}>
                                 <Text style={[styles.aiTh, { flex: 2.2 }]}>Medicine Name *</Text>
                                 <Text style={[styles.aiTh, { flex: 0.7 }]}>Qty</Text>
@@ -1523,109 +1604,198 @@ export default function InventoryScreen({ navigation }) {
                                     <Text style={styles.aiEmptyText}>No items — all rows removed</Text>
                                 </View>
                             ) : (
-                                autoImportItems.map((item, idx) => (
-                                    <View
-                                        key={item._key}
-                                        style={[styles.aiTableRow, idx % 2 === 0 && styles.aiTableRowAlt]}
-                                    >
-                                        {/* Medicine Name */}
-                                        <View style={{ flex: 2.2, paddingRight: 6 }}>
-                                            <TextInput
-                                                style={styles.aiCellInput}
-                                                value={item.medicine_name}
-                                                onChangeText={(v) => updateAutoImportRow(item._key, 'medicine_name', v)}
-                                                placeholder="Medicine name"
-                                                placeholderTextColor={COLORS.textMuted}
-                                            />
-                                        </View>
-                                        {/* Quantity */}
-                                        <View style={{ flex: 0.7, paddingRight: 6 }}>
-                                            <TextInput
-                                                style={styles.aiCellInput}
-                                                value={item.quantity}
-                                                onChangeText={(v) => updateAutoImportRow(item._key, 'quantity', v)}
-                                                placeholder="0"
-                                                placeholderTextColor={COLORS.textMuted}
-                                                keyboardType="numeric"
-                                            />
-                                        </View>
-                                        {/* MRP */}
-                                        <View style={{ flex: 0.8, paddingRight: 6 }}>
-                                            <TextInput
-                                                style={styles.aiCellInput}
-                                                value={item.mrp}
-                                                onChangeText={(v) => updateAutoImportRow(item._key, 'mrp', v)}
-                                                placeholder="0.00"
-                                                placeholderTextColor={COLORS.textMuted}
-                                                keyboardType="numeric"
-                                            />
-                                        </View>
-                                        {/* Cost Price */}
-                                        <View style={{ flex: 0.8, paddingRight: 6 }}>
-                                            <TextInput
-                                                style={styles.aiCellInput}
-                                                value={item.cost_price}
-                                                onChangeText={(v) => updateAutoImportRow(item._key, 'cost_price', v)}
-                                                placeholder="0.00"
-                                                placeholderTextColor={COLORS.textMuted}
-                                                keyboardType="numeric"
-                                            />
-                                        </View>
-                                        {/* Supplier Name */}
-                                        <View style={{ flex: 1.5, paddingRight: 6 }}>
-                                            <TextInput
-                                                style={styles.aiCellInput}
-                                                value={item.supplier_name}
-                                                onChangeText={(v) => updateAutoImportRow(item._key, 'supplier_name', v)}
-                                                placeholder="Supplier"
-                                                placeholderTextColor={COLORS.textMuted}
-                                            />
-                                        </View>
-                                        {/* Expiry Date */}
-                                        <View style={{ flex: 1.3, paddingRight: 6 }}>
-                                            {Platform.OS === 'web' ? (
-                                                React.createElement('input', {
-                                                    type: 'date',
-                                                    value: item.expiry_date,
-                                                    onChange: (e) => updateAutoImportRow(item._key, 'expiry_date', e.target.value),
-                                                    style: {
-                                                        width: '100%',
-                                                        height: 40,
-                                                        backgroundColor: COLORS.bgInput,
-                                                        border: `1px solid ${COLORS.border}`,
-                                                        borderRadius: 8,
-                                                        paddingLeft: 10,
-                                                        paddingRight: 10,
-                                                        fontSize: 14,
-                                                        color: COLORS.textPrimary,
-                                                        fontFamily: 'inherit',
-                                                        outline: 'none',
-                                                        cursor: 'pointer',
-                                                        boxSizing: 'border-box',
-                                                    },
-                                                })
-                                            ) : (
+                                autoImportItems.map((item, idx) => {
+                                    if (r.isSmall) {
+                                        return (
+                                            <View key={item._key} style={styles.aiCard}>
+                                                <View style={styles.aiCardHeader}>
+                                                    <Text style={styles.aiCardIndex}>#{idx + 1}</Text>
+                                                    <TouchableOpacity
+                                                        onPress={() => removeAutoImportRow(item._key)}
+                                                        style={styles.aiRemoveBtnSmall}
+                                                    >
+                                                        <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                                <View style={styles.aiCardBody}>
+                                                    <View style={styles.aiFieldGroup}>
+                                                        <Text style={styles.aiFieldLabel}>Medicine Name *</Text>
+                                                        <TextInput
+                                                            style={styles.aiCellInput}
+                                                            value={item.medicine_name}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'medicine_name', v)}
+                                                            placeholder="e.g. Paracetamol"
+                                                        />
+                                                    </View>
+                                                    <View style={styles.aiFieldRow}>
+                                                        <View style={{ flex: 1, gap: 4 }}>
+                                                            <Text style={styles.aiFieldLabel}>Qty</Text>
+                                                            <TextInput
+                                                                style={styles.aiCellInput}
+                                                                value={item.quantity}
+                                                                onChangeText={(v) => updateAutoImportRow(item._key, 'quantity', v)}
+                                                                keyboardType="numeric"
+                                                            />
+                                                        </View>
+                                                        <View style={{ flex: 1, gap: 4 }}>
+                                                            <Text style={styles.aiFieldLabel}>MRP</Text>
+                                                            <TextInput
+                                                                style={styles.aiCellInput}
+                                                                value={item.mrp}
+                                                                onChangeText={(v) => updateAutoImportRow(item._key, 'mrp', v)}
+                                                                keyboardType="numeric"
+                                                            />
+                                                        </View>
+                                                    </View>
+                                                    <View style={styles.aiFieldRow}>
+                                                        <View style={{ flex: 1, gap: 4 }}>
+                                                            <Text style={styles.aiFieldLabel}>Cost</Text>
+                                                            <TextInput
+                                                                style={styles.aiCellInput}
+                                                                value={item.cost_price}
+                                                                onChangeText={(v) => updateAutoImportRow(item._key, 'cost_price', v)}
+                                                                keyboardType="numeric"
+                                                            />
+                                                        </View>
+                                                        <View style={{ flex: 1, gap: 4 }}>
+                                                            <Text style={styles.aiFieldLabel}>Expiry</Text>
+                                                            {Platform.OS === 'web' ? (
+                                                                React.createElement('input', {
+                                                                    type: 'date',
+                                                                    value: item.expiry_date,
+                                                                    onChange: (e) => updateAutoImportRow(item._key, 'expiry_date', e.target.value),
+                                                                    style: {
+                                                                        width: '100%',
+                                                                        height: 40,
+                                                                        backgroundColor: COLORS.white,
+                                                                        border: `1px solid ${COLORS.border}`,
+                                                                        borderRadius: 8,
+                                                                        paddingHorizontal: 10,
+                                                                        fontSize: 14,
+                                                                        fontFamily: 'inherit',
+                                                                        outline: 'none',
+                                                                        boxSizing: 'border-box'
+                                                                    },
+                                                                })
+                                                            ) : (
+                                                                <TextInput
+                                                                    style={styles.aiCellInput}
+                                                                    value={item.expiry_date}
+                                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'expiry_date', v)}
+                                                                    placeholder="YYYY-MM-DD"
+                                                                />
+                                                            )}
+                                                        </View>
+                                                    </View>
+                                                    <View style={styles.aiFieldGroup}>
+                                                        <Text style={styles.aiFieldLabel}>Supplier</Text>
+                                                        <TextInput
+                                                            style={styles.aiCellInput}
+                                                            value={item.supplier_name}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'supplier_name', v)}
+                                                        />
+                                                    </View>
+                                                </View>
+                                            </View>
+                                        );
+                                    }
+                                    return (
+                                        <View
+                                            key={item._key}
+                                            style={[styles.aiTableRow, idx % 2 === 0 && styles.aiTableRowAlt]}
+                                        >
+                                            <View style={{ flex: 2.2, paddingRight: 6 }}>
                                                 <TextInput
                                                     style={styles.aiCellInput}
-                                                    value={item.expiry_date}
-                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'expiry_date', v)}
-                                                    placeholder="YYYY-MM-DD"
+                                                    value={item.medicine_name}
+                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'medicine_name', v)}
+                                                    placeholder="Medicine name"
                                                     placeholderTextColor={COLORS.textMuted}
                                                 />
-                                            )}
+                                            </View>
+                                            <View style={{ flex: 0.7, paddingRight: 6 }}>
+                                                <TextInput
+                                                    style={styles.aiCellInput}
+                                                    value={item.quantity}
+                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'quantity', v)}
+                                                    placeholder="0"
+                                                    placeholderTextColor={COLORS.textMuted}
+                                                    keyboardType="numeric"
+                                                />
+                                            </View>
+                                            <View style={{ flex: 0.8, paddingRight: 6 }}>
+                                                <TextInput
+                                                    style={styles.aiCellInput}
+                                                    value={item.mrp}
+                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'mrp', v)}
+                                                    placeholder="0.00"
+                                                    placeholderTextColor={COLORS.textMuted}
+                                                    keyboardType="numeric"
+                                                />
+                                            </View>
+                                            <View style={{ flex: 0.8, paddingRight: 6 }}>
+                                                <TextInput
+                                                    style={styles.aiCellInput}
+                                                    value={item.cost_price}
+                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'cost_price', v)}
+                                                    placeholder="0.00"
+                                                    placeholderTextColor={COLORS.textMuted}
+                                                    keyboardType="numeric"
+                                                />
+                                            </View>
+                                            <View style={{ flex: 1.5, paddingRight: 6 }}>
+                                                <TextInput
+                                                    style={styles.aiCellInput}
+                                                    value={item.supplier_name}
+                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'supplier_name', v)}
+                                                    placeholder="Supplier"
+                                                    placeholderTextColor={COLORS.textMuted}
+                                                />
+                                            </View>
+                                            <View style={{ flex: 1.3, paddingRight: 6 }}>
+                                                {Platform.OS === 'web' ? (
+                                                    React.createElement('input', {
+                                                        type: 'date',
+                                                        value: item.expiry_date,
+                                                        onChange: (e) => updateAutoImportRow(item._key, 'expiry_date', e.target.value),
+                                                        style: {
+                                                            width: '100%',
+                                                            height: 40,
+                                                            backgroundColor: COLORS.bgInput,
+                                                            border: `1px solid ${COLORS.border}`,
+                                                            borderRadius: 8,
+                                                            paddingLeft: 10,
+                                                            paddingRight: 10,
+                                                            fontSize: 14,
+                                                            color: COLORS.textPrimary,
+                                                            fontFamily: 'inherit',
+                                                            outline: 'none',
+                                                            cursor: 'pointer',
+                                                            boxSizing: 'border-box',
+                                                        },
+                                                    })
+                                                ) : (
+                                                    <TextInput
+                                                        style={styles.aiCellInput}
+                                                        value={item.expiry_date}
+                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'expiry_date', v)}
+                                                        placeholder="YYYY-MM-DD"
+                                                        placeholderTextColor={COLORS.textMuted}
+                                                    />
+                                                )}
+                                            </View>
+                                            <View style={{ flex: 0.4, alignItems: 'center' }}>
+                                                <TouchableOpacity
+                                                    onPress={() => removeAutoImportRow(item._key)}
+                                                    style={styles.aiRemoveBtn}
+                                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                                >
+                                                    <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                                                </TouchableOpacity>
+                                            </View>
                                         </View>
-                                        {/* Remove Row */}
-                                        <View style={{ flex: 0.4, alignItems: 'center' }}>
-                                            <TouchableOpacity
-                                                onPress={() => removeAutoImportRow(item._key)}
-                                                style={styles.aiRemoveBtn}
-                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                            >
-                                                <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                ))
+                                    );
+                                })
                             )}
                         </ScrollView>
 
@@ -1647,6 +1817,13 @@ export default function InventoryScreen({ navigation }) {
                 </View>
             </Modal>
 
+            {/* ─── BILL SCANNER MODAL ─── */}
+            <BillScannerModal
+                visible={scannerVisible}
+                onClose={() => setScannerVisible(false)}
+                onCaptured={(file) => processAutoImportFile(file)}
+            />
+
             {/* ─── SUCCESS TOAST ─── */}
             {toastVisible && (
                 <View style={styles.toastContainer} pointerEvents="none">
@@ -1657,6 +1834,7 @@ export default function InventoryScreen({ navigation }) {
                 </View>
             )}
         </View>
+
     );
 }
 
@@ -1724,7 +1902,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.white,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
-        gap: SPACING.lg,
+        gap: SPACING.md,
     },
     filterTabs: {
         flexDirection: 'row',
@@ -2368,4 +2546,127 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: COLORS.white,
     },
+    // ─── AUTO IMPORT MODAL ENHANCEMENTS ───
+    aiCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: RADIUS.md,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        marginVertical: SPACING.sm,
+        padding: SPACING.md,
+        ...SHADOWS.sm,
+    },
+    aiCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.borderLight,
+        paddingBottom: SPACING.sm,
+        marginBottom: SPACING.md,
+    },
+    aiCardIndex: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: COLORS.primary,
+        backgroundColor: COLORS.primaryGhost,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    aiRemoveBtnSmall: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: COLORS.errorLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    aiCardBody: {
+        gap: SPACING.md,
+    },
+    aiFieldRow: {
+        flexDirection: 'row',
+        gap: SPACING.md,
+    },
+    aiFieldGroup: {
+        gap: 4,
+    },
+    aiFieldLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: COLORS.textMuted,
+        textTransform: 'uppercase',
+    },
+    // ─── MOBILE CARD STYLES ───
+    mobileCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: RADIUS.md,
+        marginHorizontal: 8,
+        marginVertical: 6,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: COLORS.borderLight,
+        ...SHADOWS.sm,
+    },
+    mobileCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 10,
+    },
+    mobileCardPriceBox: {
+        backgroundColor: COLORS.primaryGhost,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    mobileCardBody: {
+        flexDirection: 'row',
+        backgroundColor: COLORS.bgLight,
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 12,
+        gap: 20,
+    },
+    mobileCardStat: {
+        flex: 1,
+    },
+    mobileStatLabel: {
+        fontSize: 10,
+        color: COLORS.textMuted,
+        textTransform: 'uppercase',
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    mobileStatValue: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: COLORS.textPrimary,
+    },
+    mobileCardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.borderLight,
+    },
+    mobileActionGroup: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    mobileActionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 8,
+    },
+    mobileActionText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+    },
 });
+
+
