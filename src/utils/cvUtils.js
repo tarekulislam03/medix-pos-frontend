@@ -95,7 +95,6 @@ export class DocScanner {
     cv.cvtColor(image, gray, cv.COLOR_RGBA2GRAY)
 
     const blur = new cv.Mat()
-    cv.GaussianBlur(gray, blur, new cv.Size(7, 7), 0)
 
     const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(MORPH, MORPH))
 
@@ -222,43 +221,27 @@ export class DocScanner {
 
   enhance(gray) {
 
-    // remove small noise
-    const blur = new cv.Mat()
-    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0)
+    // normalize contrast
+    const norm = new cv.Mat()
+    cv.normalize(gray, norm, 0, 255, cv.NORM_MINMAX)
 
-    // normalize lighting
-    const normalized = new cv.Mat()
-    cv.normalize(blur, normalized, 0, 255, cv.NORM_MINMAX)
-
-    // adaptive threshold (document scanner effect)
+    // strong document threshold
     const thresh = new cv.Mat()
     cv.adaptiveThreshold(
-      normalized,
+      norm,
       thresh,
       255,
       cv.ADAPTIVE_THRESH_GAUSSIAN_C,
       cv.THRESH_BINARY,
-      31,
-      10
+      25,
+      8
     )
 
-    // sharpen text slightly
-    const sharpen = new cv.Mat()
-    const kernel = cv.matFromArray(3, 3, cv.CV_32F, [
-      0, -1, 0,
-      -1, 5, -1,
-      0, -1, 0
-    ])
+    norm.delete()
 
-    cv.filter2D(thresh, sharpen, cv.CV_8U, kernel)
-
-    blur.delete()
-    normalized.delete()
-    thresh.delete()
-    kernel.delete()
-
-    return sharpen
+    return thresh
   }
+
 
 
   async scan(source) {
