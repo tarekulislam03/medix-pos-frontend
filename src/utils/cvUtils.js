@@ -94,12 +94,12 @@ export class DocScanner {
     const gray = new cv.Mat()
     cv.cvtColor(image, gray, cv.COLOR_RGBA2GRAY)
 
-    const blur = new cv.Mat()
+    // const blur = new cv.Mat() // Removed as per instruction
 
     const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(MORPH, MORPH))
 
     const dilated = new cv.Mat()
-    cv.morphologyEx(blur, dilated, cv.MORPH_CLOSE, kernel)
+    cv.morphologyEx(gray, dilated, cv.MORPH_CLOSE, kernel) // Changed from blur to gray
 
     const edged = new cv.Mat()
     cv.Canny(dilated, edged, 0, CANNY)
@@ -151,7 +151,6 @@ export class DocScanner {
     }
 
     gray.delete()
-    blur.delete()
     kernel.delete()
     dilated.delete()
     edged.delete()
@@ -245,44 +244,43 @@ export class DocScanner {
 
 
   async scan(source) {
+    try {
+      await waitForOpenCV()
+      let src = cv.imread(source)
 
-    await waitForOpenCV()
+      const ratio = src.rows / 500
 
-    let src = cv.imread(source)
+      const resized = new cv.Mat()
+      cv.resize(src, resized, new cv.Size(), 500 / src.rows, 500 / src.rows)
 
-    const ratio = src.rows / 500
+      const contour = this.getContour(resized)
 
-    const resized = new cv.Mat()
-    cv.resize(src, resized, new cv.Size(), 500 / src.rows, 500 / src.rows)
+      const scaled = new cv.Mat(4, 1, cv.CV_32SC2)
 
-    const contour = this.getContour(resized)
+      for (let i = 0; i < 4; i++) {
+        scaled.data32S[i * 2] = contour.data32S[i * 2] * ratio
+        scaled.data32S[i * 2 + 1] = contour.data32S[i * 2 + 1] * ratio
+      }
 
-    const scaled = new cv.Mat(4, 1, cv.CV_32SC2)
+      const warped = this.perspectiveTransform(src, scaled)
 
-    for (let i = 0; i < 4; i++) {
-      scaled.data32S[i * 2] = contour.data32S[i * 2] * ratio
-      scaled.data32S[i * 2 + 1] = contour.data32S[i * 2 + 1] * ratio
+      const gray = new cv.Mat()
+      cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY)
+
+      const result = this.enhance(gray)
+
+      const canvas = document.createElement("canvas")
+      cv.imshow(canvas, result)
+
+      // cleanup
+      src.delete(); resized.delete(); contour.delete();
+      scaled.delete(); warped.delete(); gray.delete(); result.delete();
+
+      return canvas
+    } catch (e) {
+      console.error("OpenCV Scan Error:", e);
+      throw new Error("AI failed to process this image. Try a clearer photo.");
     }
-
-    const warped = this.perspectiveTransform(src, scaled)
-
-    const gray = new cv.Mat()
-    cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY)
-
-    const result = this.enhance(gray)
-
-    const canvas = document.createElement("canvas")
-    cv.imshow(canvas, result)
-
-    src.delete()
-    resized.delete()
-    contour.delete()
-    scaled.delete()
-    warped.delete()
-    gray.delete()
-    result.delete()
-
-    return canvas
   }
 
 }
