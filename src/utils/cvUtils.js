@@ -85,8 +85,8 @@ export class DocScanner {
 
   getContour(image) {
 
-    const MORPH = 9
-    const CANNY = 84
+    const MORPH = 5
+    const CANNY = 75
 
     const height = image.rows
     const width = image.cols
@@ -222,24 +222,44 @@ export class DocScanner {
 
   enhance(gray) {
 
-    const normalized = new cv.Mat()
-    cv.normalize(gray, normalized, 0, 255, cv.NORM_MINMAX)
-
-    const denoise = new cv.Mat()
-    cv.bilateralFilter(normalized, denoise, 9, 75, 75)
-
+    // remove small noise
     const blur = new cv.Mat()
-    cv.GaussianBlur(denoise, blur, new cv.Size(0, 0), 1)
+    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0)
 
-    const sharp = new cv.Mat()
-    cv.addWeighted(denoise, 1.5, blur, -0.5, 0, sharp)
+    // normalize lighting
+    const normalized = new cv.Mat()
+    cv.normalize(blur, normalized, 0, 255, cv.NORM_MINMAX)
 
-    normalized.delete()
-    denoise.delete()
+    // adaptive threshold (document scanner effect)
+    const thresh = new cv.Mat()
+    cv.adaptiveThreshold(
+      normalized,
+      thresh,
+      255,
+      cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+      cv.THRESH_BINARY,
+      31,
+      10
+    )
+
+    // sharpen text slightly
+    const sharpen = new cv.Mat()
+    const kernel = cv.matFromArray(3, 3, cv.CV_32F, [
+      0, -1, 0,
+      -1, 5, -1,
+      0, -1, 0
+    ])
+
+    cv.filter2D(thresh, sharpen, cv.CV_8U, kernel)
+
     blur.delete()
+    normalized.delete()
+    thresh.delete()
+    kernel.delete()
 
-    return sharp
+    return sharpen
   }
+
 
   async scan(source) {
 

@@ -26,18 +26,18 @@ const BillScannerModal = ({ visible, onClose, onCaptured }) => {
 
   const capture = useCallback(async () => {
     if (!webcamRef.current) return;
-    
+
     setProcessing(true);
     try {
       // Ensure video stream is ready
       const video = webcamRef.current.video;
       if (!video || video.readyState !== 4) {
-          // Wait a bit more if not ready
-          await new Promise(resolve => setTimeout(resolve, 300));
+        // Wait a bit more if not ready
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
 
       let imageSrc = webcamRef.current.getScreenshot();
-      
+
       if (!imageSrc) {
         // Retry with a delay
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -62,12 +62,12 @@ const BillScannerModal = ({ visible, onClose, onCaptured }) => {
         maxWidthOrHeight: 1920,
         useWebWorker: true,
       };
-      
+
       const compressedFile = await imageCompression(
-        new File([processedBlob], "scanned_bill.png", { type: "image/png" }), 
+        new File([processedBlob], "scanned_bill.png", { type: "image/png" }),
         options
       );
-      
+
       const previewUrl = URL.createObjectURL(compressedFile);
       setPreviewImage(previewUrl);
       setProcessedFile(compressedFile);
@@ -141,13 +141,13 @@ const BillScannerModal = ({ visible, onClose, onCaptured }) => {
                 screenshotFormat="image/jpeg"
                 videoConstraints={{
                   facingMode: "environment",
-                  width: { ideal: 1920 },
-                  height: { ideal: 1080 }
+                  width: { ideal: 2560 },
+                  height: { ideal: 1440 }
                 }}
                 onUserMedia={() => setCameraReady(true)}
                 style={styles.webcam}
               />
-              
+
               {(!cameraReady || processing) && (
                 <View style={styles.overlay}>
                   <ActivityIndicator size="large" color={COLORS.primary} />
@@ -178,15 +178,15 @@ const BillScannerModal = ({ visible, onClose, onCaptured }) => {
                 <Ionicons name="refresh" size={20} color={COLORS.textPrimary} />
                 <Text style={styles.retakeText}>Retake</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
                 <Text style={styles.confirmText}>Confirm & Scan</Text>
                 <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity 
-              style={[styles.captureButton, (processing || !cameraReady) && styles.disabledButton]} 
+            <TouchableOpacity
+              style={[styles.captureButton, (processing || !cameraReady) && styles.disabledButton]}
               onPress={capture}
               disabled={processing || !cameraReady}
             >
