@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   webcam: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    objectFit: 'contain',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

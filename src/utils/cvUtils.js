@@ -65,32 +65,27 @@ export const processBillImage = async (source) => {
     }
   }
 
-  let finalOutput;
+  let finalResult;
 
   if (largestContour) {
-    // 5. Perspective Transform (Crop to bill)
-    finalOutput = perspectiveTransform(src, largestContour);
+    // 5. Perspective Transform (Crop to bill) - keeps color
+    finalResult = perspectiveTransform(src, largestContour);
     largestContour.delete();
   } else {
-    // If no 4-corner contour found, use the original image but enhanced
-    finalOutput = src.clone();
+    // If no 4-corner contour found, use the original image
+    finalResult = src.clone();
   }
 
-  // 6. Enhancement (Grayscale -> Adaptive Threshold for professional "scanned" look)
+  // 6. Enhancement: Instead of aggressive binarization (grayscaling/thresholding),
+  // we use a light contrast/brightness boost to keep the image readable but natural.
+  // This avoids the "gritty" look that was hurting OCR and user experience.
+  // alpha (1.0-3.0) for contrast, beta (0-100) for brightness
   let enhanced = new cv.Mat();
-  cv.cvtColor(finalOutput, gray, cv.COLOR_RGBA2GRAY, 0);
-  
-  // Use adaptive threshold for document-like scan appearance
-  // It gives that crisp black-and-white (or high contrast gray) look
-  cv.adaptiveThreshold(gray, enhanced, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 21, 10);
-
-  // Re-convert to RGBA for final output (keeps it consistent for canvas)
-  let finalResult = new cv.Mat();
-  cv.cvtColor(enhanced, finalResult, cv.COLOR_GRAY2RGBA);
+  finalResult.convertTo(enhanced, -1, 1.1, 10); // Slight boost
 
   // Create a canvas to get the blob
   const outCanvas = document.createElement('canvas');
-  cv.imshow(outCanvas, finalResult);
+  cv.imshow(outCanvas, enhanced);
   
   // Cleanup
   src.delete();
@@ -100,13 +95,14 @@ export const processBillImage = async (source) => {
   edged.delete();
   contours.delete();
   hierarchy.delete();
+  finalResult.delete();
   enhanced.delete();
-  finalOutput.delete();
+  
   
   return new Promise((resolve) => {
     outCanvas.toBlob((blob) => {
       resolve(blob);
-    }, 'image/jpeg', 0.85);
+    }, 'image/jpeg', 0.92); // Slightly higher quality
   });
 };
 
