@@ -29,8 +29,22 @@ const BillScannerModal = ({ visible, onClose, onCaptured }) => {
     
     setProcessing(true);
     try {
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (!imageSrc) throw new Error("Failed to capture image");
+      // Ensure video stream is ready
+      const video = webcamRef.current.video;
+      if (!video || video.readyState !== 4) {
+          // Wait a bit more if not ready
+          await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      let imageSrc = webcamRef.current.getScreenshot();
+      
+      if (!imageSrc) {
+        // Retry with a delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        imageSrc = webcamRef.current.getScreenshot();
+      }
+
+      if (!imageSrc) throw new Error("Camera not responding. please try again.");
 
       const img = new Image();
       img.src = imageSrc;
@@ -54,13 +68,12 @@ const BillScannerModal = ({ visible, onClose, onCaptured }) => {
         options
       );
       
-      // Instead of returning, show preview
       const previewUrl = URL.createObjectURL(compressedFile);
       setPreviewImage(previewUrl);
       setProcessedFile(compressedFile);
     } catch (error) {
-      console.error("Capture/Process Error:", error);
-      alert("Failed to process image. Please try again.");
+      console.error("Capture Error:", error);
+      alert(error.message || "Failed to process image. Please try again.");
     } finally {
       setProcessing(false);
     }
