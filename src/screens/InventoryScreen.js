@@ -49,6 +49,7 @@ const EMPTY_FORM = {
     supplier_name: '',
     description: '',
     tablets_per_strip: '',
+    batch_number: '',
 };
 
 // ─── FORM FIELD COMPONENT ───────────────────────
@@ -190,7 +191,9 @@ export default function InventoryScreen({ navigation }) {
     const [autoImportReviewVisible, setAutoImportReviewVisible] = useState(false);
     const [autoImportItems, setAutoImportItems] = useState([]);
     const [autoImportConfirming, setAutoImportConfirming] = useState(false);
-    const [autoImportError, setAutoImportError] = useState(''); // in-app error (web-safe)
+    const [autoImportError, setAutoImportError] = useState('');
+    const [autoImportBillNo, setAutoImportBillNo] = useState('');
+    const [autoImportBillDate, setAutoImportBillDate] = useState(''); // in-app error (web-safe)
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [scannerVisible, setScannerVisible] = useState(false);
@@ -455,8 +458,9 @@ export default function InventoryScreen({ navigation }) {
         try {
             const result = await autoImportBill(file);
 
-            // Log raw response so you can inspect in browser console
-            console.log('[AutoImport] Raw API response:', JSON.stringify(result, null, 2));
+            // Extract metadata if available
+            setAutoImportBillNo(result?.bill_no ?? result?.invoice_no ?? result?.data?.bill_no ?? '');
+            setAutoImportBillDate(result?.bill_date ?? result?.date ?? result?.data?.date ?? '');
 
             // Try every common envelope shape the backend might use
             let extracted =
@@ -471,77 +475,35 @@ export default function InventoryScreen({ navigation }) {
                 [];
 
             if (!Array.isArray(extracted) || extracted.length === 0) {
-                // Show what we actually got so the user/dev can debug
                 const preview = JSON.stringify(result).slice(0, 200);
-                setAutoImportError(
-                    `No medicines could be extracted from the image.\n\nAPI returned: ${preview}`
-                );
-                setAutoImportReviewVisible(true); // open modal to show the error
+                setAutoImportError(`No medicines could be extracted. API info: ${preview}`);
+                setAutoImportReviewVisible(true);
                 return;
             }
 
-            // Log each extracted item so we can see exact field names in the console
-            extracted.forEach((item, idx) => {
-                console.log(`[AutoImport] Item[${idx}] keys:`, Object.keys(item), '| values:', item);
-            });
-
-            // Normalise each row — try every common field name the API might use
             const normalised = extracted.map((item, idx) => ({
                 _key: String(idx),
-                medicine_name:
-                    item.medicine_name ??
-                    item.name ??
-                    item.product_name ??
-                    item.drug_name ??
-                    item.item_name ??
-                    item.brand_name ??
-                    item.medicine ??
-                    item.product ??
-                    item.title ??
-                    item.description ??
-                    '',
+                medicine_name: String(
+                    item.medicine_name ?? item.name ?? item.product_name ?? item.drug_name ?? item.item_name ?? 
+                    item.brand_name ?? item.medicine ?? item.product ?? item.title ?? item.description ?? ''
+                ),
                 quantity: String(
-                    item.quantity ??
-                    item.qty ??
-                    item.stock ??
-                    item.units ??
-                    ''
+                    item.quantity ?? item.qty ?? item.stock ?? item.units ?? ''
                 ),
                 mrp: String(
-                    item.mrp ??
-                    item.price ??
-                    item.unit_price ??
-                    item.rate ??
-                    item.cost ??
-                    item.amount ??
-                    ''
+                    item.mrp ?? item.price ?? item.unit_price ?? item.rate ?? item.cost ?? item.amount ?? ''
                 ),
                 cost_price: String(
-                    item.cost_price ??
-                    item.cost ??
-                    item.purchase_price ??
-                    item.buy_price ??
-                    item.purchase_rate ??
-                    item.net_rate ??
-                    ''
+                    item.cost_price ?? item.cost ?? item.purchase_price ?? item.buy_price ?? item.purchase_rate ?? item.net_rate ?? ''
                 ),
                 supplier_name: String(
-                    item.supplier_name ??
-                    item.supplier ??
-                    item.vendor_name ??
-                    item.vendor ??
-                    item.mfg ??
-                    item.manufacturer ??
-                    ''
+                    item.supplier_name ?? item.supplier ?? item.vendor_name ?? item.vendor ?? item.mfg ?? item.manufacturer ?? ''
                 ),
                 expiry_date: parseExpiryDate(
-                    item.expiry_date ??
-                    item.expiry ??
-                    item.exp_date ??
-                    item.exp ??
-                    item.expiration ??
-                    item.expiration_date ??
-                    ''
+                    item.expiry_date || item.expiry || item.exp_date || item.exp || item.expiration || item.expiration_date || ''
+                ),
+                batch_number: String(
+                    item.batch_number || item.batch || item.batch_no || ''
                 ),
             }));
             setAutoImportItems(normalised);
@@ -597,6 +559,7 @@ export default function InventoryScreen({ navigation }) {
                         cost_price: Number(item.cost_price) || undefined,
                         supplier_name: item.supplier_name ? item.supplier_name.trim() : undefined,
                         expiry_date: item.expiry_date || undefined,
+                        batch_number: item.batch_number || undefined,
                         alert_threshold: 10,
                     });
 
@@ -1288,7 +1251,19 @@ export default function InventoryScreen({ navigation }) {
                                                 editable={modalMode !== 'view'}
                                             />
                                         </View>
-                                        <View style={{ flex: 1.5 }}>
+                                        <View style={{ flex: 1 }}>
+                                            <FormField
+                                                label="Batch Number"
+                                                value={formData.batch_number}
+                                                onChangeText={(v) => setFormData({ ...formData, batch_number: v })}
+                                                placeholder="e.g. B12345"
+                                                editable={modalMode !== 'view'}
+                                            />
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.formRow}>
+                                        <View style={{ flex: 1 }}>
                                             <FormField
                                                 label="Supplier Name"
                                                 value={formData.supplier_name}
@@ -1565,9 +1540,17 @@ export default function InventoryScreen({ navigation }) {
                                 </View>
                                 <View>
                                     <Text style={styles.modalTitle}>Review Extracted Medicines</Text>
-                                    <Text style={styles.autoImportSubtitle}>
-                                        {autoImportItems.length} item{autoImportItems.length !== 1 ? 's' : ''} detected — edit before confirming
-                                    </Text>
+                                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
+                                        {autoImportBillNo ? (
+                                            <Text style={styles.autoImportSubtitle}>Invoice: {autoImportBillNo}</Text>
+                                        ) : null}
+                                        {autoImportBillDate ? (
+                                            <Text style={styles.autoImportSubtitle}>Date: {autoImportBillDate}</Text>
+                                        ) : null}
+                                        <Text style={styles.autoImportSubtitle}>
+                                            {autoImportItems.length} item{autoImportItems.length !== 1 ? 's' : ''}
+                                        </Text>
+                                    </View>
                                 </View>
                             </View>
                             <TouchableOpacity onPress={closeAutoImportReview} style={styles.modalCloseBtn}>
@@ -1590,6 +1573,7 @@ export default function InventoryScreen({ navigation }) {
                                 <Text style={[styles.aiTh, { flex: 0.7 }]}>Qty</Text>
                                 <Text style={[styles.aiTh, { flex: 0.8 }]}>MRP</Text>
                                 <Text style={[styles.aiTh, { flex: 0.8 }]}>Cost</Text>
+                                <Text style={[styles.aiTh, { flex: 1.0 }]}>Batch</Text>
                                 <Text style={[styles.aiTh, { flex: 1.5 }]}>Supplier</Text>
                                 <Text style={[styles.aiTh, { flex: 1.3 }]}>Expiry</Text>
                                 <Text style={[styles.aiTh, { flex: 0.4 }]}></Text>
@@ -1741,6 +1725,15 @@ export default function InventoryScreen({ navigation }) {
                                                     placeholder="0.00"
                                                     placeholderTextColor={COLORS.textMuted}
                                                     keyboardType="numeric"
+                                                />
+                                            </View>
+                                            <View style={{ flex: 1.0, paddingRight: 6 }}>
+                                                <TextInput
+                                                    style={styles.aiCellInput}
+                                                    value={item.batch_number}
+                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'batch_number', v)}
+                                                    placeholder="Batch"
+                                                    placeholderTextColor={COLORS.textMuted}
                                                 />
                                             </View>
                                             <View style={{ flex: 1.5, paddingRight: 6 }}>

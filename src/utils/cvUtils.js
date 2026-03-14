@@ -1,173 +1,296 @@
-import cv from '@techstark/opencv-js';
+// cvUtils.js
+// JavaScript implementation equivalent to the provided Python document scanner
+// Requires: opencv.js
 
-/**
- * Loads OpenCV.js if not already loaded.
- * @returns {Promise}
- */
+import cv from "@techstark/opencv-js"
+
 export const waitForOpenCV = () => {
   return new Promise((resolve) => {
-    if (cv.Mat) {
-      resolve();
-    } else {
-      cv.onRuntimeInitialized = () => {
-        resolve();
-      };
-    }
-  });
-};
+    if (cv?.Mat) resolve()
+    else cv.onRuntimeInitialized = resolve
+  })
+}
 
-/**
- * Processes an image: detects edges, crops to the bill, and optimizes for OCR.
- * @param {HTMLImageElement|HTMLCanvasElement} source 
- * @returns {Promise<Blob>}
- */
-export const processBillImage = async (source) => {
-  await waitForOpenCV();
+export class DocScanner {
 
-  let src = cv.imread(source);
-  let gray = new cv.Mat();
-  let blurred = new cv.Mat();
-  let edged = new cv.Mat();
+  constructor(interactive = false, MIN_QUAD_AREA_RATIO = 0.25, MAX_QUAD_ANGLE_RANGE = 40) {
+    this.interactive = interactive
+    this.MIN_QUAD_AREA_RATIO = MIN_QUAD_AREA_RATIO
+    this.MAX_QUAD_ANGLE_RANGE = MAX_QUAD_ANGLE_RANGE
+  }
 
-  // 1. Grayscale
-  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  distance(a, b) {
+    return Math.hypot(a[0] - b[0], a[1] - b[1])
+  }
 
-  // 2. Blur to reduce noise
-  cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+  filterCorners(corners, minDist = 20) {
 
-  // 3. Canny edge detection
-  cv.Canny(blurred, edged, 75, 200);
+    const filtered = []
 
-  // 4. Find contours
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
-  cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    for (const c of corners) {
 
-  let largestContour = null;
-  let maxArea = 0;
+      let keep = true
 
-  for (let i = 0; i < contours.size(); ++i) {
-    let contour = contours.get(i); // Note: This allocates a Mat that must be deleted
-    let area = cv.contourArea(contour);
-
-    if (area > 5000) {
-      let peri = cv.arcLength(contour, true);
-      let approx = new cv.Mat();
-      cv.approxPolyDP(contour, approx, 0.02 * peri, true);
-
-      if (approx.rows === 4 && area > maxArea) {
-        if (largestContour) largestContour.delete();
-        largestContour = approx;
-        maxArea = area;
-      } else {
-        approx.delete();
+      for (const r of filtered) {
+        if (this.distance(r, c) < minDist) {
+          keep = false
+          break
+        }
       }
+
+      if (keep) filtered.push(c)
+
     }
-    contour.delete(); // Critical memory leak fix
+
+    return filtered
   }
 
-  let finalResult;
+  angleBetween(u, v) {
 
-  if (largestContour) {
-    // 5. Perspective Transform (Crop to bill)
-    finalResult = perspectiveTransform(src, largestContour);
-    largestContour.delete();
-  } else {
-    finalResult = src.clone();
+    const dot = u[0] * v[0] + u[1] * v[1]
+    const mu = Math.hypot(u[0], u[1])
+    const mv = Math.hypot(v[0], v[1])
+
+    return Math.acos(dot / (mu * mv)) * 180 / Math.PI
   }
 
-  // 6. HD B&W Enhancement for OCR
-  let enhanced = new cv.Mat();
-  let tempBlur = new cv.Mat();
+  getAngle(p1, p2, p3) {
 
-  // Convert cropped image to grayscale
-  cv.cvtColor(finalResult, enhanced, cv.COLOR_RGBA2GRAY, 0);
+    const v1 = [p1[0] - p2[0], p1[1] - p2[1]]
+    const v2 = [p3[0] - p2[0], p3[1] - p2[1]]
 
-  // Apply a very light blur to remove speckle noise before thresholding
-  cv.GaussianBlur(enhanced, tempBlur, new cv.Size(3, 3), 0);
-
-  // Adaptive Gaussian Thresholding: The secret to high-quality OCR
-  // blockSize (15) determines the size of a pixel neighborhood.
-  // C (10) is a constant subtracted from the mean to keep backgrounds white.
-  cv.adaptiveThreshold(
-    tempBlur,
-    enhanced,
-    255,
-    cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-    cv.THRESH_BINARY,
-    15,
-    10
-  );
-
-  // Create a canvas to get the blob
-  const outCanvas = document.createElement('canvas');
-  cv.imshow(outCanvas, enhanced);
-
-  // Cleanup
-  src.delete();
-  gray.delete();
-  blurred.delete();
-  edged.delete();
-  contours.delete();
-  hierarchy.delete();
-  finalResult.delete();
-  enhanced.delete();
-  tempBlur.delete();
-
-  return new Promise((resolve) => {
-    outCanvas.toBlob((blob) => {
-      resolve(blob);
-    }, 'image/jpeg', 0.95); // Bumped quality slightly
-  });
-};
-
-/**
- * Performs perspective transform to "flatten" the detected rectangle.
- */
-function perspectiveTransform(src, corners) {
-  let points = [];
-  for (let i = 0; i < 4; i++) {
-    points.push({ x: corners.data32S[i * 2], y: corners.data32S[i * 2 + 1] });
+    return this.angleBetween(v1, v2)
   }
 
-  // Robust corner sorting using Sums and Differences
-  // Top-Left: smallest (x + y), Bottom-Right: largest (x + y)
-  // Top-Right: largest (x - y), Bottom-Left: smallest (x - y)
-  let tl = points.reduce((min, p) => (p.x + p.y < min.x + min.y ? p : min), points[0]);
-  let br = points.reduce((max, p) => (p.x + p.y > max.x + max.y ? p : max), points[0]);
-  let tr = points.reduce((max, p) => (p.x - p.y > max.x - max.y ? p : max), points[0]);
-  let bl = points.reduce((min, p) => (p.x - p.y < min.x - min.y ? p : min), points[0]);
+  angleRange(quad) {
 
-  let widthA = Math.sqrt(Math.pow(br.x - bl.x, 2) + Math.pow(br.y - bl.y, 2));
-  let widthB = Math.sqrt(Math.pow(tr.x - tl.x, 2) + Math.pow(tr.y - tl.y, 2));
-  let maxWidth = Math.max(widthA, widthB);
+    const [tl, tr, br, bl] = quad
 
-  let heightA = Math.sqrt(Math.pow(tr.x - br.x, 2) + Math.pow(tr.y - br.y, 2));
-  let heightB = Math.sqrt(Math.pow(tl.x - bl.x, 2) + Math.pow(tl.y - bl.y, 2));
-  let maxHeight = Math.max(heightA, heightB);
+    const ura = this.getAngle(tl, tr, br)
+    const ula = this.getAngle(bl, tl, tr)
+    const lra = this.getAngle(tr, br, bl)
+    const lla = this.getAngle(br, bl, tl)
 
-  let destPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    0, 0,
-    maxWidth - 1, 0,
-    maxWidth - 1, maxHeight - 1,
-    0, maxHeight - 1
-  ]);
+    const arr = [ura, ula, lra, lla]
 
-  let srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    tl.x, tl.y,
-    tr.x, tr.y,
-    br.x, br.y,
-    bl.x, bl.y
-  ]);
+    return Math.max(...arr) - Math.min(...arr)
+  }
 
-  let M = cv.getPerspectiveTransform(srcPoints, destPoints);
-  let dst = new cv.Mat();
-  let dsize = new cv.Size(maxWidth, maxHeight);
-  cv.warpPerspective(src, dst, M, dsize, cv.INTER_LINEAR, cv.BORDER_CONSTANT, new cv.Scalar());
+  isValidContour(cnt, width, height) {
 
-  M.delete();
-  srcPoints.delete();
-  destPoints.delete();
+    if (cnt.rows !== 4) return false
 
-  return dst;
+    const area = cv.contourArea(cnt)
+
+    if (area < width * height * this.MIN_QUAD_AREA_RATIO) return false
+
+    const pts = [
+      [cnt.data32S[0], cnt.data32S[1]],
+      [cnt.data32S[2], cnt.data32S[3]],
+      [cnt.data32S[4], cnt.data32S[5]],
+      [cnt.data32S[6], cnt.data32S[7]]
+    ]
+
+    return this.angleRange(pts) < this.MAX_QUAD_ANGLE_RANGE
+  }
+
+  getContour(image) {
+
+    const MORPH = 9
+    const CANNY = 84
+
+    const height = image.rows
+    const width = image.cols
+
+    const gray = new cv.Mat()
+    cv.cvtColor(image, gray, cv.COLOR_RGBA2GRAY)
+
+    const blur = new cv.Mat()
+    cv.GaussianBlur(gray, blur, new cv.Size(7, 7), 0)
+
+    const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(MORPH, MORPH))
+
+    const dilated = new cv.Mat()
+    cv.morphologyEx(blur, dilated, cv.MORPH_CLOSE, kernel)
+
+    const edged = new cv.Mat()
+    cv.Canny(dilated, edged, 0, CANNY)
+
+    const contours = new cv.MatVector()
+    const hierarchy = new cv.Mat()
+
+    cv.findContours(edged, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+
+    let best = null
+    let bestArea = 0
+
+    for (let i = 0; i < contours.size(); i++) {
+
+      const c = contours.get(i)
+
+      const peri = cv.arcLength(c, true)
+
+      const approx = new cv.Mat()
+      cv.approxPolyDP(c, approx, 0.02 * peri, true)
+
+      if (this.isValidContour(approx, width, height)) {
+
+        const area = cv.contourArea(approx)
+
+        if (area > bestArea) {
+          bestArea = area
+          if (best) best.delete()
+          best = approx
+        } else {
+          approx.delete()
+        }
+
+      } else {
+        approx.delete()
+      }
+
+      c.delete()
+
+    }
+
+    if (!best) {
+
+      best = cv.matFromArray(4, 1, cv.CV_32SC2, [
+        width, 0,
+        width, height,
+        0, height,
+        0, 0
+      ])
+
+    }
+
+    gray.delete()
+    blur.delete()
+    kernel.delete()
+    dilated.delete()
+    edged.delete()
+    contours.delete()
+    hierarchy.delete()
+
+    return best
+  }
+
+  perspectiveTransform(src, corners) {
+
+    const pts = []
+
+    for (let i = 0; i < 4; i++) {
+      pts.push({
+        x: corners.data32S[i * 2],
+        y: corners.data32S[i * 2 + 1]
+      })
+    }
+
+    const tl = pts.reduce((a, b) => (a.x + a.y < b.x + b.y ? a : b))
+    const br = pts.reduce((a, b) => (a.x + a.y > b.x + b.y ? a : b))
+    const tr = pts.reduce((a, b) => (a.x - a.y > b.x - b.y ? a : b))
+    const bl = pts.reduce((a, b) => (a.x - a.y < b.x - b.y ? a : b))
+
+    const widthA = Math.hypot(br.x - bl.x, br.y - bl.y)
+    const widthB = Math.hypot(tr.x - tl.x, tr.y - tl.y)
+    const maxWidth = Math.max(widthA, widthB)
+
+    const heightA = Math.hypot(tr.x - br.x, tr.y - br.y)
+    const heightB = Math.hypot(tl.x - bl.x, tl.y - bl.y)
+    const maxHeight = Math.max(heightA, heightB)
+
+    const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      tl.x, tl.y,
+      tr.x, tr.y,
+      br.x, br.y,
+      bl.x, bl.y
+    ])
+
+    const dstPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
+      0, 0,
+      maxWidth - 1, 0,
+      maxWidth - 1, maxHeight - 1,
+      0, maxHeight - 1
+    ])
+
+    const M = cv.getPerspectiveTransform(srcPts, dstPts)
+
+    const dst = new cv.Mat()
+
+    cv.warpPerspective(
+      src,
+      dst,
+      M,
+      new cv.Size(maxWidth, maxHeight),
+      cv.INTER_CUBIC,
+      cv.BORDER_REPLICATE
+    )
+
+    srcPts.delete()
+    dstPts.delete()
+    M.delete()
+
+    return dst
+  }
+
+  enhance(gray) {
+
+    const blur = new cv.Mat()
+    cv.GaussianBlur(gray, blur, new cv.Size(0, 0), 3)
+
+    const sharp = new cv.Mat()
+    cv.addWeighted(gray, 1.5, blur, -0.5, 0, sharp)
+
+    const thresh = new cv.Mat()
+
+    cv.adaptiveThreshold(
+      sharp,
+      thresh,
+      255,
+      cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+      cv.THRESH_BINARY,
+      21,
+      15
+    )
+
+    blur.delete()
+    sharp.delete()
+
+    return thresh
+  }
+
+  async scan(source) {
+
+    await waitForOpenCV()
+
+    let src = cv.imread(source)
+
+    const ratio = src.rows / 500
+
+    const resized = new cv.Mat()
+    cv.resize(src, resized, new cv.Size(), 500 / src.rows, 500 / src.rows)
+
+    const contour = this.getContour(resized)
+
+    const warped = this.perspectiveTransform(src, contour)
+
+    const gray = new cv.Mat()
+    cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY)
+
+    const result = this.enhance(gray)
+
+    const canvas = document.createElement("canvas")
+    cv.imshow(canvas, result)
+
+    src.delete()
+    resized.delete()
+    contour.delete()
+    warped.delete()
+    gray.delete()
+    result.delete()
+
+    return canvas
+
+  }
+
 }
