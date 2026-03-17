@@ -85,8 +85,28 @@ export const generateLabels = async (items) => {
     }
 };
 
+
 /**
- * Auto-import bill: upload an image and get extracted medicines back
+ * Normalize image server-side (standardize format, rotation, and compression)
+ * @param {File|Blob} imageFile
+ * @returns {Promise<Blob>}
+ */
+export const normalizeImage = async (file) => {
+    try {
+        const formData = new FormData();
+        formData.append('bill', file);
+        const response = await api.post('/product/normalize-image', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            responseType: 'blob',
+        });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
+ * Auto-import bill: upload a (usually pre-processed) image and get extracted medicines back
  * @param {File|Blob} imageFile
  * @returns {Promise<Object>} - { products: Array<{medicine_name, quantity, mrp, cost_price, supplier_name, expiry_date}> }
  */

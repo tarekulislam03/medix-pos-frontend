@@ -232,8 +232,8 @@ export class DocScanner {
       255,
       cv.ADAPTIVE_THRESH_GAUSSIAN_C,
       cv.THRESH_BINARY,
-      25,
-      8
+      85,
+      22
     )
 
     norm.delete()
@@ -242,6 +242,10 @@ export class DocScanner {
   }
 
 
+
+  async processRaw(source) {
+    return this.scan(source)
+  }
 
   async scan(source) {
     try {

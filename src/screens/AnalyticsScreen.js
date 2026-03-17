@@ -30,6 +30,7 @@ export default function AnalyticsScreen() {
     const [monthlyData, setMonthlyData] = useState([]);
     const [dailySearch, setDailySearch] = useState('');
     const [monthlySearch, setMonthlySearch] = useState('');
+    const [monthlyProfitData, setMonthlyProfitData] = useState([]);
     const [showMoreModal, setShowMoreModal] = useState(false);
 
     const renderNativePicker = (type, value, setValue) => {
@@ -94,17 +95,36 @@ export default function AnalyticsScreen() {
             // Generate aggregate daily/monthly maps locally
             const dMap = {};
             const mMap = {};
+            const pMap = {};
             fullList.forEach(sale => {
                 const d = new Date(sale.created_at || sale.createdAt || sale.date || new Date());
                 const dStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
                 const mStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0')].join('-');
                 const val = Number(sale.grand_total || sale.total || 0);
+                const profit = Number(sale.profit || sale.total_profit || 0);
+                
                 dMap[dStr] = (dMap[dStr] || 0) + val;
                 mMap[mStr] = (mMap[mStr] || 0) + val;
+                pMap[mStr] = (pMap[mStr] || 0) + profit;
             });
 
             setDailyData(Object.entries(dMap).map(([k, v]) => ({ date: k, total: v })).sort((a, b) => b.date.localeCompare(a.date)));
-            setMonthlyData(Object.entries(mMap).map(([k, v]) => ({ month: k, total: v })).sort((a, b) => b.month.localeCompare(a.month)));
+            
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            
+            setMonthlyData(Object.entries(mMap)
+                .map(([k, v]) => {
+                    const [y, m] = k.split('-');
+                    return { monthId: k, month: `${monthNames[parseInt(m) - 1]} ${y}`, total: v };
+                })
+                .sort((a, b) => b.monthId.localeCompare(a.monthId)));
+            
+            setMonthlyProfitData(Object.entries(pMap)
+                .map(([k, v]) => {
+                    const [y, m] = k.split('-');
+                    return { monthId: k, month: `${monthNames[parseInt(m) - 1]} ${y}`, profit: v };
+                })
+                .sort((a, b) => b.monthId.localeCompare(a.monthId)));
 
         } catch (error) {
             console.log('Failed to fetch analytics:', error?.message || error);
@@ -269,16 +289,44 @@ export default function AnalyticsScreen() {
                                     </View>
                                 </View>
                                 <View style={styles.reportDivider} />
-                                {monthlyData.filter(d => d.month.includes(monthlySearch)).slice(0, 15).map((d) => (
-                                    <View key={d.month} style={styles.reportRow}>
+                                {monthlyData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).slice(0, 15).map((d) => (
+                                    <View key={d.monthId} style={styles.reportRow}>
                                         <Text style={styles.reportDate}>{d.month}</Text>
                                         <Text style={styles.reportAmount}>₹{Number(d.total).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                                     </View>
                                 ))}
-                                {monthlyData.filter(d => d.month.includes(monthlySearch)).length === 0 && (
+                                {monthlyData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).length === 0 && (
                                     <Text style={styles.emptyText}>No monthly sales found</Text>
                                 )}
                             </View>
+                        </View>
+
+                        {/* Monthly Profit Table */}
+                        <View style={[styles.statCard, { flex: 1, padding: SPACING.lg, marginTop: SPACING.lg }]}>
+                            <View style={styles.reportHeaderWrap}>
+                                <Text style={styles.reportTitle}>Monthly Net Profit</Text>
+                                <View style={styles.pickerBox}>
+                                    <Ionicons name="trending-up" size={16} color={COLORS.textMuted} />
+                                    {renderNativePicker('month', monthlySearch, setMonthlySearch)}
+                                    {monthlySearch.length > 0 && (
+                                        <TouchableOpacity onPress={() => setMonthlySearch('')}>
+                                            <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            </View>
+                            <View style={styles.reportDivider} />
+                            {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).slice(0, 15).map((d) => (
+                                <View key={d.monthId} style={styles.reportRow}>
+                                    <Text style={styles.reportDate}>{d.month}</Text>
+                                    <Text style={[styles.reportAmount, { color: d.profit >= 0 ? COLORS.success : COLORS.error }]}>
+                                        ₹{Number(d.profit).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </Text>
+                                </View>
+                            ))}
+                            {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).length === 0 && (
+                                <Text style={styles.emptyText}>No profit data found</Text>
+                            )}
                         </View>
                     </ScrollView>
                 </View>

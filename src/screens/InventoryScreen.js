@@ -22,11 +22,13 @@ import {
     deleteProduct,
     autoImportBill,
     confirmAutoImport,
+    normalizeImage,
 } from '../services/inventoryService';
 import { printLabels58mm } from '../utils/printLabel';
 import { useResponsive } from '../utils/responsive';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import BillScannerModal from '../components/BillScannerModal';
+import { DocScanner } from '../utils/cvUtils';
+import imageCompression from 'browser-image-compression';
 
 
 // ─── FILTER TABS ────────────────────────────────
@@ -196,8 +198,6 @@ export default function InventoryScreen({ navigation }) {
     const [autoImportBillDate, setAutoImportBillDate] = useState(''); // in-app error (web-safe)
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
-    const [scannerVisible, setScannerVisible] = useState(false);
-
 
     // ─── FETCH ──────────────────────────────────────
     const fetchProducts = useCallback(async () => {
@@ -440,7 +440,7 @@ export default function InventoryScreen({ navigation }) {
         if (Platform.OS === 'web') {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = 'image/*';
+            input.accept = 'image/*,.heic,.HEIC';
             input.onchange = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -456,7 +456,52 @@ export default function InventoryScreen({ navigation }) {
         setAutoImportUploading(true);
         setAutoImportError('');
         try {
-            const result = await autoImportBill(file);
+            let fileToUploadToAI = file;
+
+            // STEP 1: Backend Normalization (Standardize format/rotation/HEIC)
+            try {
+                console.log("[AutoImport] Standardizing image via backend...");
+                const normalizedBlob = await normalizeImage(file);
+                fileToUploadToAI = normalizedBlob;
+
+                // STEP 2: Frontend OpenCV Thresholding
+                try {
+                    console.log("[AutoImport] Performing local OpenCV thresholding enhancement...");
+                    const objectUrl = URL.createObjectURL(normalizedBlob);
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = objectUrl;
+                    });
+
+                    const scanner = new DocScanner();
+                    const processedCanvas = await scanner.processRaw(img);
+                    URL.revokeObjectURL(objectUrl);
+
+                    const processedBlob = await new Promise(res => processedCanvas.toBlob(res, "image/jpeg", 0.9));
+                    
+                    if (processedBlob) {
+                        // STEP 3: Final Compression
+                        const options = { maxSizeMB: 1, maxWidthOrHeight: 1600, useWebWorker: true };
+                        fileToUploadToAI = await imageCompression(
+                            new File([processedBlob], "processed_bill.jpg", { type: "image/jpeg" }),
+                            options
+                        );
+                    }
+                } catch (cvErr) {
+                    console.warn("[AutoImport] Local OpenCV enhancement failed, using standardized version:", cvErr);
+                }
+
+            } catch (normErr) {
+                console.warn("[AutoImport] Backend normalization failed, attempting direct upload:", normErr);
+            }
+
+            // STEP 4: Upload to AI for Extraction
+            console.log("[AutoImport] Sending enhanced file for AI extraction...");
+            const result = await autoImportBill(fileToUploadToAI);
 
             // Extract metadata if available
             setAutoImportBillNo(result?.bill_no ?? result?.invoice_no ?? result?.data?.bill_no ?? '');
@@ -484,7 +529,7 @@ export default function InventoryScreen({ navigation }) {
             const normalised = extracted.map((item, idx) => ({
                 _key: String(idx),
                 medicine_name: String(
-                    item.medicine_name ?? item.name ?? item.product_name ?? item.drug_name ?? item.item_name ?? 
+                    item.medicine_name ?? item.name ?? item.product_name ?? item.drug_name ?? item.item_name ??
                     item.brand_name ?? item.medicine ?? item.product ?? item.title ?? item.description ?? ''
                 ),
                 quantity: String(
@@ -898,26 +943,20 @@ export default function InventoryScreen({ navigation }) {
                         gap: 6
                     }
                 ]}>
-                    <TouchableOpacity
-                        style={[styles.importBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
-                        onPress={() => setScannerVisible(true)}
-                    >
-                        <Ionicons name="camera-outline" size={r.isSmall ? 20 : 20} color={COLORS.primary} />
-                        {!r.isSmall && <Text style={styles.importBtnText}>Scan Bill</Text>}
-                    </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[styles.importBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
-                        onPress={handleAutoImportPress}
-                        disabled={autoImportUploading}
-                    >
-                        {autoImportUploading ? (
-                            <ActivityIndicator size="small" color={COLORS.primary} />
-                        ) : (
-                            <Ionicons name="document-attach-outline" size={r.isSmall ? 20 : 20} color={COLORS.primary} />
-                        )}
-                        {!r.isSmall && <Text style={styles.importBtnText}>Upload Bill</Text>}
-                    </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.importBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
+                            onPress={handleAutoImportPress}
+                            disabled={autoImportUploading}
+                        >
+                            {autoImportUploading ? (
+                                <ActivityIndicator size="small" color={COLORS.primary} />
+                            ) : (
+                                <Ionicons name="document-attach-outline" size={r.isSmall ? 20 : 20} color={COLORS.primary} />
+                            )}
+                            {!r.isSmall && <Text style={styles.importBtnText}>Upload Bill</Text>}
+                        </TouchableOpacity>
 
                     <TouchableOpacity
                         style={[styles.printLabelsBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
@@ -1810,12 +1849,7 @@ export default function InventoryScreen({ navigation }) {
                 </View>
             </Modal>
 
-            {/* ─── BILL SCANNER MODAL ─── */}
-            <BillScannerModal
-                visible={scannerVisible}
-                onClose={() => setScannerVisible(false)}
-                onCaptured={(file) => processAutoImportFile(file)}
-            />
+
 
             {/* ─── SUCCESS TOAST ─── */}
             {toastVisible && (
