@@ -261,10 +261,12 @@ function PaymentModal({ visible, onClose, onConfirm, grandTotal, customerCredit 
     const change = receivedNum - effectiveTotal;
     const due = effectiveTotal - receivedNum;
 
-    // Allow confirming with 0 received or entered amount
+    // Allow confirming with 0 received (full due) or any non-negative amount
+    // User must explicitly type a value (empty field doesn't count)
+    // Payments above effectiveTotal are valid — the customer gets change back
     const canConfirm =
         effectiveTotal === 0 ||
-        (receivedNum > 0 && receivedNum <= effectiveTotal);
+        (receivedStr !== '' && receivedNum >= 0);
 
     const handleReceivedChange = (text) => {
         const cleaned = text.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
@@ -386,8 +388,13 @@ function PaymentModal({ visible, onClose, onConfirm, grandTotal, customerCredit 
                                         <Text style={pmStyles.dueText}>Short by: ₹{due.toFixed(2)}</Text>
                                     </View>
                                 )
+                            ) : receivedStr === '0' || receivedStr === '0.' || receivedStr === '0.0' || receivedStr === '0.00' ? (
+                                <View style={[pmStyles.changeBadge, pmStyles.dueBadge]}>
+                                    <Ionicons name="time-outline" size={18} color={COLORS.error} />
+                                    <Text style={pmStyles.dueText}>Full Due: ₹{effectiveTotal.toFixed(2)}</Text>
+                                </View>
                             ) : (
-                                <Text style={pmStyles.statusHint}>Type the cash amount received from customer</Text>
+                                <Text style={pmStyles.statusHint}>Type the cash amount received (0 for full due)</Text>
                             )}
                         </View>
 
@@ -407,6 +414,12 @@ function PaymentModal({ visible, onClose, onConfirm, grandTotal, customerCredit 
                                 onPress={() => setReceivedStr(effectiveTotal.toFixed(2))}
                             >
                                 <Text style={[pmStyles.quickBtnText, { color: COLORS.primary }]}>Exact</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[pmStyles.quickBtn, { borderColor: COLORS.error, backgroundColor: COLORS.errorLight }]}
+                                onPress={() => setReceivedStr('0')}
+                            >
+                                <Text style={[pmStyles.quickBtnText, { color: COLORS.error }]}>Full Due</Text>
                             </TouchableOpacity>
                             {customerCredit > 0 && (
                                 <TouchableOpacity
@@ -435,7 +448,7 @@ function PaymentModal({ visible, onClose, onConfirm, grandTotal, customerCredit 
                             >
                                 <Ionicons name="checkmark-circle" size={22} color="#fff" />
                                 <Text style={pmStyles.confirmText}>
-                                    {due > 0 && receivedNum > 0 ? `Confirm (Due ₹${due.toFixed(2)})` : 'Confirm Payment'}
+                                    {receivedNum === 0 && effectiveTotal > 0 ? `Full Due ₹${effectiveTotal.toFixed(2)}` : due > 0 && receivedNum > 0 ? `Confirm (Due ₹${due.toFixed(2)})` : 'Confirm Payment'}
                                 </Text>
                             </TouchableOpacity>
                         </View>
@@ -578,6 +591,8 @@ const pmStyles = StyleSheet.create({
 
 
 
+const DEFAULT_DISCOUNT = 15; // Default discount % for new cart items
+
 export default function BillingScreen({ navigation }) {
     const r = useResponsive();
     // Search Products
@@ -622,11 +637,18 @@ export default function BillingScreen({ navigation }) {
 
     // ─── KEEP FOCUS ON SEARCH INPUT ──────────────────────
     // Always re-focus the barcode/product search input unless an
-    // explicit interactive element (input, textarea, select) was clicked.
+    // explicit interactive element (input, textarea, select) was clicked,
+    // OR a modal is currently open (focus-stealing breaks modal button clicks).
+    const anyModalOpen = paymentModalVisible || printModalVisible || lastPurchaseModalVisible || showFreeEntry;
+    const anyModalOpenRef = useRef(anyModalOpen);
+    anyModalOpenRef.current = anyModalOpen;
+
     useEffect(() => {
         if (Platform.OS !== 'web') return;
 
         const refocus = () => {
+            // Don't steal focus when a modal is open — it breaks button presses
+            if (anyModalOpenRef.current) return;
             setTimeout(() => {
                 const active = document.activeElement;
                 const tag = active?.tagName?.toLowerCase();
@@ -747,10 +769,17 @@ export default function BillingScreen({ navigation }) {
 
     // ─── CART ───────────────────────────────────────
     const addToCart = useCallback((product) => {
+        const maxStock = product.quantity ?? product.stock ?? 0;
+
+        // Block out-of-stock products completely
+        if (maxStock <= 0) {
+            Alert.alert('Out of Stock', `"${product.medicine_name || product.name || 'This product'}" is out of stock.`);
+            return;
+        }
+
         setCart((prev) => {
             const pid = product._id || product.id || product.product_id;
             const existing = prev.find((i) => (i._id || i.id || i.product_id) === pid);
-            const maxStock = product.quantity ?? product.stock ?? 999;
 
             if (existing) {
                 if (existing.cart_quantity >= maxStock) {
@@ -763,7 +792,7 @@ export default function BillingScreen({ navigation }) {
                         : i
                 );
             }
-            return [...prev, { ...product, available_stock: maxStock, cart_quantity: 1, discount_percent: 0 }];
+            return [...prev, { ...product, available_stock: maxStock, cart_quantity: 1, discount_percent: DEFAULT_DISCOUNT }];
         });
         setSearchQuery('');
         setSearchResults([]);
@@ -1042,10 +1071,11 @@ export default function BillingScreen({ navigation }) {
 
             setPrintModalVisible(true);
         } catch (err) {
-            Alert.alert(
-                'Checkout Failed',
-                err.message || 'Unable to process'
-            );
+            const errMsg =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Unable to process checkout';
+            Alert.alert('Checkout Failed', errMsg);
         } finally {
             setCheckoutLoading(false);
         }
@@ -1111,7 +1141,7 @@ export default function BillingScreen({ navigation }) {
             available_stock: savedProduct?.quantity ?? stock,
             quantity: savedProduct?.quantity ?? stock,
             cart_quantity: 1,
-            discount_percent: 0,
+            discount_percent: DEFAULT_DISCOUNT,
             is_manual_entry: true,
         };
         setCart(prev => [...prev, cartItem]);
@@ -1242,23 +1272,37 @@ export default function BillingScreen({ navigation }) {
                         {showDropdown && searchResults.length > 0 && (
                             <View style={styles.floatingDropdown}>
                                 <ScrollView style={{ maxHeight: 240 }} keyboardShouldPersistTaps="handled">
-                                    {searchResults.map((product, idx) => (
-                                        <TouchableOpacity
-                                            key={product._id || product.id || idx}
-                                            style={styles.dropdownItem}
-                                            onPress={() => addToCart(product)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.dropdownName} numberOfLines={1}>{getName(product)}</Text>
-                                                <Text style={styles.dropdownMeta}>
-                                                    Stock: {product.quantity ?? product.stock ?? '—'}
-                                                </Text>
-                                            </View>
-                                            <Text style={styles.dropdownPrice}>₹{Number(getPrice(product)).toFixed(2)}</Text>
-                                            <Ionicons name="add-circle" size={26} color={COLORS.primary} style={{ marginLeft: 8 }} />
-                                        </TouchableOpacity>
-                                    ))}
+                                    {searchResults.map((product, idx) => {
+                                        const stock = product.quantity ?? product.stock ?? 0;
+                                        const isOutOfStock = stock <= 0;
+                                        return (
+                                            <TouchableOpacity
+                                                key={product._id || product.id || idx}
+                                                style={[styles.dropdownItem, isOutOfStock && { opacity: 0.45, backgroundColor: '#fef2f2' }]}
+                                                onPress={() => !isOutOfStock && addToCart(product)}
+                                                activeOpacity={isOutOfStock ? 1 : 0.7}
+                                            >
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.dropdownName} numberOfLines={1}>{getName(product)}</Text>
+                                                    <Text style={styles.dropdownMeta}>
+                                                        {isOutOfStock ? (
+                                                            <Text style={{ color: COLORS.error, fontWeight: '700' }}>OUT OF STOCK</Text>
+                                                        ) : (
+                                                            <>Stock: {stock}</>  
+                                                        )}
+                                                    </Text>
+                                                </View>
+                                                <Text style={styles.dropdownPrice}>₹{Number(getPrice(product)).toFixed(2)}</Text>
+                                                {isOutOfStock ? (
+                                                    <View style={{ marginLeft: 8, backgroundColor: COLORS.error, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>
+                                                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>NO STOCK</Text>
+                                                    </View>
+                                                ) : (
+                                                    <Ionicons name="add-circle" size={26} color={COLORS.primary} style={{ marginLeft: 8 }} />
+                                                )}
+                                            </TouchableOpacity>
+                                        );
+                                    })}
                                 </ScrollView>
                             </View>
                         )}
@@ -1771,54 +1815,191 @@ export default function BillingScreen({ navigation }) {
 
             {/* Last Purchase Confirmation Modal */}
             <Modal visible={lastPurchaseModalVisible} transparent animationType="fade" onRequestClose={() => setLastPurchaseModalVisible(false)}>
-                <View style={printStyles.overlay}>
-                    <View style={printStyles.card}>
-                        <View style={[printStyles.iconCircle, { backgroundColor: COLORS.primaryGhost }]}>
-                            <Ionicons name="cart" size={40} color={COLORS.primary} />
+                <View style={pmStyles.overlay}>
+                    <View style={[pmStyles.container, { maxWidth: 440 }]}>
+                        {/* Header */}
+                        <View style={pmStyles.header}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={pmStyles.headerTitle}>Last Purchase Found</Text>
+                                <Text style={pmStyles.headerSub}>Auto-fill cart with previous order?</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => { setLastPurchaseModalVisible(false); setPendingLastItems(null); }} style={pmStyles.closeBtn}>
+                                <Ionicons name="close" size={22} color={COLORS.textMuted} />
+                            </TouchableOpacity>
                         </View>
-                        <Text style={printStyles.heading}>Last Purchase Found</Text>
-                        <Text style={printStyles.sub}>
-                            Would you like to auto-fill the cart with their last purchase?
-                        </Text>
-                        <View style={printStyles.divider} />
-                        <View style={printStyles.optionRow}>
+
+                        {/* Items List */}
+                        <ScrollView style={{ maxHeight: 320 }} contentContainerStyle={{ paddingVertical: SPACING.sm }} showsVerticalScrollIndicator={false}>
+                            {(pendingLastItems || []).map((item, idx) => {
+                                const prod = item.product_id || {};
+                                const isObj = typeof prod === 'object';
+                                const stock = isObj ? (prod.quantity ?? prod.stock ?? 0) : 0;
+                                const name = item.medicine_name || item.product_name || item.name || (isObj ? (prod.medicine_name || prod.product_name || prod.name) : 'Unknown');
+                                const qty = item.quantity || item.cart_quantity || 1;
+                                const isOut = stock <= 0;
+
+                                return (
+                                    <View key={idx} style={{
+                                        flexDirection: 'row', alignItems: 'center',
+                                        paddingHorizontal: SPACING.md, paddingVertical: 10,
+                                        borderBottomWidth: 1, borderBottomColor: COLORS.borderLight,
+                                        backgroundColor: isOut ? '#fef2f2' : '#fff',
+                                        opacity: isOut ? 0.7 : 1,
+                                    }}>
+                                        {/* Status icon */}
+                                        <View style={{
+                                            width: 28, height: 28, borderRadius: 14,
+                                            backgroundColor: isOut ? COLORS.errorLight : '#dcfce7',
+                                            alignItems: 'center', justifyContent: 'center', marginRight: 10,
+                                        }}>
+                                            <Ionicons
+                                                name={isOut ? 'close-circle' : 'checkmark-circle'}
+                                                size={18}
+                                                color={isOut ? COLORS.error : '#16A34A'}
+                                            />
+                                        </View>
+
+                                        {/* Item info */}
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={{
+                                                fontSize: FONT_SIZES.sm, fontWeight: '700',
+                                                color: isOut ? COLORS.textMuted : COLORS.textPrimary,
+                                                textDecorationLine: isOut ? 'line-through' : 'none',
+                                            }} numberOfLines={1}>{name}</Text>
+                                            <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 1 }}>
+                                                Qty: {qty} • ₹{(item.mrp || item.price || 0).toFixed(2)}
+                                            </Text>
+                                        </View>
+
+                                        {/* Stock badge */}
+                                        {isOut ? (
+                                            <View style={{
+                                                backgroundColor: COLORS.error, paddingHorizontal: 8,
+                                                paddingVertical: 3, borderRadius: 12,
+                                            }}>
+                                                <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 }}>OUT OF STOCK</Text>
+                                            </View>
+                                        ) : (
+                                            <View style={{
+                                                backgroundColor: '#dcfce7', paddingHorizontal: 8,
+                                                paddingVertical: 3, borderRadius: 12,
+                                            }}>
+                                                <Text style={{ color: '#16A34A', fontSize: 9, fontWeight: '800' }}>IN STOCK ({stock})</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            })}
+                        </ScrollView>
+
+                        {/* Summary strip */}
+                        {(() => {
+                            const items = pendingLastItems || [];
+                            const inStockCount = items.filter(item => {
+                                const prod = item.product_id || {};
+                                const isObj = typeof prod === 'object';
+                                return (isObj ? (prod.quantity ?? prod.stock ?? 0) : 0) > 0;
+                            }).length;
+                            const outCount = items.length - inStockCount;
+
+                            return (
+                                <View style={{
+                                    flexDirection: 'row', justifyContent: 'center', gap: 12,
+                                    paddingVertical: 8, backgroundColor: COLORS.bgSurface,
+                                    borderTopWidth: 1, borderTopColor: COLORS.borderLight,
+                                }}>
+                                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#16A34A' }}>
+                                        <Ionicons name="checkmark-circle" size={12} color="#16A34A" /> {inStockCount} available
+                                    </Text>
+                                    {outCount > 0 && (
+                                        <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.error }}>
+                                            <Ionicons name="close-circle" size={12} color={COLORS.error} /> {outCount} out of stock
+                                        </Text>
+                                    )}
+                                </View>
+                            );
+                        })()}
+
+                        {/* Actions */}
+                        <View style={pmStyles.actions}>
                             <TouchableOpacity
-                                style={[printStyles.optionBtn, printStyles.optionSave, { paddingVertical: SPACING.lg }]}
-                                onPress={() => {
-                                    setLastPurchaseModalVisible(false);
-                                    setPendingLastItems(null);
-                                }}
-                                activeOpacity={0.8}
+                                style={pmStyles.cancelBtn}
+                                onPress={() => { setLastPurchaseModalVisible(false); setPendingLastItems(null); }}
+                                activeOpacity={0.7}
                             >
-                                <Text style={[printStyles.optionLabel, printStyles.optionLabelSave]}>No</Text>
+                                <Text style={pmStyles.cancelText}>Skip</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[printStyles.optionBtn, printStyles.optionPrint, { paddingVertical: SPACING.lg }]}
+                                style={[pmStyles.confirmBtn, (() => {
+                                    const items = pendingLastItems || [];
+                                    const hasAnyStock = items.some(item => {
+                                        const prod = item.product_id || {};
+                                        const isObj = typeof prod === 'object';
+                                        return (isObj ? (prod.quantity ?? prod.stock ?? 0) : 0) > 0;
+                                    });
+                                    return !hasAnyStock && pmStyles.confirmDisabled;
+                                })()]}
+                                disabled={!(pendingLastItems || []).some(item => {
+                                    const prod = item.product_id || {};
+                                    const isObj = typeof prod === 'object';
+                                    return (isObj ? (prod.quantity ?? prod.stock ?? 0) : 0) > 0;
+                                })}
                                 onPress={() => {
                                     if (pendingLastItems) {
-                                        const reorderedCart = pendingLastItems.map((item) => {
+                                        const skippedItems = [];
+                                        const reorderedCart = [];
+
+                                        pendingLastItems.forEach((item) => {
                                             const prod = item.product_id || {};
                                             const isObj = typeof prod === 'object';
+                                            const stock = isObj ? (prod.quantity ?? prod.stock ?? 0) : 0;
+                                            const name = item.medicine_name || item.product_name || item.name || (isObj ? (prod.medicine_name || prod.product_name || prod.name) : 'Unknown Product');
+                                            const wantedQty = item.quantity || item.cart_quantity || 1;
 
-                                            return {
+                                            if (stock <= 0) {
+                                                skippedItems.push(name);
+                                                return;
+                                            }
+
+                                            reorderedCart.push({
                                                 _id: isObj ? (prod._id || prod.id) : prod,
                                                 product_id: isObj ? (prod._id || prod.id) : prod,
-                                                medicine_name: item.medicine_name || item.product_name || item.name || (isObj ? (prod.medicine_name || prod.product_name || prod.name) : 'Unknown Product'),
+                                                medicine_name: name,
                                                 barcode: item.short_barcode || item.barcode || (isObj ? (prod.short_barcode || prod.barcode) : undefined),
                                                 mrp: item.mrp || item.price || (isObj ? (prod.mrp || prod.selling_price || prod.price) : 0),
-                                                cart_quantity: item.quantity || item.cart_quantity || 1,
-                                                discount_percent: item.discount_percent || 0,
-                                                available_stock: isObj ? (prod.quantity ?? prod.stock ?? 999) : 999,
-                                            };
+                                                cart_quantity: Math.min(wantedQty, stock),
+                                                discount_percent: item.discount_percent || DEFAULT_DISCOUNT,
+                                                available_stock: stock,
+                                            });
                                         });
+
                                         setCart(reorderedCart);
+
+                                        if (skippedItems.length > 0) {
+                                            Alert.alert(
+                                                'Some Items Skipped',
+                                                `Out of stock:\n\n• ${skippedItems.join('\n• ')}`,
+                                                [{ text: 'OK' }]
+                                            );
+                                        }
                                     }
                                     setLastPurchaseModalVisible(false);
                                     setPendingLastItems(null);
                                 }}
-                                activeOpacity={0.8}
+                                activeOpacity={0.7}
                             >
-                                <Text style={printStyles.optionLabel}>Yes</Text>
+                                <Ionicons name="cart" size={20} color="#fff" />
+                                <Text style={pmStyles.confirmText}>
+                                    {(() => {
+                                        const items = pendingLastItems || [];
+                                        const inStockCount = items.filter(item => {
+                                            const prod = item.product_id || {};
+                                            const isObj = typeof prod === 'object';
+                                            return (isObj ? (prod.quantity ?? prod.stock ?? 0) : 0) > 0;
+                                        }).length;
+                                        return inStockCount > 0 ? `Add ${inStockCount} Item${inStockCount > 1 ? 's' : ''} to Cart` : 'All Out of Stock';
+                                    })()}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
