@@ -1,6 +1,10 @@
-import cv from "@techstark/opencv-js"
+let cv = null;
 
-export const waitForOpenCV = () => {
+export const waitForOpenCV = async () => {
+  if (!cv) {
+    const m = await import("@techstark/opencv-js");
+    cv = m.default || m;
+  }
   return new Promise((resolve) => {
     if (cv?.Mat) resolve()
     else cv.onRuntimeInitialized = resolve

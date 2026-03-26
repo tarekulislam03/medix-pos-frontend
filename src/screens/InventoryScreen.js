@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 import GradientButton from '../components/GradientButton';
+import Skeleton from '../components/Skeleton';
 import {
     getProducts,
     createProduct,
@@ -481,13 +482,13 @@ export default function InventoryScreen({ navigation }) {
                     const processedCanvas = await scanner.processRaw(img);
                     URL.revokeObjectURL(objectUrl);
 
-                    const processedBlob = await new Promise(res => processedCanvas.toBlob(res, "image/jpeg", 0.9));
+                    const processedBlob = await new Promise(res => processedCanvas.toBlob(res, "image/webp", 0.9));
                     
                     if (processedBlob) {
                         // STEP 3: Final Compression
-                        const options = { maxSizeMB: 1, maxWidthOrHeight: 1600, useWebWorker: true };
+                        const options = { maxSizeMB: 1, maxWidthOrHeight: 1600, useWebWorker: true, fileType: "image/webp" };
                         fileToUploadToAI = await imageCompression(
-                            new File([processedBlob], "processed_bill.jpg", { type: "image/jpeg" }),
+                            new File([processedBlob], "processed_bill.webp", { type: "image/webp" }),
                             options
                         );
                     }
@@ -778,7 +779,7 @@ export default function InventoryScreen({ navigation }) {
     const zeroStockCount = products.filter((p) => (p.quantity ?? p.stock ?? 0) === 0).length;
 
     // ─── RENDER PRODUCT ROW ─────────────────────────
-    const renderProduct = ({ item, index }) => {
+    const renderProduct = useCallback(({ item, index }) => {
         const stockStatus = getStockStatus(item);
         const expiryStatus = getExpiryStatus(item);
 
@@ -909,7 +910,7 @@ export default function InventoryScreen({ navigation }) {
                 </View>
             </TouchableOpacity>
         );
-    };
+    }, [r.isSmall, openViewModal, openEditModal, confirmDelete]);
 
     // ─── RENDER ─────────────────────────────────────
     return (
@@ -1078,9 +1079,20 @@ export default function InventoryScreen({ navigation }) {
 
                 {/* Table Body */}
                 {loading ? (
-                    <View style={styles.centerBox}>
-                        <ActivityIndicator size="large" color={COLORS.primary} />
-                        <Text style={styles.emptyText}>Loading products...</Text>
+                    <View style={{ flex: 1, padding: SPACING.md, gap: SPACING.sm }}>
+                        {[...Array(8)].map((_, i) => (
+                            <View key={i} style={[styles.tableRow, { height: 60, paddingHorizontal: SPACING.md, alignItems: 'center' }]}>
+                                <View style={{ flex: 2.5, gap: 6 }}>
+                                    <Skeleton width="60%" height={16} />
+                                    <Skeleton width="40%" height={12} />
+                                </View>
+                                <Skeleton width="10%" height={16} style={{ flex: 0.8 }} />
+                                <Skeleton width="10%" height={24} borderRadius={12} style={{ flex: 0.8, alignSelf: 'center' }} />
+                                <Skeleton width="15%" height={16} style={{ flex: 1.2, marginLeft: SPACING.lg }} />
+                                <Skeleton width="12%" height={16} style={{ flex: 1.2, marginLeft: SPACING.lg }} />
+                                <Skeleton width="15%" height={24} style={{ flex: 1.1 }} />
+                            </View>
+                        ))}
                     </View>
                 ) : filteredProducts.length > 0 ? (
                     <FlatList
@@ -1090,6 +1102,10 @@ export default function InventoryScreen({ navigation }) {
                         showsVerticalScrollIndicator={false}
                         onRefresh={onRefresh}
                         refreshing={refreshing}
+                        initialNumToRender={15}
+                        maxToRenderPerBatch={15}
+                        windowSize={7}
+                        removeClippedSubviews={true}
                     />
                 ) : (
                     <View style={styles.centerBox}>

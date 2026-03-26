@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
+import Skeleton from '../components/Skeleton';
 import api from '../services/api';
 import { printReceipt58mm } from '../utils/printReceipt';
 
@@ -169,7 +170,18 @@ export default function AnalyticsScreen() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
             >
                 {loading ? (
-                    <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
+                    <View>
+                        <View style={[styles.statsRow, r.isSmall && { flexDirection: 'column' }, { marginBottom: SPACING.xxl }]}>
+                            <View style={[styles.statCard, statCardStyle, { height: 130 }]}><Skeleton width="100%" height="100%" borderRadius={RADIUS.md} /></View>
+                            <View style={[styles.statCard, statCardStyle, { height: 130 }]}><Skeleton width="100%" height="100%" borderRadius={RADIUS.md} /></View>
+                        </View>
+                        <Text style={[styles.sectionTitle, { opacity: 0.5 }]}>Recent Sales History</Text>
+                        {[...Array(5)].map((_, i) => (
+                            <View key={i} style={{ height: 80, marginBottom: SPACING.md, borderRadius: RADIUS.md, overflow: 'hidden' }}>
+                                <Skeleton width="100%" height="100%" borderRadius={RADIUS.md} />
+                            </View>
+                        ))}
+                    </View>
                 ) : (
                     <View style={[styles.statsRow, r.isSmall && { flexDirection: 'column' }]}>
                         {/* Today's Sale */}

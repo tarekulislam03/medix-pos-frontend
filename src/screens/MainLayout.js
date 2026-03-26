@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { View, TouchableOpacity, Pressable, StyleSheet, Text, Dimensions, Image } from 'react-native';
+import React, { useState, Suspense, lazy } from 'react';
+import { View, TouchableOpacity, Pressable, StyleSheet, Text, Dimensions, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Sidebar from '../components/Sidebar';
-import BillingScreen from '../screens/BillingScreen';
-import InventoryScreen from '../screens/InventoryScreen';
-import AnalyticsScreen from '../screens/AnalyticsScreen';
-import CustomersScreen from '../screens/CustomersScreen';
-import ComingSoonScreen from '../screens/ComingSoonScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+
+const BillingScreen = lazy(() => import('../screens/BillingScreen'));
+const InventoryScreen = lazy(() => import('../screens/InventoryScreen'));
+const AnalyticsScreen = lazy(() => import('../screens/AnalyticsScreen'));
+const CustomersScreen = lazy(() => import('../screens/CustomersScreen'));
+const ComingSoonScreen = lazy(() => import('../screens/ComingSoonScreen'));
+const SettingsScreen = lazy(() => import('../screens/SettingsScreen'));
+
 import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 import { logoutUser } from '../services/authService';
@@ -63,23 +65,41 @@ export default function MainLayout({ navigation }) {
             goBack: () => setActiveScreen('Billing'),
         };
 
+        let CurrentScreen = null;
         switch (activeScreen) {
             case 'Inventory':
-                return <InventoryScreen navigation={proxyNavigation} />;
+                CurrentScreen = <InventoryScreen navigation={proxyNavigation} />;
+                break;
             case 'Invoices':
-                return <ComingSoonScreen screenKey="Invoices" />;
+                CurrentScreen = <ComingSoonScreen screenKey="Invoices" />;
+                break;
             case 'Returns':
-                return <ComingSoonScreen screenKey="Returns" />;
+                CurrentScreen = <ComingSoonScreen screenKey="Returns" />;
+                break;
             case 'Customers':
-                return <CustomersScreen />;
+                CurrentScreen = <CustomersScreen />;
+                break;
             case 'SalesAnalytics':
-                return <AnalyticsScreen />;
+                CurrentScreen = <AnalyticsScreen />;
+                break;
             case 'Settings':
-                return <SettingsScreen />;
+                CurrentScreen = <SettingsScreen />;
+                break;
             case 'Billing':
             default:
-                return <BillingScreen navigation={proxyNavigation} />;
+                CurrentScreen = <BillingScreen navigation={proxyNavigation} />;
+                break;
         }
+
+        return (
+            <Suspense fallback={
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgDark }}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+            }>
+                {CurrentScreen}
+            </Suspense>
+        );
     };
 
     // Screen label for the top bar

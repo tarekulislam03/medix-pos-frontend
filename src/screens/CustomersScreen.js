@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 import GradientButton from '../components/GradientButton';
+import Skeleton from '../components/Skeleton';
 import {
     getCustomers,
     createCustomer,
@@ -343,9 +344,15 @@ export default function CustomersScreen({ navigation }) {
 
                 {/* Table Body */}
                 {loading ? (
-                    <View style={styles.centerBox}>
-                        <ActivityIndicator size="large" color={COLORS.primary} />
-                        <Text style={styles.emptyText}>Loading customers...</Text>
+                    <View style={{ flex: 1, padding: SPACING.lg, gap: SPACING.md }}>
+                        {[...Array(6)].map((_, i) => (
+                            <View key={i} style={[styles.tableRow, { height: 64, paddingHorizontal: SPACING.lg }]}>
+                                <Skeleton width="30%" height={18} style={{ flex: 2 }} />
+                                <Skeleton width="20%" height={18} style={{ flex: 1.5, alignSelf: 'center' }} />
+                                <Skeleton width="15%" height={20} style={{ flex: 1, alignSelf: 'center' }} />
+                                <Skeleton width="20%" height={24} style={{ flex: 1.5, alignSelf: 'center', marginLeft: SPACING.xl }} />
+                            </View>
+                        ))}
                     </View>
                 ) : filteredCustomers.length > 0 ? (
                     <FlatList

@@ -17,14 +17,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 import { searchProducts, processCheckout } from '../services/billingService';
 import { searchCustomer, getCustomerLastPurchase, getCustomerCredit, payCustomerDue } from '../services/customerService';
-import { getProductById, createProduct, getLoosePrice } from '../services/inventoryService';
+import { getProducts, getProductById, createProduct, getLoosePrice } from '../services/inventoryService';
+import MemoryCache from '../services/cacheService';
 import { printReceipt58mm } from '../utils/printReceipt';
 import { useResponsive } from '../utils/responsive';
 
 // ═══════════════════════════════════════════════
 // INPUT MODAL COMPONENT  (keyboard / mouse friendly)
 // ═══════════════════════════════════════════════
-function NumpadModal({ visible, onClose, onConfirm, title, subtitle, unit, allowDecimal = false, maxValue = 9999 }) {
+const NumpadModal = React.memo(function NumpadModal({ visible, onClose, onConfirm, title, subtitle, unit, allowDecimal = false, maxValue = 9999 }) {
     const [value, setValue] = useState('');
     const inputRef = useRef(null);
 
@@ -116,7 +117,7 @@ function NumpadModal({ visible, onClose, onConfirm, title, subtitle, unit, allow
             </View>
         </Modal>
     );
-}
+});
 
 const npStyles = StyleSheet.create({
     overlay: {
@@ -240,7 +241,7 @@ const npStyles = StyleSheet.create({
 // ═══════════════════════════════════════════════
 // PAYMENT MODAL — collects cash received, handles credit/due
 // ═══════════════════════════════════════════════
-function PaymentModal({ visible, onClose, onConfirm, grandTotal, customerCredit = 0, customerName = '' }) {
+const PaymentModal = React.memo(function PaymentModal({ visible, onClose, onConfirm, grandTotal, customerCredit = 0, customerName = '' }) {
     const [receivedStr, setReceivedStr] = useState('');
     const [addedDueStr, setAddedDueStr] = useState('');
     const receivedRef = useRef(null);
@@ -457,7 +458,7 @@ function PaymentModal({ visible, onClose, onConfirm, grandTotal, customerCredit 
             </View>
         </Modal>
     );
-}
+});
 
 const pmStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: COLORS.overlay, alignItems: 'center', justifyContent: 'center' },
@@ -601,6 +602,10 @@ export default function BillingScreen({ navigation }) {
     const [searchLoading, setSearchLoading] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
 
+    // ─── PRELOADED PRODUCT LIST (for instant local search) ───
+    const [allProducts, setAllProducts] = useState([]);
+    const [productsLoaded, setProductsLoaded] = useState(false);
+
     // Customer Selection
     const [customerQuery, setCustomerQuery] = useState('');
     const [customerResults, setCustomerResults] = useState([]);
@@ -634,6 +639,24 @@ export default function BillingScreen({ navigation }) {
     const searchTimeout = useRef(null);
     const customerSearchTimeout = useRef(null);
     const searchInputRef = useRef(null);
+    const customerCacheRef = useRef(new MemoryCache(120000)); // 2-min TTL
+
+    // ─── PRELOAD ALL PRODUCTS ON MOUNT ──────────────────
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await getProducts();
+                if (!cancelled) {
+                    setAllProducts(res?.data ?? []);
+                    setProductsLoaded(true);
+                }
+            } catch (e) {
+                console.warn('Product preload failed:', e.message);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     // ─── KEEP FOCUS ON SEARCH INPUT ──────────────────────
     // Always re-focus the barcode/product search input unless an
@@ -681,20 +704,30 @@ export default function BillingScreen({ navigation }) {
             return;
         }
 
+        // Check cache first
+        const cached = customerCacheRef.current.get(query.trim());
+        if (cached) {
+            setCustomerResults(cached);
+            setShowCustomerDropdown(true);
+            return;
+        }
+
         customerSearchTimeout.current = setTimeout(async () => {
             setCustomerLoading(true);
             try {
                 const response = await searchCustomer(query.trim());
                 const list = response?.data ?? response ?? [];
                 // top 5 recommendations
-                setCustomerResults(Array.isArray(list) ? list.slice(0, 5) : []);
+                const results = Array.isArray(list) ? list.slice(0, 5) : [];
+                setCustomerResults(results);
+                customerCacheRef.current.set(query.trim(), results);
                 setShowCustomerDropdown(true);
             } catch {
                 setCustomerResults([]);
             } finally {
                 setCustomerLoading(false);
             }
-        }, 350);
+        }, 300);
     }, []);
 
     const handleSelectCustomer = async (c) => {
@@ -752,20 +785,36 @@ export default function BillingScreen({ navigation }) {
             return;
         }
 
-        searchTimeout.current = setTimeout(async () => {
-            setSearchLoading(true);
-            try {
-                const response = await searchProducts({ query: query.trim(), type: 'name' });
-                const products = response?.data ?? response?.products ?? response ?? [];
-                setSearchResults(Array.isArray(products) ? products : []);
+        searchTimeout.current = setTimeout(() => {
+            // If products are preloaded, search locally (instant)
+            if (productsLoaded && allProducts.length > 0) {
+                const q = query.trim().toLowerCase();
+                const filtered = allProducts.filter(p =>
+                    (p.medicine_name && p.medicine_name.toLowerCase().includes(q)) ||
+                    p.barcode === query.trim() ||
+                    p.short_barcode === query.trim()
+                );
+                setSearchResults(filtered);
                 setShowDropdown(true);
-            } catch {
-                setSearchResults([]);
-            } finally {
-                setSearchLoading(false);
+                return;
             }
-        }, 350);
-    }, []);
+
+            // Fallback: API search if preload failed
+            (async () => {
+                setSearchLoading(true);
+                try {
+                    const response = await searchProducts({ query: query.trim(), type: 'name' });
+                    const products = response?.data ?? response?.products ?? response ?? [];
+                    setSearchResults(Array.isArray(products) ? products : []);
+                    setShowDropdown(true);
+                } catch {
+                    setSearchResults([]);
+                } finally {
+                    setSearchLoading(false);
+                }
+            })();
+        }, productsLoaded ? 100 : 350);
+    }, [productsLoaded, allProducts]);
 
     // ─── CART ───────────────────────────────────────
     const addToCart = useCallback((product) => {
@@ -777,8 +826,14 @@ export default function BillingScreen({ navigation }) {
             return;
         }
 
+        const pid = product._id || product.id || product.product_id;
+
+        // Optimistic local stock deduction — keeps search results accurate
+        setAllProducts(prev => prev.map(p =>
+            (p._id || p.id) === pid ? { ...p, quantity: Math.max(0, (p.quantity ?? 0) - 1) } : p
+        ));
+
         setCart((prev) => {
-            const pid = product._id || product.id || product.product_id;
             const existing = prev.find((i) => (i._id || i.id || i.product_id) === pid);
 
             if (existing) {
@@ -807,6 +862,25 @@ export default function BillingScreen({ navigation }) {
         if (!query) return;
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
+        // Local search first (instant barcode/name match)
+        if (productsLoaded && allProducts.length > 0) {
+            const q = query.toLowerCase();
+            const list = allProducts.filter(p =>
+                (p.medicine_name && p.medicine_name.toLowerCase().includes(q)) ||
+                p.barcode === query ||
+                p.short_barcode === query
+            );
+            if (list.length === 1) {
+                addToCart(list[0]);
+            } else {
+                setSearchResults(list);
+                setShowDropdown(true);
+            }
+            setTimeout(() => searchInputRef.current?.focus(), 50);
+            return;
+        }
+
+        // Fallback: API search
         setSearchLoading(true);
         try {
             const response = await searchProducts({ query, type: 'name' });
@@ -826,7 +900,7 @@ export default function BillingScreen({ navigation }) {
             // Always re-focus search input after submit (barcode scan)
             setTimeout(() => searchInputRef.current?.focus(), 50);
         }
-    }, [searchQuery, addToCart]);
+    }, [searchQuery, addToCart, productsLoaded, allProducts]);
 
     const updateQuantity = useCallback((item, newQty) => {
         const pid = item._id || item.id || item.product_id;
@@ -1057,6 +1131,16 @@ export default function BillingScreen({ navigation }) {
             setCart([]);
             setSearchQuery('');
             setSearchResults([]);
+
+            // Re-fetch product list to get accurate stock after checkout
+            try {
+                const freshProducts = await getProducts();
+                setAllProducts(freshProducts?.data ?? []);
+            } catch (e) {
+                console.warn('Product refresh after checkout failed:', e.message);
+            }
+            // Clear customer cache so credit balances are fresh
+            customerCacheRef.current.clear();
 
             if (savedDue > 0 && selectedCustomer) {
                 Alert.alert(
