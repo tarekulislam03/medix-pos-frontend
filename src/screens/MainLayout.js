@@ -80,14 +80,14 @@ export default function MainLayout({ navigation }) {
                 CurrentScreen = <CustomersScreen />;
                 break;
             case 'SalesAnalytics':
-                CurrentScreen = <AnalyticsScreen />;
+                CurrentScreen = <AnalyticsScreen navigation={proxyNavigation} />;
                 break;
             case 'Settings':
                 CurrentScreen = <SettingsScreen />;
                 break;
             case 'Billing':
             default:
-                CurrentScreen = <BillingScreen navigation={proxyNavigation} />;
+                CurrentScreen = <BillingScreen navigation={proxyNavigation} editInvoice={invoiceData} clearEditInvoice={() => setInvoiceData(null)} />;
                 break;
         }
 

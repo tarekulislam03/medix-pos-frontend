@@ -32,6 +32,20 @@ export const processCheckout = async (payload) => {
 };
 
 /**
+ * Update checkout / edit bill
+ * @param {string} invoiceId
+ * @param {Object} payload 
+ */
+export const updateCheckout = async (invoiceId, payload) => {
+    try {
+        const response = await api.put(`/sales/history/${invoiceId}`, payload);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
  * Get invoice by ID
  * @param {string} invoiceId
  */

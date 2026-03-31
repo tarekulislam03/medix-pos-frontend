@@ -18,13 +18,16 @@ import Skeleton from '../components/Skeleton';
 import api from '../services/api';
 import { printReceipt58mm } from '../utils/printReceipt';
 
-export default function AnalyticsScreen() {
+export default function AnalyticsScreen({ navigation }) {
     const r = useResponsive();
     const [todaySales, setTodaySales] = useState(0);
     const [monthlySales, setMonthlySales] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [recentSales, setRecentSales] = useState([]);
+    const [allSales, setAllSales] = useState([]);
+    const [showAllSalesModal, setShowAllSalesModal] = useState(false);
+    const [allSalesSearch, setAllSalesSearch] = useState('');
 
     // Custom Daily & Monthly
     const [dailyData, setDailyData] = useState([]);
@@ -92,6 +95,7 @@ export default function AnalyticsScreen() {
                         : []));
 
             setRecentSales(fullList.slice(0, 10)); // Use top 10 for recent
+            setAllSales(fullList); // Store full list for View All modal
 
             // Generate aggregate daily/monthly maps locally
             const dMap = {};
@@ -216,7 +220,17 @@ export default function AnalyticsScreen() {
 
                 {!loading && (
                     <View style={styles.historySection}>
-                        <Text style={styles.sectionTitle}>Recent Sales History</Text>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={styles.sectionTitle}>Recent Sales History</Text>
+                            <TouchableOpacity
+                                style={styles.viewAllBtn}
+                                onPress={() => { setAllSalesSearch(''); setShowAllSalesModal(true); }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.viewAllBtnText}>View All</Text>
+                                <Ionicons name="arrow-forward" size={14} color={COLORS.primary} />
+                            </TouchableOpacity>
+                        </View>
                         {recentSales.length > 0 ? (
                             recentSales.map((sale, idx) => (
                                 <View key={sale._id || idx} style={styles.saleRow}>
@@ -232,14 +246,24 @@ export default function AnalyticsScreen() {
                                             })}
                                         </Text>
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.printBtn}
-                                        onPress={() => printReceipt58mm(sale)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Ionicons name="print-outline" size={18} color={COLORS.primary} />
-                                        <Text style={styles.printBtnText}>Print</Text>
-                                    </TouchableOpacity>
+                                    <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+                                        <TouchableOpacity
+                                            style={[styles.printBtn, { backgroundColor: COLORS.warningLight }]}
+                                            onPress={() => navigation.navigate('Billing', { invoice: sale })}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons name="pencil-outline" size={18} color={COLORS.warning} />
+                                            <Text style={[styles.printBtnText, { color: COLORS.warning }]}>Edit</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.printBtn}
+                                            onPress={() => printReceipt58mm(sale)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons name="print-outline" size={18} color={COLORS.primary} />
+                                            <Text style={styles.printBtnText}>Print</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             ))
                         ) : (
@@ -340,6 +364,94 @@ export default function AnalyticsScreen() {
                                 <Text style={styles.emptyText}>No profit data found</Text>
                             )}
                         </View>
+                    </ScrollView>
+                </View>
+            </Modal>
+
+            {/* All Sales History Modal */}
+            <Modal visible={showAllSalesModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAllSalesModal(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>All Sales History</Text>
+                        <TouchableOpacity onPress={() => setShowAllSalesModal(false)} style={styles.closeModalBtn}>
+                            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Search bar */}
+                    <View style={styles.allSalesSearchBox}>
+                        <Ionicons name="search-outline" size={16} color={COLORS.textMuted} />
+                        <TextInput
+                            style={styles.allSalesSearchInput}
+                            placeholder="Search by invoice no., amount or payment..."
+                            placeholderTextColor={COLORS.textMuted}
+                            value={allSalesSearch}
+                            onChangeText={setAllSalesSearch}
+                        />
+                        {allSalesSearch.length > 0 && (
+                            <TouchableOpacity onPress={() => setAllSalesSearch('')}>
+                                <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+
+                    <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
+                        {allSales
+                            .filter(sale => {
+                                const q = allSalesSearch.toLowerCase();
+                                if (!q) return true;
+                                const inv = (sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6) || '').toLowerCase();
+                                const amt = String(sale.grand_total || sale.total || '');
+                                const method = (sale.payment_method || '').toLowerCase();
+                                return inv.includes(q) || amt.includes(q) || method.includes(q);
+                            })
+                            .map((sale, idx) => (
+                                <View key={sale._id || idx} style={styles.saleRow}>
+                                    <View style={styles.saleInfo}>
+                                        <Text style={styles.saleId}>
+                                            Invoice {sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6).toUpperCase()}
+                                        </Text>
+                                        <Text style={styles.saleDetails}>
+                                            ₹{Number(sale.grand_total || sale.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • {String(sale.payment_method || 'CASH').toUpperCase()}
+                                        </Text>
+                                        <Text style={styles.saleTime}>
+                                            {new Date(sale.created_at || sale.createdAt || sale.date || new Date()).toLocaleString('en-IN', {
+                                                day: '2-digit', month: 'short', year: 'numeric',
+                                                hour: '2-digit', minute: '2-digit', hour12: true
+                                            })}
+                                        </Text>
+                                    </View>
+                                    <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+                                        <TouchableOpacity
+                                            style={[styles.printBtn, { backgroundColor: COLORS.warningLight }]}
+                                            onPress={() => { setShowAllSalesModal(false); navigation.navigate('Billing', { invoice: sale }); }}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons name="pencil-outline" size={18} color={COLORS.warning} />
+                                            <Text style={[styles.printBtnText, { color: COLORS.warning }]}>Edit</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.printBtn}
+                                            onPress={() => printReceipt58mm(sale)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons name="print-outline" size={18} color={COLORS.primary} />
+                                            <Text style={styles.printBtnText}>Print</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ))
+                        }
+                        {allSales.filter(sale => {
+                            const q = allSalesSearch.toLowerCase();
+                            if (!q) return true;
+                            const inv = (sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6) || '').toLowerCase();
+                            const amt = String(sale.grand_total || sale.total || '');
+                            const method = (sale.payment_method || '').toLowerCase();
+                            return inv.includes(q) || amt.includes(q) || method.includes(q);
+                        }).length === 0 && (
+                            <Text style={styles.emptyText}>No sales found.</Text>
+                        )}
                     </ScrollView>
                 </View>
             </Modal>
@@ -467,6 +579,22 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: SPACING.xl,
     },
+    allSalesSearchBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.white,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        paddingHorizontal: SPACING.lg,
+        paddingVertical: SPACING.md,
+        gap: SPACING.sm,
+    },
+    allSalesSearchInput: {
+        flex: 1,
+        fontSize: FONT_SIZES.md,
+        color: COLORS.textPrimary,
+        outlineStyle: 'none',
+    },
     sectionHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -474,6 +602,20 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.lg,
         flexWrap: 'wrap',
         gap: SPACING.sm
+    },
+    viewAllBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.xs,
+        backgroundColor: COLORS.primaryGhost,
+        paddingHorizontal: SPACING.md,
+        paddingVertical: SPACING.sm,
+        borderRadius: RADIUS.md,
+    },
+    viewAllBtnText: {
+        color: COLORS.primary,
+        fontWeight: '700',
+        fontSize: FONT_SIZES.sm,
     },
     searchBox: {
         flexDirection: 'row',

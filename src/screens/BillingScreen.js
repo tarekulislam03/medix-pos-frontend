@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
-import { searchProducts, processCheckout } from '../services/billingService';
+import { searchProducts, processCheckout, updateCheckout } from '../services/billingService';
 import { searchCustomer, getCustomerLastPurchase, getCustomerCredit, payCustomerDue } from '../services/customerService';
 import { getProducts, getProductById, createProduct, getLoosePrice } from '../services/inventoryService';
 import MemoryCache from '../services/cacheService';
@@ -594,7 +594,7 @@ const pmStyles = StyleSheet.create({
 
 const DEFAULT_DISCOUNT = 15; // Default discount % for new cart items
 
-export default function BillingScreen({ navigation }) {
+export default function BillingScreen({ navigation, editInvoice, clearEditInvoice }) {
     const r = useResponsive();
     // Search Products
     const [searchQuery, setSearchQuery] = useState('');
@@ -638,6 +638,29 @@ export default function BillingScreen({ navigation }) {
 
     const searchTimeout = useRef(null);
     const customerSearchTimeout = useRef(null);
+
+    useEffect(() => {
+        if (editInvoice && editInvoice.items) {
+            const mappedCart = editInvoice.items.map((it) => ({
+                ...it,
+                _id: it.product_id,
+                cart_quantity: it.quantity,
+                mrp: it.mrp || 0,
+                discount_percent: it.discount_percent || 0,
+            }));
+            setCart(mappedCart);
+
+            if (editInvoice.customer && editInvoice.customer_name) {
+                const customerIdStr = typeof editInvoice.customer === 'object' ? (editInvoice.customer._id || editInvoice.customer.id) : editInvoice.customer;
+                const c = {
+                    _id: customerIdStr,
+                    name: editInvoice.customer_name,
+                    phone_no: editInvoice.customer_phone || ''
+                };
+                handleSelectCustomer(c);
+            }
+        }
+    }, [editInvoice]);
     const searchInputRef = useRef(null);
     const customerCacheRef = useRef(new MemoryCache(120000)); // 2-min TTL
 
@@ -1110,9 +1133,17 @@ export default function BillingScreen({ navigation }) {
                     selectedCustomer._id ||
                     selectedCustomer.id ||
                     selectedCustomer.customer_id;
+            } else if (customerQuery && customerQuery.trim() !== '') {
+                payload.customer_name_fallback = customerQuery.trim();
             }
 
-            const response = await processCheckout(payload);
+            let response;
+            if (editInvoice) {
+                response = await updateCheckout(editInvoice._id || editInvoice.id, payload);
+                if (clearEditInvoice) clearEditInvoice();
+            } else {
+                response = await processCheckout(payload);
+            }
 
             const rawInvoice =
                 response?.invoice ?? response?.data ?? response;
