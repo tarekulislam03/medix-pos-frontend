@@ -37,7 +37,11 @@ export function buildReceiptHTML(invoice) {
     return sum + (p * q * d / 100);
   }, 0);
 
-  const grandTotal = invoice?.grand_total ?? invoice?.grandTotal ?? invoice?.total ?? (subtotal - totalDiscount);
+  const doctorFee = Number(invoice?.doctor_fee ?? 0);
+  const otcItems = Array.isArray(invoice?.otc_items) ? invoice.otc_items : [];
+  const otcTotal = Number(invoice?.otc_total ?? otcItems.reduce((s, i) => s + (Number(i.price) || 0), 0));
+
+  const grandTotal = invoice?.grand_total ?? invoice?.grandTotal ?? invoice?.total ?? (subtotal - totalDiscount + doctorFee + otcTotal);
   const amountPaid = invoice?.amount_paid ?? invoice?.paid_amount ?? invoice?.amountPaid ?? null;
   const dueAmount = invoice?.due_amount ?? invoice?.dueAmount ?? null;
   const qrAmount = (amountPaid != null && amountPaid > 0) ? amountPaid : grandTotal;
@@ -107,9 +111,26 @@ export function buildReceiptHTML(invoice) {
 
   const dueLine = (dueAmount != null && dueAmount > 0)
     ? `<div class="summary-row due-row">
-        <span>⚠ Due Amount</span>
+        <span>Due Amount</span>
         <span>₹${Number(dueAmount).toFixed(2)}</span>
        </div>`
+    : '';
+
+  const doctorFeeLine = doctorFee > 0
+    ? `<div class="summary-row doctor-row">
+        <span>Doctor Fee</span>
+        <span>₹${Number(doctorFee).toFixed(2)}</span>
+       </div>`
+    : '';
+
+  const otcLinesHTML = otcItems.length > 0 && otcTotal > 0
+    ? otcItems
+      .filter(i => Number(i.price) > 0)
+      .map(i => `<div class="summary-row otc-row">
+        <span>${String(i.name)}</span>
+        <span>₹${Number(i.price).toFixed(2)}</span>
+       </div>`)
+      .join('')
     : '';
 
   const customerLine = customerName
@@ -259,6 +280,8 @@ export function buildReceiptHTML(invoice) {
   }
   .discount-row { color: #000; font-weight: 900; }
   .due-row      { color: #000; font-weight: 900; }
+  .doctor-row   { color: #000; font-weight: 900; }
+  .otc-row      { color: #000; font-weight: 700; }
 
   /* ── Grand Total ── */
   .total-section {
@@ -399,6 +422,8 @@ export function buildReceiptHTML(invoice) {
       <span>₹${Number(subtotal).toFixed(2)}</span>
     </div>
     ${discLine}
+    ${doctorFeeLine}
+    ${otcLinesHTML}
     ${taxLine}
   </div>
 

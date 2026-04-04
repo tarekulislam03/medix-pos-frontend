@@ -619,6 +619,10 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+    // Doctor Fee & OTC Items
+    const [doctorFee, setDoctorFee] = useState('');
+    const [otcItems, setOtcItems] = useState([{ name: '', price: '' }]);
+
     // Payment Modal (credit/due system)
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
 
@@ -1038,10 +1042,8 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
         cart.forEach((item) => {
             if (item.is_loose_mode) {
-                // Loose tablet pricing — use the API-returned total
                 const looseTotal = item.loose_total_price ?? 0;
                 subtotal += looseTotal;
-                // Discount doesn't apply to loose tablet items (price_per_tablet already is the discounted rate)
             } else {
                 const price = item.mrp ?? item.selling_price ?? item.price ?? 0;
                 const qty = item.cart_quantity ?? 1;
@@ -1052,13 +1054,21 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             }
         });
 
+        const docFee = parseFloat(doctorFee) || 0;
+        const otcTotal = otcItems.reduce((acc, item) => acc + (parseFloat(item.price) || 0), 0);
+
+        const medicineTotalAfterDiscount = subtotal - totalDiscount;
+        const grandTotal = medicineTotalAfterDiscount + docFee + otcTotal;
+
         return {
             subtotal,
             totalDiscount,
-            grandTotal: subtotal - totalDiscount,
+            doctorFee: docFee,
+            otcTotal,
+            grandTotal,
             itemCount: cart.reduce((s, i) => s + (i.is_loose_mode ? (i.loose_tablet_count ?? 1) : (i.cart_quantity ?? 1)), 0),
         };
-    }, [cart]);
+    }, [cart, doctorFee, otcItems]);
 
     // ─── CHECKOUT ──────────────────────────────────────
     // Step 1: PAY button → open payment modal
@@ -1125,7 +1135,11 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                 })),
                 payment_method: paymentMethod,
                 amount_paid,
-                previous_due_payment
+                previous_due_payment,
+                doctor_fee: parseFloat(doctorFee) || 0,
+                otc_items: otcItems
+                    .filter(i => i.name.trim() !== '' && parseFloat(i.price) > 0)
+                    .map(i => ({ name: i.name.trim(), price: parseFloat(i.price) }))
             };
 
             if (selectedCustomer) {
@@ -1162,6 +1176,8 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             setCart([]);
             setSearchQuery('');
             setSearchResults([]);
+            setDoctorFee('');
+            setOtcItems([{ name: '', price: '' }]);
 
             // Re-fetch product list to get accurate stock after checkout
             try {
@@ -1787,6 +1803,83 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                     ]}
                     keyboardShouldPersistTaps="handled"
                 >
+                    {/* ── Doctor Fee Input ── */}
+                    <View style={styles.extraFeeSection}>
+                        <View style={styles.extraFeeHeader}>
+                            <Ionicons name="medkit-outline" size={15} color="#7C3AED" />
+                            <Text style={styles.extraFeeTitle}>Doctor Fee</Text>
+                            <Text style={styles.extraFeeNote}>(no discount)</Text>
+                        </View>
+                        <View style={styles.extraFeeInputWrap}>
+                            <Text style={styles.extraFeeCurrency}>₹</Text>
+                            <TextInput
+                                style={styles.extraFeeInput}
+                                value={doctorFee}
+                                onChangeText={t => setDoctorFee(t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))}
+                                placeholder="0.00"
+                                placeholderTextColor={COLORS.textMuted}
+                                keyboardType="decimal-pad"
+                                selectTextOnFocus
+                            />
+                        </View>
+                    </View>
+
+                    {/* ── OTC Products Input ── */}
+                    <View style={styles.extraFeeSection}>
+                        <View style={styles.extraFeeHeader}>
+                            <Ionicons name="bag-handle-outline" size={15} color="#0891B2" />
+                            <Text style={[styles.extraFeeTitle, { color: '#0891B2' }]}>OTC Products</Text>
+                            <Text style={styles.extraFeeNote}>(no discount)</Text>
+                        </View>
+                        {otcItems.map((otc, idx) => (
+                            <View key={idx} style={styles.otcItemRow}>
+                                <TextInput
+                                    style={[styles.extraFeeInput, styles.otcNameInput]}
+                                    value={otc.name}
+                                    onChangeText={t => {
+                                        const updated = [...otcItems];
+                                        updated[idx] = { ...updated[idx], name: t };
+                                        setOtcItems(updated);
+                                    }}
+                                    placeholder="Product name"
+                                    placeholderTextColor={COLORS.textMuted}
+                                />
+                                <View style={[styles.extraFeeInputWrap, { flex: 0.9 }]}>
+                                    <Text style={styles.extraFeeCurrency}>₹</Text>
+                                    <TextInput
+                                        style={styles.extraFeeInput}
+                                        value={otc.price}
+                                        onChangeText={t => {
+                                            const updated = [...otcItems];
+                                            updated[idx] = { ...updated[idx], price: t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1') };
+                                            setOtcItems(updated);
+                                        }}
+                                        placeholder="0.00"
+                                        placeholderTextColor={COLORS.textMuted}
+                                        keyboardType="decimal-pad"
+                                        selectTextOnFocus
+                                    />
+                                </View>
+                                {otcItems.length > 1 && (
+                                    <TouchableOpacity
+                                        style={styles.otcRemoveBtn}
+                                        onPress={() => setOtcItems(prev => prev.filter((_, i) => i !== idx))}
+                                    >
+                                        <Ionicons name="close-circle" size={18} color={COLORS.error} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        ))}
+                        <TouchableOpacity
+                            style={styles.otcAddBtn}
+                            onPress={() => setOtcItems(prev => [...prev, { name: '', price: '' }])}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="add-circle-outline" size={14} color="#0891B2" />
+                            <Text style={styles.otcAddBtnText}>Add OTC Item</Text>
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Totals Display */}
                     <View style={styles.totalsSection}>
                         <View style={styles.totalRow}>
@@ -1799,6 +1892,24 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 {cartSummary.totalDiscount > 0 ? `-₹${cartSummary.totalDiscount.toFixed(2)}` : '₹0.00'}
                             </Text>
                         </View>
+                        {cartSummary.doctorFee > 0 && (
+                            <View style={styles.totalRow}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Ionicons name="medkit-outline" size={12} color="#7C3AED" />
+                                    <Text style={[styles.totalLabel, { color: '#7C3AED' }]}>Doctor Fee</Text>
+                                </View>
+                                <Text style={[styles.totalValue, { color: '#7C3AED' }]}>+₹{cartSummary.doctorFee.toFixed(2)}</Text>
+                            </View>
+                        )}
+                        {cartSummary.otcTotal > 0 && (
+                            <View style={styles.totalRow}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Ionicons name="bag-handle-outline" size={12} color="#0891B2" />
+                                    <Text style={[styles.totalLabel, { color: '#0891B2' }]}>OTC Products</Text>
+                                </View>
+                                <Text style={[styles.totalValue, { color: '#0891B2' }]}>+₹{cartSummary.otcTotal.toFixed(2)}</Text>
+                            </View>
+                        )}
                         <View style={styles.grandTotalRow}>
                             <Text style={styles.grandTotalLabel}>Grand Total</Text>
                             <Text style={styles.grandTotalValue}>
@@ -2388,6 +2499,89 @@ const styles = StyleSheet.create({
     rightPanelContent: {
         flexGrow: 1,
         paddingBottom: 16,
+    },
+
+    // Doctor Fee & OTC extra charges
+    extraFeeSection: {
+        backgroundColor: COLORS.white,
+        borderRadius: RADIUS.md,
+        padding: SPACING.sm,
+        marginBottom: SPACING.sm,
+        borderWidth: 1,
+        borderColor: COLORS.borderLight,
+    },
+    extraFeeHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        marginBottom: SPACING.xs,
+    },
+    extraFeeTitle: {
+        fontSize: FONT_SIZES.xs,
+        fontWeight: '700',
+        color: '#7C3AED',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    extraFeeNote: {
+        fontSize: 9,
+        color: COLORS.textMuted,
+        fontWeight: '500',
+        fontStyle: 'italic',
+    },
+    extraFeeInputWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: COLORS.borderLight,
+        borderRadius: RADIUS.sm,
+        paddingHorizontal: SPACING.xs,
+        backgroundColor: COLORS.bgSurface,
+        flex: 1,
+    },
+    extraFeeCurrency: {
+        fontSize: FONT_SIZES.md,
+        fontWeight: '700',
+        color: COLORS.textSecondary,
+        paddingRight: 3,
+    },
+    extraFeeInput: {
+        flex: 1,
+        fontSize: FONT_SIZES.md,
+        fontWeight: '700',
+        color: COLORS.textPrimary,
+        paddingVertical: 7,
+        outlineStyle: 'none',
+    },
+    otcItemRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.xs,
+        marginBottom: SPACING.xs,
+    },
+    otcNameInput: {
+        flex: 1.5,
+        borderWidth: 1.5,
+        borderColor: COLORS.borderLight,
+        borderRadius: RADIUS.sm,
+        paddingHorizontal: SPACING.xs,
+        backgroundColor: COLORS.bgSurface,
+        paddingVertical: 7,
+    },
+    otcRemoveBtn: {
+        padding: 2,
+    },
+    otcAddBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingVertical: 5,
+        alignSelf: 'flex-start',
+    },
+    otcAddBtnText: {
+        fontSize: FONT_SIZES.xs,
+        fontWeight: '600',
+        color: '#0891B2',
     },
 
     // Totals
