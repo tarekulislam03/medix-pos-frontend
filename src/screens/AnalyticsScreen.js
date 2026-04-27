@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,7 +9,8 @@ import {
     TouchableOpacity,
     TextInput,
     Modal,
-    Platform
+    Platform,
+    Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
@@ -24,6 +25,24 @@ export default function AnalyticsScreen({ navigation }) {
     const [monthlySales, setMonthlySales] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
+    const [deleteConfirmSale, setDeleteConfirmSale] = useState(null);
+    const [toastMessage, setToastMessage] = useState('');
+    const [toastType, setToastType] = useState('success');
+    const toastOpacity = useRef(new Animated.Value(0)).current;
+    const toastTimeout = useRef(null);
+
+    const showToast = useCallback((message, type = 'success') => {
+        if (toastTimeout.current) clearTimeout(toastTimeout.current);
+        setToastMessage(message);
+        setToastType(type);
+        Animated.timing(toastOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+        toastTimeout.current = setTimeout(() => {
+            Animated.timing(toastOpacity, { toValue: 0, duration: 350, useNativeDriver: true }).start(() => {
+                setToastMessage('');
+            });
+        }, 3000);
+    }, [toastOpacity]);
     const [recentSales, setRecentSales] = useState([]);
     const [allSales, setAllSales] = useState([]);
     const [showAllSalesModal, setShowAllSalesModal] = useState(false);
@@ -148,6 +167,31 @@ export default function AnalyticsScreen({ navigation }) {
         setRefreshing(false);
     };
 
+    const handleDeleteSale = (sale) => {
+        setDeleteConfirmSale(sale);
+    };
+
+    const confirmDelete = async () => {
+        const sale = deleteConfirmSale;
+        if (!sale) return;
+        setDeleteConfirmSale(null);
+        try {
+            setDeletingId(sale._id);
+            await api.delete(`/sales/history/${sale._id}`);
+            // Remove from local state immediately for snappy UX
+            setRecentSales(prev => prev.filter(s => s._id !== sale._id));
+            setAllSales(prev => prev.filter(s => s._id !== sale._id));
+            showToast('Sale deleted successfully', 'success');
+            // Refresh analytics totals
+            fetchAnalytics();
+        } catch (error) {
+            const msg = error?.message || 'Failed to delete sale';
+            showToast(msg, 'error');
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     const scrollPadding = r.pick({ small: SPACING.md, medium: SPACING.lg, large: SPACING.xxl, xlarge: SPACING.xxl });
     const statCardStyle = r.isSmall ? { width: '100%', marginBottom: SPACING.md } : { flex: 1 };
 
@@ -246,7 +290,7 @@ export default function AnalyticsScreen({ navigation }) {
                                             })}
                                         </Text>
                                     </View>
-                                    <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+                                    <View style={{ flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' }}>
                                         <TouchableOpacity
                                             style={[styles.printBtn, { backgroundColor: COLORS.warningLight }]}
                                             onPress={() => navigation.navigate('Billing', { invoice: sale })}
@@ -254,6 +298,19 @@ export default function AnalyticsScreen({ navigation }) {
                                         >
                                             <Ionicons name="pencil-outline" size={18} color={COLORS.warning} />
                                             <Text style={[styles.printBtnText, { color: COLORS.warning }]}>Edit</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.printBtn, { backgroundColor: COLORS.errorLight }]}
+                                            onPress={() => handleDeleteSale(sale)}
+                                            activeOpacity={0.7}
+                                            disabled={deletingId === sale._id}
+                                        >
+                                            {deletingId === sale._id ? (
+                                                <ActivityIndicator size="small" color={COLORS.error} />
+                                            ) : (
+                                                <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                                            )}
+                                            <Text style={[styles.printBtnText, { color: COLORS.error }]}>Delete</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={styles.printBtn}
@@ -421,7 +478,7 @@ export default function AnalyticsScreen({ navigation }) {
                                             })}
                                         </Text>
                                     </View>
-                                    <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+                                    <View style={{ flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' }}>
                                         <TouchableOpacity
                                             style={[styles.printBtn, { backgroundColor: COLORS.warningLight }]}
                                             onPress={() => { setShowAllSalesModal(false); navigation.navigate('Billing', { invoice: sale }); }}
@@ -429,6 +486,19 @@ export default function AnalyticsScreen({ navigation }) {
                                         >
                                             <Ionicons name="pencil-outline" size={18} color={COLORS.warning} />
                                             <Text style={[styles.printBtnText, { color: COLORS.warning }]}>Edit</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.printBtn, { backgroundColor: COLORS.errorLight }]}
+                                            onPress={() => handleDeleteSale(sale)}
+                                            activeOpacity={0.7}
+                                            disabled={deletingId === sale._id}
+                                        >
+                                            {deletingId === sale._id ? (
+                                                <ActivityIndicator size="small" color={COLORS.error} />
+                                            ) : (
+                                                <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                                            )}
+                                            <Text style={[styles.printBtnText, { color: COLORS.error }]}>Delete</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={styles.printBtn}
@@ -455,6 +525,62 @@ export default function AnalyticsScreen({ navigation }) {
                     </ScrollView>
                 </View>
             </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+                visible={!!deleteConfirmSale}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setDeleteConfirmSale(null)}
+            >
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmCard}>
+                        <View style={styles.confirmIconWrap}>
+                            <Ionicons name="warning" size={32} color={COLORS.error} />
+                        </View>
+                        <Text style={styles.confirmTitle}>Delete Sale</Text>
+                        <Text style={styles.confirmMessage}>
+                            Delete invoice {deleteConfirmSale?.invoice_number ? `#${deleteConfirmSale.invoice_number}` : deleteConfirmSale?._id?.slice(-6).toUpperCase()}?
+                            {"\n\n"}This will restore stock and revert customer credit. This action cannot be undone.
+                        </Text>
+                        <View style={styles.confirmBtnRow}>
+                            <TouchableOpacity
+                                style={[styles.confirmBtn, styles.confirmCancelBtn]}
+                                onPress={() => setDeleteConfirmSale(null)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.confirmCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.confirmBtn, styles.confirmDeleteBtn]}
+                                onPress={confirmDelete}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="trash-outline" size={16} color={COLORS.white} />
+                                <Text style={styles.confirmDeleteText}>Delete</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* In-app Toast */}
+            {toastMessage !== '' && (
+                <Animated.View
+                    style={[
+                        styles.toastContainer,
+                        { opacity: toastOpacity, backgroundColor: toastType === 'success' ? COLORS.success : COLORS.error }
+                    ]}
+                    pointerEvents="none"
+                >
+                    <Ionicons
+                        name={toastType === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                        size={20}
+                        color={COLORS.white}
+                    />
+                    <Text style={styles.toastText}>{toastMessage}</Text>
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -716,5 +842,97 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.border,
         minWidth: 140,
-    }
+    },
+    // Delete confirmation modal
+    confirmOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: SPACING.lg,
+    },
+    confirmCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: RADIUS.lg,
+        padding: SPACING.xl,
+        width: '100%',
+        maxWidth: 400,
+        alignItems: 'center',
+        ...SHADOWS.lg,
+    },
+    confirmIconWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: COLORS.errorLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: SPACING.md,
+    },
+    confirmTitle: {
+        fontSize: FONT_SIZES.lg,
+        fontWeight: '800',
+        color: COLORS.textPrimary,
+        marginBottom: SPACING.sm,
+    },
+    confirmMessage: {
+        fontSize: FONT_SIZES.sm,
+        color: COLORS.textSecondary,
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: SPACING.xl,
+    },
+    confirmBtnRow: {
+        flexDirection: 'row',
+        gap: SPACING.md,
+        width: '100%',
+    },
+    confirmBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: SPACING.md,
+        borderRadius: RADIUS.md,
+        gap: SPACING.xs,
+    },
+    confirmCancelBtn: {
+        backgroundColor: COLORS.bgDark,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    confirmCancelText: {
+        fontSize: FONT_SIZES.md,
+        fontWeight: '700',
+        color: COLORS.textSecondary,
+    },
+    confirmDeleteBtn: {
+        backgroundColor: COLORS.error,
+    },
+    confirmDeleteText: {
+        fontSize: FONT_SIZES.md,
+        fontWeight: '700',
+        color: COLORS.white,
+    },
+    // Toast
+    toastContainer: {
+        position: 'absolute',
+        top: SPACING.xl,
+        left: SPACING.xl,
+        right: SPACING.xl,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        paddingHorizontal: SPACING.lg,
+        paddingVertical: SPACING.md,
+        borderRadius: RADIUS.md,
+        zIndex: 9999,
+        ...SHADOWS.md,
+    },
+    toastText: {
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '700',
+        color: COLORS.white,
+        flex: 1,
+    },
 });
