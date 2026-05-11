@@ -102,6 +102,7 @@ export default function SettingsScreen() {
                         <Text style={styles.rAddress}>{form.address || 'Store Address'}</Text>
                         <Text style={styles.rPhone}>{form.phone || 'Phone Number'}</Text>
                         {form.gstNo ? <Text style={styles.rGST}>GST: {form.gstNo}</Text> : null}
+                        {form.licenceNo ? <Text style={styles.rGST}>DL: {form.licenceNo}</Text> : null}
                         <View style={styles.rDivider} />
                         <Text style={styles.rDimLabel}>━━ Items appear below ━━</Text>
                     </View>
@@ -155,6 +156,16 @@ export default function SettingsScreen() {
                             placeholder="e.g. 27AAAAA0000A1Z5"
                             value={form.gstNo}
                             onChangeText={v => set('gstNo', v)}
+                            autoCapitalize="characters"
+                        />
+
+                        {/* Medicine Store Licence No */}
+                        <Field
+                            label="Medicine Store Licence No."
+                            icon="shield-checkmark-outline"
+                            placeholder="e.g. 20/WB/MED/2024"
+                            value={form.licenceNo}
+                            onChangeText={v => set('licenceNo', v)}
                             autoCapitalize="characters"
                         />
 

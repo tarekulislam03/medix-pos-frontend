@@ -7,6 +7,7 @@ export const DEFAULT_SETTINGS = {
     address: '',
     phone: '8101402916',
     gstNo: '',
+    licenceNo: '',
     upiId: '',
 };
 

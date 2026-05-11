@@ -86,6 +86,10 @@ export function buildReceiptHTML(invoice) {
     ? `<div class="store-phone">GST: ${store.gstNo}</div>`
     : '';
 
+  const licenceLine = store.licenceNo
+    ? `<div class="store-phone">DL: ${store.licenceNo}</div>`
+    : '';
+
   const discLine = totalDiscount > 0
     ? `<div class="summary-row discount-row">
         <span>Discount</span>
@@ -376,6 +380,7 @@ export function buildReceiptHTML(invoice) {
   <div class="store-addr">${store.address}</div>
   <div class="store-phone">📞 ${store.phone}</div>
   ${gstLine}
+  ${licenceLine}
 
   <div class="solid"></div>
 
