@@ -64,7 +64,7 @@ export default function AppNavigator() {
 
     return (
         <AuthContext.Provider value={authContext}>
-            <NavigationContainer>
+            <NavigationContainer documentTitle={{ formatter: (options, route) => document.title }}>
                 <Stack.Navigator
                     screenOptions={{
                         headerShown: false,

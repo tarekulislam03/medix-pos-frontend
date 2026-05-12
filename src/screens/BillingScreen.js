@@ -1806,7 +1806,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                     {/* ── Doctor Fee Input ── */}
                     <View style={styles.extraFeeSection}>
                         <View style={styles.extraFeeHeader}>
-                            <Ionicons name="medkit-outline" size={15} color="#7C3AED" />
+                            <Ionicons name="medkit-outline" size={15} color={COLORS.primary} />
                             <Text style={styles.extraFeeTitle}>Doctor Fee</Text>
                             <Text style={styles.extraFeeNote}>(no discount)</Text>
                         </View>
@@ -1827,8 +1827,8 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                     {/* ── OTC Products Input ── */}
                     <View style={styles.extraFeeSection}>
                         <View style={styles.extraFeeHeader}>
-                            <Ionicons name="bag-handle-outline" size={15} color="#0891B2" />
-                            <Text style={[styles.extraFeeTitle, { color: '#0891B2' }]}>OTC Products</Text>
+                            <Ionicons name="bag-handle-outline" size={15} color={COLORS.primary} />
+                            <Text style={[styles.extraFeeTitle, { color: COLORS.primary }]}>OTC Products</Text>
                             <Text style={styles.extraFeeNote}>(no discount)</Text>
                         </View>
                         {otcItems.map((otc, idx) => (
@@ -1875,7 +1875,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             onPress={() => setOtcItems(prev => [...prev, { name: '', price: '' }])}
                             activeOpacity={0.7}
                         >
-                            <Ionicons name="add-circle-outline" size={14} color="#0891B2" />
+                            <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
                             <Text style={styles.otcAddBtnText}>Add OTC Item</Text>
                         </TouchableOpacity>
                     </View>
@@ -1895,19 +1895,19 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                         {cartSummary.doctorFee > 0 && (
                             <View style={styles.totalRow}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="medkit-outline" size={12} color="#7C3AED" />
-                                    <Text style={[styles.totalLabel, { color: '#7C3AED' }]}>Doctor Fee</Text>
+                                    <Ionicons name="medkit-outline" size={12} color={COLORS.primary} />
+                                    <Text style={[styles.totalLabel, { color: COLORS.primary }]}>Doctor Fee</Text>
                                 </View>
-                                <Text style={[styles.totalValue, { color: '#7C3AED' }]}>+₹{cartSummary.doctorFee.toFixed(2)}</Text>
+                                <Text style={[styles.totalValue, { color: COLORS.primary }]}>+₹{cartSummary.doctorFee.toFixed(2)}</Text>
                             </View>
                         )}
                         {cartSummary.otcTotal > 0 && (
                             <View style={styles.totalRow}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="bag-handle-outline" size={12} color="#0891B2" />
-                                    <Text style={[styles.totalLabel, { color: '#0891B2' }]}>OTC Products</Text>
+                                    <Ionicons name="bag-handle-outline" size={12} color={COLORS.primary} />
+                                    <Text style={[styles.totalLabel, { color: COLORS.primary }]}>OTC Products</Text>
                                 </View>
-                                <Text style={[styles.totalValue, { color: '#0891B2' }]}>+₹{cartSummary.otcTotal.toFixed(2)}</Text>
+                                <Text style={[styles.totalValue, { color: COLORS.primary }]}>+₹{cartSummary.otcTotal.toFixed(2)}</Text>
                             </View>
                         )}
                         <View style={styles.grandTotalRow}>
@@ -2519,7 +2519,7 @@ const styles = StyleSheet.create({
     extraFeeTitle: {
         fontSize: FONT_SIZES.xs,
         fontWeight: '700',
-        color: '#7C3AED',
+        color: COLORS.primary,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
@@ -2581,7 +2581,7 @@ const styles = StyleSheet.create({
     otcAddBtnText: {
         fontSize: FONT_SIZES.xs,
         fontWeight: '600',
-        color: '#0891B2',
+        color: COLORS.primary,
     },
 
     // Totals

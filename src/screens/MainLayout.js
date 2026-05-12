@@ -1,5 +1,5 @@
-import React, { useState, Suspense, lazy } from 'react';
-import { View, TouchableOpacity, Pressable, StyleSheet, Text, Dimensions, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { View, TouchableOpacity, Pressable, StyleSheet, Text, Dimensions, Image, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Sidebar from '../components/Sidebar';
 
@@ -14,6 +14,17 @@ import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 import { logoutUser } from '../services/authService';
 import { AuthContext } from '../context/AuthContext';
+
+// Screen label for the top bar & browser tab title
+const SCREEN_TITLES = {
+    Billing: 'Point of Sale',
+    Inventory: 'Inventory',
+    Invoices: 'Invoices',
+    Returns: 'Returns & Refunds',
+    Customers: 'Customer Management',
+    SalesAnalytics: 'Sales Analytics',
+    Settings: 'Settings',
+};
 
 const getFormattedDate = () => {
     const d = new Date();
@@ -40,6 +51,14 @@ export default function MainLayout({ navigation }) {
     const [invoiceData, setInvoiceData] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const r = useResponsive();
+
+    // Update browser tab title when active screen changes
+    useEffect(() => {
+        if (Platform.OS === 'web' && typeof document !== 'undefined') {
+            const label = SCREEN_TITLES[activeScreen] || activeScreen;
+            document.title = `${label} — MediX POS`;
+        }
+    }, [activeScreen]);
 
     const navigateTo = (screen, params) => {
         if (params?.invoice) {
@@ -102,16 +121,6 @@ export default function MainLayout({ navigation }) {
         );
     };
 
-    // Screen label for the top bar
-    const screenLabels = {
-        Billing: 'Point of Sale',
-        Inventory: 'Inventory',
-        Invoices: 'Invoices',
-        Returns: 'Returns & Refunds',
-        Customers: 'Customer Management',
-        SalesAnalytics: 'Sales Analytics',
-        Settings: 'Settings',
-    };
 
     // Responsive drawer width
     const drawerWidth = r.pick({
@@ -150,7 +159,7 @@ export default function MainLayout({ navigation }) {
                         <>
                             <View style={styles.topBarDivider} />
                             <Text style={[styles.topBarScreen, { fontSize: r.pick({ medium: 14, large: FONT_SIZES.md, xlarge: FONT_SIZES.md }) }]}>
-                                {screenLabels[activeScreen] || activeScreen}
+                                {SCREEN_TITLES[activeScreen] || activeScreen}
                             </Text>
                         </>
                     )}

@@ -7,10 +7,11 @@ import {
     TouchableOpacity,
     ScrollView,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
-import { getStoreSettings, saveStoreSettings, DEFAULT_SETTINGS } from '../utils/storeSettings';
+import { fetchStoreSettings, saveStoreSettings, DEFAULT_SETTINGS } from '../utils/storeSettings';
 import { useResponsive } from '../utils/responsive';
 import { AuthContext } from '../context/AuthContext';
 
@@ -20,6 +21,8 @@ export default function SettingsScreen() {
     const [form, setForm] = useState(DEFAULT_SETTINGS);
     const [saved, setSaved] = useState(false);
     const [dirty, setDirty] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
     // Dynamic defaults based on registered credentials
     const dynamicDefaults = {
@@ -28,10 +31,20 @@ export default function SettingsScreen() {
         ...(storeData?.storePhone ? { phone: storeData.storePhone } : {}),
     };
 
-    // Load persisted settings on mount
+    // Load persisted settings from API on mount
     useEffect(() => {
-        const s = getStoreSettings(storeData || {});
-        setForm(s);
+        let mounted = true;
+        (async () => {
+            try {
+                const s = await fetchStoreSettings(storeData || {});
+                if (mounted) setForm(s);
+            } catch (e) {
+                console.error('Failed to load settings', e);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+        return () => { mounted = false; };
     }, [storeData]);
 
     const set = (key, val) => {
@@ -40,14 +53,23 @@ export default function SettingsScreen() {
         setSaved(false);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.storeName.trim()) {
             Alert.alert('Validation', 'Store name is required.');
             return;
         }
-        saveStoreSettings(form);
-        setSaved(true);
-        setDirty(false);
+        setSaving(true);
+        const result = await saveStoreSettings(form);
+        setSaving(false);
+        if (result.success) {
+            setSaved(true);
+            setDirty(false);
+        } else {
+            Alert.alert('Error', result.message || 'Failed to save settings. Changes saved locally.');
+            // Still mark as saved locally
+            setSaved(true);
+            setDirty(false);
+        }
     };
 
     const handleReset = () => {
@@ -57,9 +79,9 @@ export default function SettingsScreen() {
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Reset', style: 'destructive', onPress: () => {
+                    text: 'Reset', style: 'destructive', onPress: async () => {
                         setForm({ ...dynamicDefaults });
-                        saveStoreSettings(dynamicDefaults);
+                        await saveStoreSettings(dynamicDefaults);
                         setSaved(false);
                         setDirty(false);
                     }
@@ -67,6 +89,15 @@ export default function SettingsScreen() {
             ]
         );
     };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+                <Text style={{ marginTop: SPACING.md, color: COLORS.textMuted, fontSize: FONT_SIZES.sm }}>Loading settings…</Text>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -185,8 +216,8 @@ export default function SettingsScreen() {
                 <View style={styles.infoNote}>
                     <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
                     <Text style={styles.infoNoteText}>
-                        Changes are applied immediately to all new bills printed from this device.
-                        Settings are stored locally and persist across sessions.
+                        Changes are saved to the cloud and applied to all new bills.
+                        Settings sync across devices when you log in.
                     </Text>
                 </View>
 
@@ -202,12 +233,17 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.saveBtn, !dirty && styles.saveBtnDisabled]}
+                        style={[styles.saveBtn, (!dirty || saving) && styles.saveBtnDisabled]}
                         onPress={handleSave}
-                        activeOpacity={dirty ? 0.8 : 1}
+                        activeOpacity={dirty && !saving ? 0.8 : 1}
+                        disabled={saving}
                     >
-                        <Ionicons name="save-outline" size={20} color={COLORS.white} />
-                        <Text style={styles.saveBtnText}>Save Settings</Text>
+                        {saving ? (
+                            <ActivityIndicator size="small" color={COLORS.white} />
+                        ) : (
+                            <Ionicons name="cloud-upload-outline" size={20} color={COLORS.white} />
+                        )}
+                        <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save Settings'}</Text>
                     </TouchableOpacity>
                 </View>
 

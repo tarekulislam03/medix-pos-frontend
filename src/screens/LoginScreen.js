@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -27,6 +27,13 @@ export default function LoginScreen({ navigation }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const r = useResponsive();
+
+    // Set browser tab title
+    useEffect(() => {
+        if (Platform.OS === 'web' && typeof document !== 'undefined') {
+            document.title = 'Login — MediX POS';
+        }
+    }, []);
 
     const handleAuth = async () => {
         if (!phone.trim() || !password.trim()) {
@@ -91,8 +98,8 @@ export default function LoginScreen({ navigation }) {
                     {/* Logo / Brand */}
                     <View style={styles.logoContainer}>
                         <Image
-                            source={require('../../assets/icon.png')}
-                            style={{ width: logoSize * 1.5, height: logoSize * 1.5 }}
+                            source={require('../../assets/logo-lighmode.png')}
+                            style={{ width: logoSize * 1.8, height: logoSize * 1.8 }}
                             resizeMode="contain"
                         />
                     </View>
