@@ -465,37 +465,7 @@ export default function InventoryScreen({ navigation }) {
                 const normalizedBlob = await normalizeImage(file);
                 fileToUploadToAI = normalizedBlob;
 
-                // STEP 2: Frontend OpenCV Thresholding
-                try {
-                    console.log("[AutoImport] Performing local OpenCV thresholding enhancement...");
-                    const objectUrl = URL.createObjectURL(normalizedBlob);
-                    const img = new Image();
-                    img.crossOrigin = "anonymous";
-                    
-                    await new Promise((resolve, reject) => {
-                        img.onload = resolve;
-                        img.onerror = reject;
-                        img.src = objectUrl;
-                    });
-
-                    const scanner = new DocScanner();
-                    const processedCanvas = await scanner.processRaw(img);
-                    URL.revokeObjectURL(objectUrl);
-
-                    const processedBlob = await new Promise(res => processedCanvas.toBlob(res, "image/webp", 0.9));
-                    
-                    if (processedBlob) {
-                        // STEP 3: Final Compression
-                        const options = { maxSizeMB: 1, maxWidthOrHeight: 1600, useWebWorker: true, fileType: "image/webp" };
-                        fileToUploadToAI = await imageCompression(
-                            new File([processedBlob], "processed_bill.webp", { type: "image/webp" }),
-                            options
-                        );
-                    }
-                } catch (cvErr) {
-                    console.warn("[AutoImport] Local OpenCV enhancement failed, using standardized version:", cvErr);
-                }
-
+                
             } catch (normErr) {
                 console.warn("[AutoImport] Backend normalization failed, attempting direct upload:", normErr);
             }
