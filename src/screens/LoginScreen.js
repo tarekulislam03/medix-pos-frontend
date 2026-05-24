@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
     Image,
     Animated,
+    ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -101,7 +102,7 @@ export default function LoginScreen({ navigation }) {
 
     // Responsive design values
     const cardWidth = r.pick({ small: '92%', medium: 390, large: 410, xlarge: 430 });
-    const cardPadding = r.pick({ small: SPACING.lg, medium: SPACING.xl, large: SPACING.xxl, xlarge: SPACING.xxl });
+    const cardPadding = r.pick({ small: 18, medium: SPACING.xl, large: SPACING.xxl, xlarge: SPACING.xxl });
     const logoSize = r.pick({ small: 32, medium: 38, large: 42, xlarge: 44 });
     const inputHeight = r.pick({ small: 50, medium: 54, large: 56, xlarge: 58 });
 
@@ -112,153 +113,158 @@ export default function LoginScreen({ navigation }) {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
         >
+            {/* Modern subtle medical glow patterns (fixed background) */}
+            <View style={styles.glowBlob1} />
+            <View style={styles.glowBlob2} />
+
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.inner}
+                style={styles.container}
             >
-                {/* Modern subtle medical glow patterns */}
-                <View style={styles.glowBlob1} />
-                <View style={styles.glowBlob2} />
-
-                <Animated.View style={[styles.card, { width: cardWidth, padding: cardPadding, opacity: cardOpacity, transform: [{ translateY: cardTranslateY }] }]}>
-                    {/* Subtle top progress/light streak */}
-                    <LinearGradient
-                        colors={['#4FA39A', '#7DC4BD', '#4FA39A']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.topStreak}
-                    />
-
-                    {/* Sleek Close Button */}
-                    {navigation && navigation.canGoBack() && (
-                        <TouchableOpacity 
-                            style={styles.closeButton} 
-                            onPress={() => navigation.goBack()}
-                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                        >
-                            <Feather name="x" size={16} color="rgba(255, 255, 255, 0.4)" />
-                        </TouchableOpacity>
-                    )}
-
-                    {/* Logo & Typography Hierarchy (SaaS Identity Block) */}
-                    <View style={styles.logoWrapper}>
-                        <View style={[styles.logoGlow, { width: logoSize * 1.6, height: logoSize * 1.6, borderRadius: (logoSize * 1.6) / 2 }]} />
-                        <Image
-                            source={require('../../assets/icon.png')}
-                            style={{ width: logoSize, height: logoSize }}
-                            resizeMode="contain"
+                <ScrollView
+                    contentContainerStyle={styles.scrollContainer}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <Animated.View style={[styles.card, { width: cardWidth, padding: cardPadding, opacity: cardOpacity, transform: [{ translateY: cardTranslateY }] }]}>
+                        {/* Subtle top progress/light streak */}
+                        <LinearGradient
+                            colors={['#4FA39A', '#7DC4BD', '#4FA39A']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.topStreak}
                         />
-                    </View>
 
-                    <Text style={styles.welcomeText}>WELCOME BACK</Text>
-                    <Text style={[styles.brand, { fontSize: r.pick({ small: 26, medium: 28, large: 30, xlarge: 32 }) }]}>MediX</Text>
-                    <Text style={styles.subtitle}>Sign in to your account</Text>
-
-                    {/* Error Banner */}
-                    {error ? (
-                        <View style={styles.errorBox}>
-                            <Feather name="alert-circle" size={14} color={COLORS.error} />
-                            <Text style={styles.errorText}>{error}</Text>
-                        </View>
-                    ) : null}
-
-                    {/* Phone Input */}
-                    <View style={styles.fieldContainer}>
-                        <View style={[
-                            styles.inputGroup,
-                            { height: inputHeight },
-                            focusedInput === 'phone' && styles.inputGroupFocused,
-                            phoneError ? styles.inputGroupError : null
-                        ]}>
-                            <Feather name="phone" size={18} color={focusedInput === 'phone' ? '#4FA39A' : 'rgba(255, 255, 255, 0.3)'} style={styles.inputIcon} />
-                            <View style={styles.inputContent}>
-                                {(phone.length > 0 || focusedInput === 'phone') && (
-                                    <Text style={styles.floatingLabel}>Phone Number</Text>
-                                )}
-                                <TextInput
-                                    style={[styles.input, (phone.length > 0 || focusedInput === 'phone') && styles.inputWithLabel]}
-                                    placeholder={focusedInput === 'phone' ? '' : 'Phone Number'}
-                                    placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                                    value={phone}
-                                    onChangeText={(val) => {
-                                        setPhone(val);
-                                        if (phoneError) setPhoneError('');
-                                    }}
-                                    keyboardType="phone-pad"
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                    onFocus={() => setFocusedInput('phone')}
-                                    onBlur={() => setFocusedInput(null)}
-                                />
-                            </View>
-                        </View>
-                        {phoneError ? <Text style={styles.inlineErrorText}>{phoneError}</Text> : null}
-                    </View>
-
-                    {/* Password Input */}
-                    <View style={styles.fieldContainer}>
-                        <View style={[
-                            styles.inputGroup,
-                            { height: inputHeight },
-                            focusedInput === 'password' && styles.inputGroupFocused,
-                            passwordError ? styles.inputGroupError : null
-                        ]}>
-                            <Feather name="lock" size={18} color={focusedInput === 'password' ? '#4FA39A' : 'rgba(255, 255, 255, 0.3)'} style={styles.inputIcon} />
-                            <View style={styles.inputContent}>
-                                {(password.length > 0 || focusedInput === 'password') && (
-                                    <Text style={styles.floatingLabel}>Password</Text>
-                                )}
-                                <TextInput
-                                    style={[styles.input, (password.length > 0 || focusedInput === 'password') && styles.inputWithLabel]}
-                                    placeholder={focusedInput === 'password' ? '' : 'Password'}
-                                    placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                                    value={password}
-                                    onChangeText={(val) => {
-                                        setPassword(val);
-                                        if (passwordError) setPasswordError('');
-                                    }}
-                                    secureTextEntry={!showPassword}
-                                    onFocus={() => setFocusedInput('password')}
-                                    onBlur={() => setFocusedInput(null)}
-                                    onSubmitEditing={handleAuth}
-                                    returnKeyType="go"
-                                />
-                            </View>
-                            <TouchableOpacity
-                                onPress={() => setShowPassword(!showPassword)}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        {/* Sleek Close Button */}
+                        {navigation && navigation.canGoBack() && (
+                            <TouchableOpacity 
+                                style={styles.closeButton} 
+                                onPress={() => navigation.goBack()}
+                                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                             >
-                                <Feather
-                                    name={showPassword ? 'eye-off' : 'eye'}
-                                    size={16}
-                                    color="rgba(255, 255, 255, 0.4)"
-                                />
+                                <Feather name="x" size={16} color="rgba(255, 255, 255, 0.4)" />
                             </TouchableOpacity>
+                        )}
+
+                        {/* Logo & Typography Hierarchy (SaaS Identity Block) */}
+                        <View style={styles.logoWrapper}>
+                            <View style={[styles.logoGlow, { width: logoSize * 1.6, height: logoSize * 1.6, borderRadius: (logoSize * 1.6) / 2 }]} />
+                            <Image
+                                source={require('../../assets/icon.png')}
+                                style={{ width: logoSize, height: logoSize }}
+                                resizeMode="contain"
+                            />
                         </View>
-                        {passwordError ? <Text style={styles.inlineErrorText}>{passwordError}</Text> : null}
-                    </View>
 
-                    
+                        <Text style={styles.welcomeText}>WELCOME BACK</Text>
+                        <Text style={[styles.brand, { fontSize: r.pick({ small: 26, medium: 28, large: 30, xlarge: 32 }) }]}>MediX</Text>
+                        <Text style={styles.subtitle}>Sign in to your account</Text>
 
-                    {/* Premium CTA Button */}
-                    <GradientButton
-                        title="Sign In"
-                        onPress={handleAuth}
-                        loading={loading}
-                        style={styles.authBtn}
-                        icon={<Feather name="arrow-right" size={18} color={COLORS.white} />}
-                    />
+                        {/* Error Banner */}
+                        {error ? (
+                            <View style={styles.errorBox}>
+                                <Feather name="alert-circle" size={14} color={COLORS.error} />
+                                <Text style={styles.errorText}>{error}</Text>
+                            </View>
+                        ) : null}
 
-                    
+                        {/* Phone Input */}
+                        <View style={styles.fieldContainer}>
+                            <View style={[
+                                styles.inputGroup,
+                                { height: inputHeight },
+                                focusedInput === 'phone' && styles.inputGroupFocused,
+                                phoneError ? styles.inputGroupError : null
+                            ]}>
+                                <Feather name="phone" size={18} color={focusedInput === 'phone' ? '#4FA39A' : 'rgba(255, 255, 255, 0.3)'} style={styles.inputIcon} />
+                                <View style={styles.inputContent}>
+                                    {(phone.length > 0 || focusedInput === 'phone') && (
+                                        <Text style={styles.floatingLabel}>Phone Number</Text>
+                                    )}
+                                    <TextInput
+                                        style={[styles.input, (phone.length > 0 || focusedInput === 'phone') && styles.inputWithLabel]}
+                                        placeholder={focusedInput === 'phone' ? '' : 'Phone Number'}
+                                        placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                                        value={phone}
+                                        onChangeText={(val) => {
+                                            setPhone(val);
+                                            if (phoneError) setPhoneError('');
+                                        }}
+                                        keyboardType="phone-pad"
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                        onFocus={() => setFocusedInput('phone')}
+                                        onBlur={() => setFocusedInput(null)}
+                                    />
+                                </View>
+                            </View>
+                            {phoneError ? <Text style={styles.inlineErrorText}>{phoneError}</Text> : null}
+                        </View>
 
-                    {/* Trust Indicators */}
-                    <View style={styles.footerContainer}>
-                        <Feather name="lock" size={12} color="#4FA39A" style={styles.footerIcon} />
-                        <Text style={styles.footerText}>
-                            Encrypted & Secure Login
-                        </Text>
-                    </View>
-                </Animated.View>
+                        {/* Password Input */}
+                        <View style={styles.fieldContainer}>
+                            <View style={[
+                                styles.inputGroup,
+                                { height: inputHeight },
+                                focusedInput === 'password' && styles.inputGroupFocused,
+                                passwordError ? styles.inputGroupError : null
+                            ]}>
+                                <Feather name="lock" size={18} color={focusedInput === 'password' ? '#4FA39A' : 'rgba(255, 255, 255, 0.3)'} style={styles.inputIcon} />
+                                <View style={styles.inputContent}>
+                                    {(password.length > 0 || focusedInput === 'password') && (
+                                        <Text style={styles.floatingLabel}>Password</Text>
+                                    )}
+                                    <TextInput
+                                        style={[styles.input, (password.length > 0 || focusedInput === 'password') && styles.inputWithLabel]}
+                                        placeholder={focusedInput === 'password' ? '' : 'Password'}
+                                        placeholderTextColor="rgba(255, 255, 255, 0.3)"
+                                        value={password}
+                                        onChangeText={(val) => {
+                                            setPassword(val);
+                                            if (passwordError) setPasswordError('');
+                                        }}
+                                        secureTextEntry={!showPassword}
+                                        onFocus={() => setFocusedInput('password')}
+                                        onBlur={() => setFocusedInput(null)}
+                                        onSubmitEditing={handleAuth}
+                                        returnKeyType="go"
+                                    />
+                                </View>
+                                <TouchableOpacity
+                                    onPress={() => setShowPassword(!showPassword)}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                    <Feather
+                                        name={showPassword ? 'eye-off' : 'eye'}
+                                        size={16}
+                                        color="rgba(255, 255, 255, 0.4)"
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                            {passwordError ? <Text style={styles.inlineErrorText}>{passwordError}</Text> : null}
+                        </View>
+
+            
+
+                        {/* Premium CTA Button */}
+                        <GradientButton
+                            title="Sign In"
+                            onPress={handleAuth}
+                            loading={loading}
+                            style={styles.authBtn}
+                            icon={<Feather name="arrow-right" size={18} color={COLORS.white} />}
+                        />
+
+
+                        {/* Trust Indicators */}
+                        <View style={styles.footerContainer}>
+                            <Feather name="lock" size={12} color="#4FA39A" style={styles.footerIcon} />
+                            <Text style={styles.footerText}>
+                                Encrypted & Secure Login
+                            </Text>
+                        </View>
+                    </Animated.View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </LinearGradient>
     );
@@ -272,6 +278,13 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    scrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: SPACING.xl,
+        paddingHorizontal: SPACING.md,
     },
     glowBlob1: {
         position: 'absolute',
