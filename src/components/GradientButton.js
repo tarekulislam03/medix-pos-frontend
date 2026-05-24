@@ -131,7 +131,7 @@ export default function GradientButton({
         : { paddingVertical: SPACING.md, paddingHorizontal: SPACING.xl };
 
     return (
-        <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, layoutStyle]}>
+        <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, layoutStyle, containerSizeStyle]}>
             <TouchableOpacity
                 onPress={onPress}
                 onPressIn={handlePressIn}
