@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
     TouchableOpacity,
     Text,
     StyleSheet,
     ActivityIndicator,
     View,
+    Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 
 export default function GradientButton({
@@ -19,59 +21,91 @@ export default function GradientButton({
     small = false,
     variant = 'primary', // 'primary' | 'secondary' | 'success' | 'danger'
 }) {
-    const bgColor = {
-        primary: COLORS.primary,
-        secondary: COLORS.bgSurface,
-        success: COLORS.success,
-        danger: COLORS.error,
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+
+    const handlePressIn = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 0.97,
+            useNativeDriver: true,
+            speed: 20,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            speed: 20,
+        }).start();
+    };
+
+    const gradientColors = {
+        primary: [COLORS.primaryLight, COLORS.primary, COLORS.primaryDark],
+        secondary: [COLORS.bgSurface, COLORS.bgSurface, COLORS.bgSurface],
+        success: [COLORS.successLight, COLORS.success, COLORS.success],
+        danger: [COLORS.errorLight, COLORS.error, COLORS.error],
     }[variant];
 
     const txtColor = variant === 'secondary' ? COLORS.textPrimary : COLORS.white;
 
     return (
-        <TouchableOpacity
-            onPress={onPress}
-            disabled={disabled || loading}
-            activeOpacity={0.75}
-            style={[
-                styles.button,
-                small ? styles.buttonSmall : styles.buttonNormal,
-                {
-                    backgroundColor: disabled ? COLORS.border : bgColor,
-                    borderColor: variant === 'secondary' ? COLORS.border : 'transparent',
-                    borderWidth: variant === 'secondary' ? 1.5 : 0,
-                },
-                style,
-            ]}
-        >
-            {loading ? (
-                <ActivityIndicator color={txtColor} size="small" />
-            ) : (
-                <View style={styles.inner}>
-                    {icon}
-                    <Text
-                        style={[
-                            styles.text,
-                            small && styles.textSmall,
-                            { color: txtColor },
-                            icon && { marginLeft: SPACING.sm },
-                            textStyle,
-                        ]}
-                    >
-                        {title}
-                    </Text>
-                </View>
-            )}
-        </TouchableOpacity>
+        <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
+            <TouchableOpacity
+                onPress={onPress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                disabled={disabled || loading}
+                activeOpacity={0.85}
+                style={[
+                    styles.buttonContainer,
+                    small ? styles.buttonSmall : styles.buttonNormal,
+                ]}
+            >
+                <LinearGradient
+                    colors={disabled ? [COLORS.border, COLORS.border] : gradientColors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[
+                        styles.gradient,
+                        small ? styles.buttonSmall : styles.buttonNormal,
+                        variant === 'secondary' && { borderWidth: 1.5, borderColor: COLORS.border }
+                    ]}
+                >
+                    {loading ? (
+                        <ActivityIndicator color={txtColor} size="small" />
+                    ) : (
+                        <View style={styles.inner}>
+                            {icon}
+                            <Text
+                                style={[
+                                    styles.text,
+                                    small && styles.textSmall,
+                                    { color: txtColor },
+                                    icon && { marginLeft: SPACING.sm },
+                                    textStyle,
+                                ]}
+                            >
+                                {title}
+                            </Text>
+                        </View>
+                    )}
+                </LinearGradient>
+            </TouchableOpacity>
+        </Animated.View>
     );
 }
 
 const styles = StyleSheet.create({
-    button: {
+    buttonContainer: {
         borderRadius: RADIUS.md,
+        ...SHADOWS.md,
+        overflow: 'hidden',
+    },
+    gradient: {
         alignItems: 'center',
         justifyContent: 'center',
-        ...SHADOWS.sm,
+        borderRadius: RADIUS.md,
+        width: '100%',
     },
     buttonNormal: {
         paddingVertical: SPACING.md,
