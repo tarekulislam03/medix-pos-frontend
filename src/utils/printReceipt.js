@@ -178,22 +178,22 @@ export function buildReceiptHTML(invoice) {
     color: #000;
     background: #fff;
     width: 58mm;
-    padding: 4mm 3mm 10mm 3mm;
-    line-height: 1.6;
+    padding: 2mm 2mm 3mm 2mm;
+    line-height: 1.35;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   /* ── Store Header ── */
   .store-name {
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 900;
     text-align: center;
     letter-spacing: 0.5px;
     text-transform: uppercase;
     line-height: 1.2;
     color: #000;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .store-addr {
     font-size: 13px;
@@ -207,16 +207,16 @@ export function buildReceiptHTML(invoice) {
     text-align: center;
     font-weight: 900;
     color: #000;
-    margin-top: 2px;
+    margin-top: 0px;
   }
 
   /* ── Dividers — all solid black ── */
-  .solid { border-top: 2px solid #000; margin: 6px 0; }
-  .dash  { border-top: 1px dashed #000; margin: 6px 0; }
-  .thick { border-top: 3px double #000; margin: 8px 0; }
+  .solid { border-top: 2px solid #000; margin: 3px 0; }
+  .dash  { border-top: 1px dashed #000; margin: 3px 0; }
+  .thick { border-top: 3px double #000; margin: 4px 0; }
 
   /* ── Invoice meta block ── */
-  .meta-block  { font-size: 13px; font-weight: 700; line-height: 1.7; color: #000; }
+  .meta-block  { font-size: 13px; font-weight: 700; line-height: 1.5; color: #000; }
   .meta-row    { display: flex; justify-content: space-between; align-items: baseline; padding: 1px 0; }
   .meta-label  { color: #000; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
   .meta-val    { font-weight: 900; font-size: 13px; text-align: right; color: #000; }
@@ -241,11 +241,11 @@ export function buildReceiptHTML(invoice) {
     text-transform: uppercase;
     letter-spacing: 0.3px;
     color: #000;
-    padding-bottom: 3px;
+    padding-bottom: 2px;
   }
 
   /* ── Item rows ── */
-  .item-block  { padding: 5px 0; }
+  .item-block  { padding: 2px 0; }
   .item-name   {
     font-weight: 900;
     font-size: 14px;
@@ -255,10 +255,10 @@ export function buildReceiptHTML(invoice) {
     letter-spacing: 0.2px;
     color: #000;
   }
-  .item-row    { display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px; }
+  .item-row    { display: flex; justify-content: space-between; align-items: baseline; margin-top: 0px; }
   .item-calc   { font-size: 13px; font-weight: 700; color: #000; flex: 1; }
   .item-total  { font-size: 14px; font-weight: 900; white-space: nowrap; margin-left: 4px; color: #000; }
-  .item-div    { border-top: 1px dashed #000; margin: 4px 0; }
+  .item-div    { border-top: 1px dashed #000; margin: 2px 0; }
   .disc        { font-size: 12px; font-weight: 700; color: #000; }
   .loose-tag   {
     display: inline-block;
@@ -277,7 +277,7 @@ export function buildReceiptHTML(invoice) {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    padding: 2px 0;
+    padding: 1px 0;
     color: #000;
     font-weight: 700;
     font-size: 13px;
@@ -292,7 +292,7 @@ export function buildReceiptHTML(invoice) {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    padding: 6px 0 4px;
+    padding: 3px 0 2px;
   }
   .total-label {
     font-size: 18px;
@@ -314,12 +314,12 @@ export function buildReceiptHTML(invoice) {
     font-weight: 700;
     color: #000;
     text-align: right;
-    margin-top: 2px;
+    margin-top: 1px;
   }
 
   /* ── Footer ── */
   .footer-block {
-    margin-top: 8px;
+    margin-top: 4px;
     text-align: center;
   }
   .footer-thanks {
@@ -332,23 +332,23 @@ export function buildReceiptHTML(invoice) {
     font-size: 12px;
     font-weight: 700;
     color: #000;
-    margin-top: 3px;
+    margin-top: 1px;
   }
   .footer-line {
     border-top: 1px dashed #000;
-    margin: 6px 0;
+    margin: 3px 0;
   }
 
   /* ── UPI QR Code ── */
   .qr-section {
     text-align: center;
-    padding: 8px 0;
+    padding: 4px 0;
   }
   .qr-title {
     font-size: 13px;
     font-weight: 900;
     color: #000;
-    margin-bottom: 6px;
+    margin-bottom: 2px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -362,14 +362,14 @@ export function buildReceiptHTML(invoice) {
     font-size: 11px;
     font-weight: 700;
     color: #000;
-    margin-top: 4px;
+    margin-top: 1px;
     word-break: break-all;
   }
   .qr-amount {
     font-size: 13px;
     font-weight: 900;
     color: #000;
-    margin-top: 2px;
+    margin-top: 0px;
   }
 </style>
 </head>
@@ -463,8 +463,6 @@ export function buildReceiptHTML(invoice) {
   <!-- ══ FOOTER ══ -->
   <div class="footer-block">
     <div class="footer-line"></div>
-    <div class="footer-thanks">✦ Thank You For Your Purchase! ✦</div>
-    <div class="footer-sub">${store.storeName} • ${dateStr}</div>
     <div class="footer-sub">Powered by Medix ERP</div>
   </div>
 
