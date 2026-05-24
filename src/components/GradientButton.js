@@ -48,8 +48,90 @@ export default function GradientButton({
 
     const txtColor = variant === 'secondary' ? COLORS.textPrimary : COLORS.white;
 
+    // Separate layout/positioning styles, sizing/dimensions, and paddings
+    const flattenedStyle = style ? StyleSheet.flatten(style) : {};
+    const {
+        margin,
+        marginHorizontal,
+        marginVertical,
+        marginTop,
+        marginBottom,
+        marginLeft,
+        marginRight,
+        flex,
+        alignSelf,
+        position,
+        top,
+        bottom,
+        left,
+        right,
+        
+        // Dimensions
+        height,
+        minHeight,
+        maxHeight,
+        width,
+        minWidth,
+        maxWidth,
+        
+        // Paddings
+        padding,
+        paddingHorizontal,
+        paddingVertical,
+        paddingTop,
+        paddingBottom,
+        paddingLeft,
+        paddingRight,
+        
+        ...otherStyles
+    } = flattenedStyle;
+
+    const layoutStyle = {
+        margin,
+        marginHorizontal,
+        marginVertical,
+        marginTop,
+        marginBottom,
+        marginLeft,
+        marginRight,
+        flex,
+        alignSelf,
+        position,
+        top,
+        bottom,
+        left,
+        right,
+    };
+
+    const containerSizeStyle = {
+        height,
+        minHeight,
+        maxHeight,
+        width,
+        minWidth,
+        maxWidth,
+    };
+
+    const paddingStyle = {
+        padding,
+        paddingHorizontal,
+        paddingVertical,
+        paddingTop,
+        paddingBottom,
+        paddingLeft,
+        paddingRight,
+    };
+
+    const defaultSizing = {};
+    if (!height && !minHeight) {
+        defaultSizing.minHeight = small ? 42 : 52;
+    }
+    const defaultPadding = small 
+        ? { paddingVertical: SPACING.sm, paddingHorizontal: SPACING.lg } 
+        : { paddingVertical: SPACING.md, paddingHorizontal: SPACING.xl };
+
     return (
-        <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
+        <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, layoutStyle]}>
             <TouchableOpacity
                 onPress={onPress}
                 onPressIn={handlePressIn}
@@ -58,7 +140,9 @@ export default function GradientButton({
                 activeOpacity={0.85}
                 style={[
                     styles.buttonContainer,
-                    small ? styles.buttonSmall : styles.buttonNormal,
+                    defaultSizing,
+                    containerSizeStyle,
+                    otherStyles,
                 ]}
             >
                 <LinearGradient
@@ -67,7 +151,11 @@ export default function GradientButton({
                     end={{ x: 1, y: 1 }}
                     style={[
                         styles.gradient,
-                        small ? styles.buttonSmall : styles.buttonNormal,
+                        defaultSizing,
+                        defaultPadding,
+                        containerSizeStyle,
+                        paddingStyle,
+                        otherStyles,
                         variant === 'secondary' && { borderWidth: 1.5, borderColor: COLORS.border }
                     ]}
                 >

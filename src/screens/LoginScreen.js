@@ -89,6 +89,16 @@ export default function LoginScreen({ navigation }) {
             const response = await loginUser({ phone, password });
 
             if (response?.token) {
+                try {
+                    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.sessionStorage) {
+                        window.sessionStorage.setItem('medix_just_logged_in', 'true');
+                    } else {
+                        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+                        await AsyncStorage.setItem('medix_just_logged_in', 'true');
+                    }
+                } catch (e) {
+                    console.warn('Failed to set login flag:', e);
+                }
                 await signIn(response.token, response.user?.storeId);
             } else {
                 setError('Authentication failed. Please verify credentials.');
