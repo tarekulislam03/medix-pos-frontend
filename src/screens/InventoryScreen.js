@@ -52,6 +52,8 @@ const EMPTY_FORM = {
     description: '',
     tablets_per_strip: '',
     batch_number: '',
+    hsn_code: '',
+    gst: '',
 };
 
 // ─── FORM FIELD COMPONENT ───────────────────────
@@ -288,6 +290,9 @@ export default function InventoryScreen({ navigation }) {
             supplier_name: product.supplier_name || '',
             description: product.description || '',
             tablets_per_strip: product.tablets_per_strip ? String(product.tablets_per_strip) : '',
+            batch_number: product.batch_number || '',
+            hsn_code: product.hsn_code || '',
+            gst: String(product.gst ?? ''),
         });
         setEditingId(product._id || product.id);
         setModalMode('edit');
@@ -307,6 +312,9 @@ export default function InventoryScreen({ navigation }) {
             supplier_name: product.supplier_name || '',
             description: product.description || '',
             tablets_per_strip: product.tablets_per_strip ? String(product.tablets_per_strip) : '',
+            batch_number: product.batch_number || '',
+            hsn_code: product.hsn_code || '',
+            gst: String(product.gst ?? ''),
         });
         setEditingId(product._id || product.id);
         setModalMode('view');
@@ -347,6 +355,9 @@ export default function InventoryScreen({ navigation }) {
                 supplier_name: formData.supplier_name.trim() || undefined,
                 description: formData.description.trim() || undefined,
                 tablets_per_strip: formData.tablets_per_strip ? Number(formData.tablets_per_strip) : undefined,
+                batch_number: formData.batch_number.trim() || undefined,
+                hsn_code: formData.hsn_code.trim() || undefined,
+                gst: formData.gst ? Number(formData.gst) : undefined,
             };
 
             if (modalMode === 'edit' && editingId) {
@@ -520,6 +531,12 @@ export default function InventoryScreen({ navigation }) {
                 batch_number: String(
                     item.batch_number || item.batch || item.batch_no || ''
                 ),
+                hsn_code: String(
+                    item.hsn_code || item.hsn || item.hsn_no || ''
+                ),
+                gst: String(
+                    item.gst || item.gst_rate || item.cgst || item.sgst || ''
+                ),
             }));
             setAutoImportItems(normalised);
             setAutoImportReviewVisible(true);
@@ -575,6 +592,8 @@ export default function InventoryScreen({ navigation }) {
                         supplier_name: item.supplier_name ? item.supplier_name.trim() : undefined,
                         expiry_date: item.expiry_date || undefined,
                         batch_number: item.batch_number || undefined,
+                        hsn_code: item.hsn_code || undefined,
+                        gst: item.gst ? Number(item.gst) : undefined,
                         alert_threshold: 10,
                     });
 
@@ -884,15 +903,39 @@ export default function InventoryScreen({ navigation }) {
                     </Text>
                 </View>
 
-                {/* Last Updated */}
-                <View style={[styles.tdCell, { flex: 1.2 }]}>
+                {/* Batch No */}
+                <View style={[styles.tdCell, { flex: 1.0 }]}>
                     <Text
                         style={styles.cellText}
                         numberOfLines={1}
                         adjustsFontSizeToFit
                         minimumFontScale={0.8}
                     >
-                        {formatDate(item.updatedAt || item.createdAt)}
+                        {item.batch_number || '—'}
+                    </Text>
+                </View>
+
+                {/* HSN No */}
+                <View style={[styles.tdCell, { flex: 0.8 }]}>
+                    <Text
+                        style={styles.cellText}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        {item.hsn_code || '—'}
+                    </Text>
+                </View>
+
+                {/* GST */}
+                <View style={[styles.tdCell, { flex: 0.6 }]}>
+                    <Text
+                        style={styles.cellText}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        {item.gst !== undefined ? `${item.gst}%` : '0%'}
                     </Text>
                 </View>
 
@@ -1102,8 +1145,14 @@ export default function InventoryScreen({ navigation }) {
                                 <View style={[styles.thCell, { flex: 1.2 }]}>
                                     <Text style={styles.th}>Expiry</Text>
                                 </View>
-                                <View style={[styles.thCell, { flex: 1.2 }]}>
-                                    <Text style={styles.th}>Last Updated</Text>
+                                <View style={[styles.thCell, { flex: 1.0 }]}>
+                                    <Text style={styles.th}>Batch No</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 0.8 }]}>
+                                    <Text style={styles.th}>HSN No</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 0.6 }]}>
+                                    <Text style={styles.th}>GST</Text>
                                 </View>
                                 <View style={[styles.thCell, { flex: 1.1, borderRightWidth: 0, alignItems: 'center' }]}>
                                     <Text style={styles.th}>Actions</Text>
@@ -1247,6 +1296,21 @@ export default function InventoryScreen({ navigation }) {
 
                                         <View style={styles.detailRow}>
                                             <View style={styles.detailItem}>
+                                                <Text style={styles.detailLabel}>Batch Number</Text>
+                                                <Text style={styles.detailValue}>{formData.batch_number || '—'}</Text>
+                                            </View>
+                                            <View style={styles.detailItem}>
+                                                <Text style={styles.detailLabel}>HSN Code</Text>
+                                                <Text style={styles.detailValue}>{formData.hsn_code || '—'}</Text>
+                                            </View>
+                                            <View style={styles.detailItem}>
+                                                <Text style={styles.detailLabel}>GST (%)</Text>
+                                                <Text style={styles.detailValue}>{formData.gst ? `${formData.gst}%` : '0%'}</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.detailRow}>
+                                            <View style={styles.detailItem}>
                                                 <Text style={styles.detailLabel}>Description</Text>
                                                 <Text style={styles.detailValue}>{formData.description || 'No description provided.'}</Text>
                                             </View>
@@ -1318,6 +1382,28 @@ export default function InventoryScreen({ navigation }) {
                                                 value={formData.batch_number}
                                                 onChangeText={(v) => setFormData({ ...formData, batch_number: v })}
                                                 placeholder="e.g. B12345"
+                                                editable={modalMode !== 'view'}
+                                            />
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.formRow}>
+                                        <View style={{ flex: 1 }}>
+                                            <FormField
+                                                label="HSN Code"
+                                                value={formData.hsn_code}
+                                                onChangeText={(v) => setFormData({ ...formData, hsn_code: v })}
+                                                placeholder="e.g. 3004"
+                                                editable={modalMode !== 'view'}
+                                            />
+                                        </View>
+                                        <View style={{ flex: 1 }}>
+                                            <FormField
+                                                label="GST (%)"
+                                                value={formData.gst}
+                                                onChangeText={(v) => setFormData({ ...formData, gst: v })}
+                                                placeholder="e.g. 12"
+                                                keyboardType="numeric"
                                                 editable={modalMode !== 'view'}
                                             />
                                         </View>
@@ -1592,7 +1678,7 @@ export default function InventoryScreen({ navigation }) {
             {/* ─── AUTO IMPORT REVIEW MODAL ─── */}
             <Modal visible={autoImportReviewVisible} animationType="fade" transparent>
                 <View style={styles.modalOverlay}>
-                    <View style={[styles.autoImportModalCard, { width: r.pick({ small: '97%', medium: '92%', large: '80%', xlarge: 860 }) }]}>
+                    <View style={[styles.autoImportModalCard, { width: r.pick({ small: '97%', medium: '95%', large: '90%', xlarge: 920 }) }]}>
                         {/* Header */}
                         <View style={styles.modalHeader}>
                             <View style={styles.modalHeaderLeft}>
@@ -1627,231 +1713,307 @@ export default function InventoryScreen({ navigation }) {
                             </View>
                         )}
 
-                        {/* Column Headers — only show when there are items to review and NOT on small screen */}
-                        {!autoImportError && !r.isSmall && (
-                            <View style={styles.aiTableHeader}>
-                                <Text style={[styles.aiTh, { flex: 2.2 }]}>Medicine Name *</Text>
-                                <Text style={[styles.aiTh, { flex: 0.7 }]}>Qty</Text>
-                                <Text style={[styles.aiTh, { flex: 0.8 }]}>MRP</Text>
-                                <Text style={[styles.aiTh, { flex: 0.8 }]}>Cost</Text>
-                                <Text style={[styles.aiTh, { flex: 1.0 }]}>Batch</Text>
-                                <Text style={[styles.aiTh, { flex: 1.5 }]}>Supplier</Text>
-                                <Text style={[styles.aiTh, { flex: 1.3 }]}>Expiry</Text>
-                                <Text style={[styles.aiTh, { flex: 0.4 }]}></Text>
-                            </View>
-                        )}
+                        {/* Column Headers + Body wrapped in a table box */}
+                        {!autoImportError && (
+                            <View style={styles.aiTableContainer}>
+                                {/* Header */}
+                                {!r.isSmall && (
+                                    <View style={styles.aiTableHeader}>
+                                        <View style={[styles.aiThCell, { flex: 2.0 }]}>
+                                            <Text style={styles.aiTh}>Medicine Name *</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 0.6 }]}>
+                                            <Text style={styles.aiTh}>Qty</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 0.7 }]}>
+                                            <Text style={styles.aiTh}>MRP</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 0.7 }]}>
+                                            <Text style={styles.aiTh}>Cost</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 0.9 }]}>
+                                            <Text style={styles.aiTh}>Batch</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 0.8 }]}>
+                                            <Text style={styles.aiTh}>HSN</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 0.6 }]}>
+                                            <Text style={styles.aiTh}>GST</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 1.2 }]}>
+                                            <Text style={styles.aiTh}>Supplier</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 1.1 }]}>
+                                            <Text style={styles.aiTh}>Expiry</Text>
+                                        </View>
+                                        <View style={[styles.aiThCell, { flex: 0.4, borderRightWidth: 0 }]}>
+                                        </View>
+                                    </View>
+                                )}
 
-                        {/* Editable Rows */}
-                        <ScrollView style={styles.aiTableBody} showsVerticalScrollIndicator={false}>
-                            {autoImportError ? null : autoImportItems.length === 0 ? (
-                                <View style={styles.aiEmptyBox}>
-                                    <Ionicons name="cube-outline" size={40} color={COLORS.border} />
-                                    <Text style={styles.aiEmptyText}>No items — all rows removed</Text>
-                                </View>
-                            ) : (
-                                autoImportItems.map((item, idx) => {
-                                    if (r.isSmall) {
-                                        return (
-                                            <View key={item._key} style={styles.aiCard}>
-                                                <View style={styles.aiCardHeader}>
-                                                    <Text style={styles.aiCardIndex}>#{idx + 1}</Text>
-                                                    <TouchableOpacity
-                                                        onPress={() => removeAutoImportRow(item._key)}
-                                                        style={styles.aiRemoveBtnSmall}
-                                                    >
-                                                        <Ionicons name="trash-outline" size={16} color={COLORS.error} />
-                                                    </TouchableOpacity>
-                                                </View>
-                                                <View style={styles.aiCardBody}>
-                                                    <View style={styles.aiFieldGroup}>
-                                                        <Text style={styles.aiFieldLabel}>Medicine Name *</Text>
-                                                        <TextInput
-                                                            style={styles.aiCellInput}
-                                                            value={item.medicine_name}
-                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'medicine_name', v)}
-                                                            placeholder="e.g. Paracetamol"
-                                                        />
-                                                    </View>
-                                                    <View style={styles.aiFieldRow}>
-                                                        <View style={{ flex: 1, gap: 4 }}>
-                                                            <Text style={styles.aiFieldLabel}>Qty</Text>
-                                                            <TextInput
-                                                                style={styles.aiCellInput}
-                                                                value={item.quantity}
-                                                                onChangeText={(v) => updateAutoImportRow(item._key, 'quantity', v)}
-                                                                keyboardType="numeric"
-                                                            />
+                                {/* Editable Rows */}
+                                <ScrollView style={styles.aiTableBody} showsVerticalScrollIndicator={false}>
+                                    {autoImportItems.length === 0 ? (
+                                        <View style={styles.aiEmptyBox}>
+                                            <Ionicons name="cube-outline" size={40} color={COLORS.border} />
+                                            <Text style={styles.aiEmptyText}>No items — all rows removed</Text>
+                                        </View>
+                                    ) : (
+                                        autoImportItems.map((item, idx) => {
+                                            if (r.isSmall) {
+                                                return (
+                                                    <View key={item._key} style={styles.aiCard}>
+                                                        <View style={styles.aiCardHeader}>
+                                                            <Text style={styles.aiCardIndex}>#{idx + 1}</Text>
+                                                            <TouchableOpacity
+                                                                onPress={() => removeAutoImportRow(item._key)}
+                                                                style={styles.aiRemoveBtnSmall}
+                                                            >
+                                                                <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                                                            </TouchableOpacity>
                                                         </View>
-                                                        <View style={{ flex: 1, gap: 4 }}>
-                                                            <Text style={styles.aiFieldLabel}>MRP</Text>
-                                                            <TextInput
-                                                                style={styles.aiCellInput}
-                                                                value={item.mrp}
-                                                                onChangeText={(v) => updateAutoImportRow(item._key, 'mrp', v)}
-                                                                keyboardType="numeric"
-                                                            />
-                                                        </View>
-                                                    </View>
-                                                    <View style={styles.aiFieldRow}>
-                                                        <View style={{ flex: 1, gap: 4 }}>
-                                                            <Text style={styles.aiFieldLabel}>Cost</Text>
-                                                            <TextInput
-                                                                style={styles.aiCellInput}
-                                                                value={item.cost_price}
-                                                                onChangeText={(v) => updateAutoImportRow(item._key, 'cost_price', v)}
-                                                                keyboardType="numeric"
-                                                            />
-                                                        </View>
-                                                        <View style={{ flex: 1, gap: 4 }}>
-                                                            <Text style={styles.aiFieldLabel}>Expiry</Text>
-                                                            {Platform.OS === 'web' ? (
-                                                                React.createElement('input', {
-                                                                    type: 'date',
-                                                                    value: item.expiry_date,
-                                                                    onChange: (e) => updateAutoImportRow(item._key, 'expiry_date', e.target.value),
-                                                                    style: {
-                                                                        width: '100%',
-                                                                        height: 40,
-                                                                        backgroundColor: COLORS.white,
-                                                                        border: `1px solid ${COLORS.border}`,
-                                                                        borderRadius: 8,
-                                                                        paddingHorizontal: 10,
-                                                                        fontSize: 14,
-                                                                        fontFamily: 'inherit',
-                                                                        outline: 'none',
-                                                                        boxSizing: 'border-box'
-                                                                    },
-                                                                })
-                                                            ) : (
+                                                        <View style={styles.aiCardBody}>
+                                                            <View style={styles.aiFieldGroup}>
+                                                                <Text style={styles.aiFieldLabel}>Medicine Name *</Text>
                                                                 <TextInput
                                                                     style={styles.aiCellInput}
-                                                                    value={item.expiry_date}
-                                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'expiry_date', v)}
-                                                                    placeholder="YYYY-MM-DD"
+                                                                    value={item.medicine_name}
+                                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'medicine_name', v)}
+                                                                    placeholder="e.g. Paracetamol"
                                                                 />
-                                                            )}
+                                                            </View>
+                                                            <View style={styles.aiFieldRow}>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.aiFieldLabel}>Qty</Text>
+                                                                    <TextInput
+                                                                        style={styles.aiCellInput}
+                                                                        value={item.quantity}
+                                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'quantity', v)}
+                                                                        keyboardType="numeric"
+                                                                    />
+                                                                </View>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.aiFieldLabel}>MRP</Text>
+                                                                    <TextInput
+                                                                        style={styles.aiCellInput}
+                                                                        value={item.mrp}
+                                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'mrp', v)}
+                                                                        keyboardType="numeric"
+                                                                    />
+                                                                </View>
+                                                            </View>
+                                                            <View style={styles.aiFieldRow}>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.aiFieldLabel}>Cost</Text>
+                                                                    <TextInput
+                                                                        style={styles.aiCellInput}
+                                                                        value={item.cost_price}
+                                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'cost_price', v)}
+                                                                        keyboardType="numeric"
+                                                                    />
+                                                                </View>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.aiFieldLabel}>Expiry</Text>
+                                                                    {Platform.OS === 'web' ? (
+                                                                        React.createElement('input', {
+                                                                            type: 'date',
+                                                                            value: item.expiry_date,
+                                                                            onChange: (e) => updateAutoImportRow(item._key, 'expiry_date', e.target.value),
+                                                                            style: {
+                                                                                width: '100%',
+                                                                                height: 40,
+                                                                                backgroundColor: COLORS.white,
+                                                                                border: `1px solid ${COLORS.border}`,
+                                                                                borderRadius: 8,
+                                                                                paddingHorizontal: 10,
+                                                                                fontSize: 14,
+                                                                                fontFamily: 'inherit',
+                                                                                outline: 'none',
+                                                                                boxSizing: 'border-box'
+                                                                            },
+                                                                        })
+                                                                    ) : (
+                                                                        <TextInput
+                                                                            style={styles.aiCellInput}
+                                                                            value={item.expiry_date}
+                                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'expiry_date', v)}
+                                                                            placeholder="YYYY-MM-DD"
+                                                                        />
+                                                                    )}
+                                                                </View>
+                                                            </View>
+                                                            <View style={styles.aiFieldRow}>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.aiFieldLabel}>Batch</Text>
+                                                                    <TextInput
+                                                                        style={styles.aiCellInput}
+                                                                        value={item.batch_number}
+                                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'batch_number', v)}
+                                                                        placeholder="Batch No"
+                                                                    />
+                                                                </View>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.aiFieldLabel}>HSN</Text>
+                                                                    <TextInput
+                                                                        style={styles.aiCellInput}
+                                                                        value={item.hsn_code}
+                                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'hsn_code', v)}
+                                                                        placeholder="HSN Code"
+                                                                    />
+                                                                </View>
+                                                            </View>
+                                                            <View style={styles.aiFieldRow}>
+                                                                <View style={{ flex: 1, gap: 4 }}>
+                                                                    <Text style={styles.aiFieldLabel}>GST (%)</Text>
+                                                                    <TextInput
+                                                                        style={styles.aiCellInput}
+                                                                        value={item.gst}
+                                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'gst', v)}
+                                                                        placeholder="0"
+                                                                        keyboardType="numeric"
+                                                                    />
+                                                                </View>
+                                                                <View style={{ flex: 2, gap: 4 }}>
+                                                                    <Text style={styles.aiFieldLabel}>Supplier</Text>
+                                                                    <TextInput
+                                                                        style={styles.aiCellInput}
+                                                                        value={item.supplier_name}
+                                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'supplier_name', v)}
+                                                                    />
+                                                                </View>
+                                                            </View>
                                                         </View>
                                                     </View>
-                                                    <View style={styles.aiFieldGroup}>
-                                                        <Text style={styles.aiFieldLabel}>Supplier</Text>
+                                                );
+                                            }
+                                            return (
+                                                <View
+                                                    key={item._key}
+                                                    style={[styles.aiTableRow, idx % 2 === 0 && styles.aiTableRowAlt]}
+                                                >
+                                                    <View style={[styles.aiTdCell, { flex: 2.0 }]}>
                                                         <TextInput
-                                                            style={styles.aiCellInput}
-                                                            value={item.supplier_name}
-                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'supplier_name', v)}
+                                                            style={styles.aiGridInput}
+                                                            value={item.medicine_name}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'medicine_name', v)}
+                                                            placeholder="Medicine name"
+                                                            placeholderTextColor={COLORS.textMuted}
                                                         />
                                                     </View>
+                                                    <View style={[styles.aiTdCell, { flex: 0.6 }]}>
+                                                        <TextInput
+                                                            style={styles.aiGridInput}
+                                                            value={item.quantity}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'quantity', v)}
+                                                            placeholder="0"
+                                                            placeholderTextColor={COLORS.textMuted}
+                                                            keyboardType="numeric"
+                                                        />
+                                                    </View>
+                                                    <View style={[styles.aiTdCell, { flex: 0.7 }]}>
+                                                        <TextInput
+                                                            style={styles.aiGridInput}
+                                                            value={item.mrp}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'mrp', v)}
+                                                            placeholder="0.00"
+                                                            placeholderTextColor={COLORS.textMuted}
+                                                            keyboardType="numeric"
+                                                        />
+                                                    </View>
+                                                    <View style={[styles.aiTdCell, { flex: 0.7 }]}>
+                                                        <TextInput
+                                                            style={styles.aiGridInput}
+                                                            value={item.cost_price}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'cost_price', v)}
+                                                            placeholder="0.00"
+                                                            placeholderTextColor={COLORS.textMuted}
+                                                            keyboardType="numeric"
+                                                        />
+                                                    </View>
+                                                    <View style={[styles.aiTdCell, { flex: 0.9 }]}>
+                                                        <TextInput
+                                                            style={styles.aiGridInput}
+                                                            value={item.batch_number}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'batch_number', v)}
+                                                            placeholder="Batch"
+                                                            placeholderTextColor={COLORS.textMuted}
+                                                        />
+                                                    </View>
+                                                    <View style={[styles.aiTdCell, { flex: 0.8 }]}>
+                                                        <TextInput
+                                                            style={styles.aiGridInput}
+                                                            value={item.hsn_code}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'hsn_code', v)}
+                                                            placeholder="HSN"
+                                                            placeholderTextColor={COLORS.textMuted}
+                                                        />
+                                                    </View>
+                                                    <View style={[styles.aiTdCell, { flex: 0.6 }]}>
+                                                        <TextInput
+                                                            style={styles.aiGridInput}
+                                                            value={item.gst}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'gst', v)}
+                                                            placeholder="0"
+                                                            placeholderTextColor={COLORS.textMuted}
+                                                            keyboardType="numeric"
+                                                        />
+                                                    </View>
+                                                    <View style={[styles.aiTdCell, { flex: 1.2 }]}>
+                                                        <TextInput
+                                                            style={styles.aiGridInput}
+                                                            value={item.supplier_name}
+                                                            onChangeText={(v) => updateAutoImportRow(item._key, 'supplier_name', v)}
+                                                            placeholder="Supplier"
+                                                            placeholderTextColor={COLORS.textMuted}
+                                                        />
+                                                    </View>
+                                                    <View style={[styles.aiTdCell, { flex: 1.1 }]}>
+                                                        {Platform.OS === 'web' ? (
+                                                            React.createElement('input', {
+                                                                type: 'date',
+                                                                value: item.expiry_date,
+                                                                onChange: (e) => updateAutoImportRow(item._key, 'expiry_date', e.target.value),
+                                                                style: {
+                                                                    width: '100%',
+                                                                    height: '100%',
+                                                                    backgroundColor: 'transparent',
+                                                                    border: 'none',
+                                                                    paddingLeft: 8,
+                                                                    paddingRight: 8,
+                                                                    fontSize: 12,
+                                                                    color: COLORS.textPrimary,
+                                                                    fontFamily: 'inherit',
+                                                                    outline: 'none',
+                                                                    cursor: 'pointer',
+                                                                    boxSizing: 'border-box',
+                                                                },
+                                                            })
+                                                        ) : (
+                                                            <TextInput
+                                                                style={styles.aiGridInput}
+                                                                value={item.expiry_date}
+                                                                onChangeText={(v) => updateAutoImportRow(item._key, 'expiry_date', v)}
+                                                                placeholder="YYYY-MM-DD"
+                                                                placeholderTextColor={COLORS.textMuted}
+                                                            />
+                                                        )}
+                                                    </View>
+                                                    <View style={[styles.aiTdCell, { flex: 0.4, borderRightWidth: 0, alignItems: 'center', justifyContent: 'center' }]}>
+                                                        <TouchableOpacity
+                                                            onPress={() => removeAutoImportRow(item._key)}
+                                                            style={styles.aiRemoveBtn}
+                                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                                        >
+                                                            <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                                                        </TouchableOpacity>
+                                                    </View>
                                                 </View>
-                                            </View>
-                                        );
-                                    }
-                                    return (
-                                        <View
-                                            key={item._key}
-                                            style={[styles.aiTableRow, idx % 2 === 0 && styles.aiTableRowAlt]}
-                                        >
-                                            <View style={{ flex: 2.2, paddingRight: 6 }}>
-                                                <TextInput
-                                                    style={styles.aiCellInput}
-                                                    value={item.medicine_name}
-                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'medicine_name', v)}
-                                                    placeholder="Medicine name"
-                                                    placeholderTextColor={COLORS.textMuted}
-                                                />
-                                            </View>
-                                            <View style={{ flex: 0.7, paddingRight: 6 }}>
-                                                <TextInput
-                                                    style={styles.aiCellInput}
-                                                    value={item.quantity}
-                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'quantity', v)}
-                                                    placeholder="0"
-                                                    placeholderTextColor={COLORS.textMuted}
-                                                    keyboardType="numeric"
-                                                />
-                                            </View>
-                                            <View style={{ flex: 0.8, paddingRight: 6 }}>
-                                                <TextInput
-                                                    style={styles.aiCellInput}
-                                                    value={item.mrp}
-                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'mrp', v)}
-                                                    placeholder="0.00"
-                                                    placeholderTextColor={COLORS.textMuted}
-                                                    keyboardType="numeric"
-                                                />
-                                            </View>
-                                            <View style={{ flex: 0.8, paddingRight: 6 }}>
-                                                <TextInput
-                                                    style={styles.aiCellInput}
-                                                    value={item.cost_price}
-                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'cost_price', v)}
-                                                    placeholder="0.00"
-                                                    placeholderTextColor={COLORS.textMuted}
-                                                    keyboardType="numeric"
-                                                />
-                                            </View>
-                                            <View style={{ flex: 1.0, paddingRight: 6 }}>
-                                                <TextInput
-                                                    style={styles.aiCellInput}
-                                                    value={item.batch_number}
-                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'batch_number', v)}
-                                                    placeholder="Batch"
-                                                    placeholderTextColor={COLORS.textMuted}
-                                                />
-                                            </View>
-                                            <View style={{ flex: 1.5, paddingRight: 6 }}>
-                                                <TextInput
-                                                    style={styles.aiCellInput}
-                                                    value={item.supplier_name}
-                                                    onChangeText={(v) => updateAutoImportRow(item._key, 'supplier_name', v)}
-                                                    placeholder="Supplier"
-                                                    placeholderTextColor={COLORS.textMuted}
-                                                />
-                                            </View>
-                                            <View style={{ flex: 1.3, paddingRight: 6 }}>
-                                                {Platform.OS === 'web' ? (
-                                                    React.createElement('input', {
-                                                        type: 'date',
-                                                        value: item.expiry_date,
-                                                        onChange: (e) => updateAutoImportRow(item._key, 'expiry_date', e.target.value),
-                                                        style: {
-                                                            width: '100%',
-                                                            height: 40,
-                                                            backgroundColor: COLORS.bgInput,
-                                                            border: `1px solid ${COLORS.border}`,
-                                                            borderRadius: 8,
-                                                            paddingLeft: 10,
-                                                            paddingRight: 10,
-                                                            fontSize: 14,
-                                                            color: COLORS.textPrimary,
-                                                            fontFamily: 'inherit',
-                                                            outline: 'none',
-                                                            cursor: 'pointer',
-                                                            boxSizing: 'border-box',
-                                                        },
-                                                    })
-                                                ) : (
-                                                    <TextInput
-                                                        style={styles.aiCellInput}
-                                                        value={item.expiry_date}
-                                                        onChangeText={(v) => updateAutoImportRow(item._key, 'expiry_date', v)}
-                                                        placeholder="YYYY-MM-DD"
-                                                        placeholderTextColor={COLORS.textMuted}
-                                                    />
-                                                )}
-                                            </View>
-                                            <View style={{ flex: 0.4, alignItems: 'center' }}>
-                                                <TouchableOpacity
-                                                    onPress={() => removeAutoImportRow(item._key)}
-                                                    style={styles.aiRemoveBtn}
-                                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                                >
-                                                    <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-                                                </TouchableOpacity>
-                                            </View>
-                                        </View>
-                                    );
-                                })
-                            )}
-                        </ScrollView>
+                                            );
+                                        })
+                                    )}
+                                </ScrollView>
+                            </View>
+                        )}
 
                         {/* Footer */}
                         <View style={styles.modalFooter}>
@@ -2503,36 +2665,66 @@ const styles = StyleSheet.create({
         color: COLORS.textMuted,
         marginTop: 2,
     },
+    aiTableContainer: {
+        marginHorizontal: SPACING.xl,
+        marginVertical: SPACING.md,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        borderRadius: 2,
+        backgroundColor: COLORS.white,
+        overflow: 'hidden',
+    },
     aiTableHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.bgSurface,
-        paddingVertical: SPACING.sm,
-        paddingHorizontal: SPACING.lg,
+        backgroundColor: COLORS.borderLight,
+        height: 32,
         borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
     },
+    aiThCell: {
+        justifyContent: 'center',
+        height: '100%',
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
+    },
     aiTh: {
-        fontSize: FONT_SIZES.xs,
-        fontWeight: '500',
-        color: COLORS.textMuted,
+        fontSize: 11,
+        fontWeight: '700',
+        color: COLORS.textSecondary,
         textTransform: 'uppercase',
-        letterSpacing: 0.7,
+        letterSpacing: 0.5,
+        paddingHorizontal: 8,
     },
     aiTableBody: {
         maxHeight: 380,
     },
     aiTableRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: SPACING.sm,
-        paddingHorizontal: SPACING.lg,
+        alignItems: 'stretch',
         borderBottomWidth: 0.5,
-        borderBottomColor: COLORS.borderLight,
-        minHeight: 58,
+        borderBottomColor: COLORS.border,
+        backgroundColor: COLORS.white,
+        height: 38,
     },
     aiTableRowAlt: {
         backgroundColor: COLORS.bgInput,
+    },
+    aiTdCell: {
+        justifyContent: 'center',
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
+        paddingHorizontal: 0,
+    },
+    aiGridInput: {
+        flex: 1,
+        height: '100%',
+        paddingHorizontal: 8,
+        fontSize: 12,
+        color: COLORS.textPrimary,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+        outlineWidth: 0,
     },
     aiCellInput: {
         backgroundColor: COLORS.white,
@@ -2546,9 +2738,9 @@ const styles = StyleSheet.create({
         height: 40,
     },
     aiRemoveBtn: {
-        width: 34,
-        height: 34,
-        borderRadius: 4,
+        width: 24,
+        height: 24,
+        borderRadius: 2,
         backgroundColor: COLORS.errorLight,
         alignItems: 'center',
         justifyContent: 'center',

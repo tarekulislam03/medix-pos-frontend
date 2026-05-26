@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,13 +11,58 @@ import {
     Animated,
     ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
-import { COLORS, FONT_SIZES, RADIUS, SPACING } from '../constants/theme';
-import GradientButton from '../components/GradientButton';
+import { COLORS, SPACING } from '../constants/theme';
 import { loginUser } from '../services/authService';
 import { useResponsive } from '../utils/responsive';
 import { AuthContext } from '../context/AuthContext';
+
+// ─── ERP Terminal Palette ──────────────────────────────────────────────────────
+const T = {
+    panelBg:        '#0E1E1A',
+    panelBorder:    '#1B332D',
+    panelMuted:     'rgba(255,255,255,0.32)',
+    panelDim:       'rgba(255,255,255,0.18)',
+    panelAccent:    '#2D7A63',
+    white:          '#FFFFFF',
+
+    formBg:         '#EAEEED',
+    cardBg:         '#FFFFFF',
+    inputBg:        '#FDFDFD',
+    inputBorder:    '#B0BAB6',
+    inputFocus:     '#1C5C4A',
+
+    heading:        '#1A2B28',
+    label:          '#2C3E3A',
+    muted:          '#6B807A',
+    placeholder:    '#94A8A3',
+
+    btnBg:          '#1C5C4A',
+    btnText:        '#FFFFFF',
+
+    errBg:          'rgba(192,57,43,0.06)',
+    errBorder:      'rgba(192,57,43,0.22)',
+    errText:        '#B83A2E',
+
+    rule:           '#C4CCCA',
+    ruleStrong:     '#A8B3AE',
+    footerText:     '#7E918C',
+    stripBg:        '#1A2E29',
+    stripBorder:    '#233D36',
+    stripText:      'rgba(255,255,255,0.50)',
+    stripHi:        '#3CB88E',
+};
+
+const MODULES = [
+    { label: 'POS Billing' },
+    { label: 'Inventory' },
+    { label: 'Customers' },
+    { label: 'Reports' },
+    { label: 'Settings' },
+    { label: 'Invoicing' },
+    { label: 'Purchase' },
+    { label: 'Returns' },
+];
 
 export default function LoginScreen({ navigation }) {
     const { signIn } = React.useContext(AuthContext);
@@ -26,68 +71,39 @@ export default function LoginScreen({ navigation }) {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    
-    // Inline field errors
     const [phoneError, setPhoneError] = useState('');
     const [passwordError, setPasswordError] = useState('');
-
-    // Focus state
     const [focusedInput, setFocusedInput] = useState(null);
-    
-    // Entrance animations
-    const cardOpacity = useRef(new Animated.Value(0)).current;
-    const cardTranslateY = useRef(new Animated.Value(15)).current;
 
-    const r = useResponsive();
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const passwordRef = useRef(null);
+
+    const isWide = Platform.OS === 'web';
 
     useEffect(() => {
         if (Platform.OS === 'web' && typeof document !== 'undefined') {
-            document.title = 'Sign In — MediX POS';
+            document.title = 'Login — MediX POS';
         }
-
-        // Animated entrance
-        Animated.parallel([
-            Animated.timing(cardOpacity, {
-                toValue: 1,
-                duration: 500,
-                useNativeDriver: true,
-            }),
-            Animated.timing(cardTranslateY, {
-                toValue: 0,
-                duration: 500,
-                useNativeDriver: true,
-            }),
-        ]).start();
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
     }, []);
 
-    const validateForm = () => {
-        let isValid = true;
-        if (!phone.trim()) {
-            setPhoneError('Phone number is required');
-            isValid = false;
-        } else {
-            setPhoneError('');
-        }
+    const validateForm = useCallback(() => {
+        let ok = true;
+        if (!phone.trim()) { setPhoneError('Required'); ok = false; } else { setPhoneError(''); }
+        if (!password.trim()) { setPasswordError('Required'); ok = false; } else { setPasswordError(''); }
+        return ok;
+    }, [phone, password]);
 
-        if (!password.trim()) {
-            setPasswordError('Password is required');
-            isValid = false;
-        } else {
-            setPasswordError('');
-        }
-
-        return isValid;
-    };
-
-    const handleAuth = async () => {
+    const handleAuth = useCallback(async () => {
         if (!validateForm()) return;
-
         setLoading(true);
         setError('');
-
         try {
             const response = await loginUser({ phone, password });
-
             if (response?.token) {
                 try {
                     if (Platform.OS === 'web' && typeof window !== 'undefined' && window.sessionStorage) {
@@ -96,427 +112,569 @@ export default function LoginScreen({ navigation }) {
                         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
                         await AsyncStorage.setItem('medix_just_logged_in', 'true');
                     }
-                } catch (e) {
-                    console.warn('Failed to set login flag:', e);
-                }
+                } catch (e) { console.warn('Failed to set login flag:', e); }
                 await signIn(response.token, response.user?.storeId);
             } else {
-                setError('Authentication failed. Please verify credentials.');
+                setError('Authentication failed. Verify credentials.');
             }
         } catch (err) {
-            setError(err.message || 'Authentication failed. Please try again.');
+            setError(err.message || 'Login failed. Try again.');
         } finally {
             setLoading(false);
         }
-    };
+    }, [phone, password, validateForm, signIn]);
 
-    // Responsive design values
-    const cardWidth = r.pick({ small: '92%', medium: 390, large: 410, xlarge: 430 });
-    const cardPadding = r.pick({ small: 18, medium: SPACING.xl, large: SPACING.xxl, xlarge: SPACING.xxl });
-    const logoSize = r.pick({ small: 32, medium: 38, large: 42, xlarge: 44 });
-    const inputHeight = r.pick({ small: 50, medium: 54, large: 56, xlarge: 58 });
+    const onPhoneChange = useCallback((v) => {
+        setPhone(v); if (phoneError) setPhoneError(''); if (error) setError('');
+    }, [phoneError, error]);
 
-    return (
-        <LinearGradient
-            colors={['#070D19', '#0B1528', '#070D19']}
-            style={styles.container}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            {/* Modern subtle medical glow patterns (fixed background) */}
-            <View style={styles.glowBlob1} />
-            <View style={styles.glowBlob2} />
+    const onPassChange = useCallback((v) => {
+        setPassword(v); if (passwordError) setPasswordError(''); if (error) setError('');
+    }, [passwordError, error]);
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.container}
+    // ─── TOP UTILITY STRIP ────────────────────────────────────────────────────
+    const renderStrip = () => (
+        <View style={s.strip}>
+            <Text style={s.stripLabel}>LICENSED COPY</Text>
+            <Text style={s.stripSep}>│</Text>
+            <View style={s.stripDot} />
+            <Text style={s.stripOnline}>ONLINE</Text>
+            <Text style={s.stripSep}>│</Text>
+            <Text style={s.stripLabel}>BUILD v1.0</Text>
+            <View style={{ flex: 1 }} />
+            <Text style={s.stripLabel}>MediX POS & ERP</Text>
+        </View>
+    );
+
+    // ─── LEFT PANEL ───────────────────────────────────────────────────────────
+    const renderLeft = () => (
+        <View style={s.left}>
+            {/* Brand */}
+            <View style={s.brand}>
+                <Image
+                    source={require('../../assets/icon.png')}
+                    style={s.brandIcon}
+                    resizeMode="contain"
+                />
+                <View>
+                    <Text style={s.brandName}>
+                        Medi<Text style={s.brandX}>X</Text>
+                    </Text>
+                    <Text style={s.brandSub}>POS & ERP</Text>
+                </View>
+            </View>
+
+            <View style={s.rule} />
+
+            {/* Modules */}
+            <Text style={s.sectionHead}>MODULES</Text>
+            <View style={s.moduleList}>
+                {MODULES.map((m, i) => (
+                    <View key={i} style={s.moduleItem}>
+                        <Text style={s.moduleBullet}>›</Text>
+                        <Text style={s.moduleLabel}>{m.label}</Text>
+                    </View>
+                ))}
+            </View>
+
+            <View style={s.rule} />
+
+            {/* Sys info */}
+            <Text style={s.sectionHead}>SYSTEM</Text>
+            <View style={s.sysBlock}>
+                <SysRow k="Platform" v="Web / Tablet" />
+                <SysRow k="Database" v="Cloud" />
+                <SysRow k="Encryption" v="AES-256" />
+                <SysRow k="Version" v="1.0.0" />
+            </View>
+
+            {/* Footer */}
+            <View style={s.leftFoot}>
+                <View style={s.statusDot} />
+                <Text style={s.leftFootText}>Online</Text>
+                <Text style={[s.leftFootText, { marginLeft: 'auto', color: T.panelDim }]}>© 2026 MediX</Text>
+            </View>
+        </View>
+    );
+
+    // ─── RIGHT PANEL ──────────────────────────────────────────────────────────
+    const renderRight = () => (
+        <Animated.View style={[s.right, { opacity: fadeAnim }]}>
+            <ScrollView
+                contentContainerStyle={s.formArea}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
             >
-                <ScrollView
-                    contentContainerStyle={styles.scrollContainer}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                >
-                    <Animated.View style={[styles.card, { width: cardWidth, padding: cardPadding, opacity: cardOpacity, transform: [{ translateY: cardTranslateY }] }]}>
-                        {/* Subtle top progress/light streak */}
-                        <LinearGradient
-                            colors={['#4FA39A', '#7DC4BD', '#4FA39A']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.topStreak}
-                        />
+                {/* Form title */}
+                <View style={s.formHeader}>
+                    <Text style={s.formTitle}>▸ User Login</Text>
+                </View>
 
-                        {/* Sleek Close Button */}
-                        {navigation && navigation.canGoBack() && (
-                            <TouchableOpacity 
-                                style={styles.closeButton} 
-                                onPress={() => navigation.goBack()}
-                                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                            >
-                                <Feather name="x" size={16} color="rgba(255, 255, 255, 0.4)" />
-                            </TouchableOpacity>
-                        )}
+                <View style={s.card}>
+                    {/* Error */}
+                    {error ? (
+                        <View style={s.errBar}>
+                            <Text style={s.errMark}>!</Text>
+                            <Text style={s.errText}>{error}</Text>
+                        </View>
+                    ) : null}
 
-                        {/* Logo & Typography Hierarchy (SaaS Identity Block) */}
-                        <View style={styles.logoWrapper}>
-                            <View style={[styles.logoGlow, { width: logoSize * 1.6, height: logoSize * 1.6, borderRadius: (logoSize * 1.6) / 2 }]} />
-                            <Image
-                                source={require('../../assets/icon.png')}
-                                style={{ width: logoSize, height: logoSize }}
-                                resizeMode="contain"
+                    {/* Phone */}
+                    <View style={s.field}>
+                        <Text style={s.fieldLabel}>Phone No. <Text style={s.req}>*</Text></Text>
+                        <View style={[
+                            s.inputRow,
+                            focusedInput === 'phone' && s.inputRowFocus,
+                            phoneError ? s.inputRowErr : null,
+                        ]}>
+                            <TextInput
+                                style={s.input}
+                                placeholder="Phone number"
+                                placeholderTextColor={T.placeholder}
+                                value={phone}
+                                onChangeText={onPhoneChange}
+                                keyboardType="phone-pad"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                onFocus={() => setFocusedInput('phone')}
+                                onBlur={() => setFocusedInput(null)}
+                                returnKeyType="next"
+                                onSubmitEditing={() => passwordRef.current?.focus()}
+                                blurOnSubmit={false}
                             />
                         </View>
+                        {phoneError ? <Text style={s.fieldErr}>{phoneError}</Text> : null}
+                    </View>
 
-                        <Text style={styles.welcomeText}>WELCOME BACK</Text>
-                        <Text style={[styles.brand, { fontSize: r.pick({ small: 26, medium: 28, large: 30, xlarge: 32 }) }]}>MediX</Text>
-                        <Text style={styles.subtitle}>Sign in to your account</Text>
-
-                        {/* Error Banner */}
-                        {error ? (
-                            <View style={styles.errorBox}>
-                                <Feather name="alert-circle" size={14} color={COLORS.error} />
-                                <Text style={styles.errorText}>{error}</Text>
-                            </View>
-                        ) : null}
-
-                        {/* Phone Input */}
-                        <View style={styles.fieldContainer}>
-                            <View style={[
-                                styles.inputGroup,
-                                { height: inputHeight },
-                                focusedInput === 'phone' && styles.inputGroupFocused,
-                                phoneError ? styles.inputGroupError : null
-                            ]}>
-                                <Feather name="phone" size={18} color={focusedInput === 'phone' ? '#4FA39A' : 'rgba(255, 255, 255, 0.3)'} style={styles.inputIcon} />
-                                <View style={styles.inputContent}>
-                                    {(phone.length > 0 || focusedInput === 'phone') && (
-                                        <Text style={styles.floatingLabel}>Phone Number</Text>
-                                    )}
-                                    <TextInput
-                                        style={[styles.input, (phone.length > 0 || focusedInput === 'phone') && styles.inputWithLabel]}
-                                        placeholder={focusedInput === 'phone' ? '' : 'Phone Number'}
-                                        placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                                        value={phone}
-                                        onChangeText={(val) => {
-                                            setPhone(val);
-                                            if (phoneError) setPhoneError('');
-                                        }}
-                                        keyboardType="phone-pad"
-                                        autoCapitalize="none"
-                                        autoCorrect={false}
-                                        onFocus={() => setFocusedInput('phone')}
-                                        onBlur={() => setFocusedInput(null)}
-                                    />
-                                </View>
-                            </View>
-                            {phoneError ? <Text style={styles.inlineErrorText}>{phoneError}</Text> : null}
+                    {/* Password */}
+                    <View style={s.field}>
+                        <View style={s.labelRow}>
+                            <Text style={s.fieldLabel}>Password <Text style={s.req}>*</Text></Text>
+                            <TouchableOpacity
+                                onPress={() => navigation?.navigate('ForgotPassword')}
+                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            >
+                                <Text style={s.forgotLink}>Reset</Text>
+                            </TouchableOpacity>
                         </View>
-
-                        {/* Password Input */}
-                        <View style={styles.fieldContainer}>
-                            <View style={[
-                                styles.inputGroup,
-                                { height: inputHeight },
-                                focusedInput === 'password' && styles.inputGroupFocused,
-                                passwordError ? styles.inputGroupError : null
-                            ]}>
-                                <Feather name="lock" size={18} color={focusedInput === 'password' ? '#4FA39A' : 'rgba(255, 255, 255, 0.3)'} style={styles.inputIcon} />
-                                <View style={styles.inputContent}>
-                                    {(password.length > 0 || focusedInput === 'password') && (
-                                        <Text style={styles.floatingLabel}>Password</Text>
-                                    )}
-                                    <TextInput
-                                        style={[styles.input, (password.length > 0 || focusedInput === 'password') && styles.inputWithLabel]}
-                                        placeholder={focusedInput === 'password' ? '' : 'Password'}
-                                        placeholderTextColor="rgba(255, 255, 255, 0.3)"
-                                        value={password}
-                                        onChangeText={(val) => {
-                                            setPassword(val);
-                                            if (passwordError) setPasswordError('');
-                                        }}
-                                        secureTextEntry={!showPassword}
-                                        onFocus={() => setFocusedInput('password')}
-                                        onBlur={() => setFocusedInput(null)}
-                                        onSubmitEditing={handleAuth}
-                                        returnKeyType="go"
-                                    />
-                                </View>
-                                <TouchableOpacity
-                                    onPress={() => setShowPassword(!showPassword)}
-                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                >
-                                    <Feather
-                                        name={showPassword ? 'eye-off' : 'eye'}
-                                        size={16}
-                                        color="rgba(255, 255, 255, 0.4)"
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                            {passwordError ? <Text style={styles.inlineErrorText}>{passwordError}</Text> : null}
+                        <View style={[
+                            s.inputRow,
+                            focusedInput === 'pass' && s.inputRowFocus,
+                            passwordError ? s.inputRowErr : null,
+                        ]}>
+                            <TextInput
+                                ref={passwordRef}
+                                style={s.input}
+                                placeholder="Password"
+                                placeholderTextColor={T.placeholder}
+                                value={password}
+                                onChangeText={onPassChange}
+                                secureTextEntry={!showPassword}
+                                onFocus={() => setFocusedInput('pass')}
+                                onBlur={() => setFocusedInput(null)}
+                                onSubmitEditing={handleAuth}
+                                returnKeyType="go"
+                            />
+                            <TouchableOpacity
+                                onPress={() => setShowPassword(!showPassword)}
+                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                style={s.eyeBtn}
+                            >
+                                <Text style={s.eyeLabel}>{showPassword ? 'HIDE' : 'SHOW'}</Text>
+                            </TouchableOpacity>
                         </View>
+                        {passwordError ? <Text style={s.fieldErr}>{passwordError}</Text> : null}
+                    </View>
 
-            
+                    <View style={s.cardDivider} />
 
-                        {/* Premium CTA Button */}
-                        <GradientButton
-                            title="Sign In"
-                            onPress={handleAuth}
-                            loading={loading}
-                            style={styles.authBtn}
-                            icon={<Feather name="arrow-right" size={18} color={COLORS.white} />}
-                        />
+                    {/* Submit */}
+                    <TouchableOpacity
+                        style={[s.submitBtn, loading && s.submitBtnOff]}
+                        onPress={handleAuth}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                    >
+                        <Text style={s.submitText}>{loading ? 'SIGNING IN...' : 'LOGIN'}</Text>
+                    </TouchableOpacity>
+                </View>
 
+                {/* Session info */}
+                <Text style={s.sessionInfo}>Secure session · Auto-logout: 30 min</Text>
+            </ScrollView>
 
-                        {/* Trust Indicators */}
-                        <View style={styles.footerContainer}>
-                            <Feather name="lock" size={12} color="#4FA39A" style={styles.footerIcon} />
-                            <Text style={styles.footerText}>
-                                Encrypted & Secure Login
-                            </Text>
-                        </View>
-                    </Animated.View>
-                </ScrollView>
+            {/* Footer */}
+            <View style={s.rightFoot}>
+                <Text style={s.footText}>MediX POS</Text>
+                <Text style={s.footSep}>│</Text>
+                <Text style={s.footText}>v1.0.0</Text>
+                <Text style={s.footSep}>│</Text>
+                <Text style={s.footText}>Support: 1800-123-4567</Text>
+            </View>
+        </Animated.View>
+    );
+
+    // ─── RENDER ───────────────────────────────────────────────────────────────
+    if (isWide) {
+        return (
+            <View style={s.root}>
+                {renderStrip()}
+                <View style={s.split}>
+                    {renderLeft()}
+                    <KeyboardAvoidingView behavior="height" style={s.flex1}>
+                        {renderRight()}
+                    </KeyboardAvoidingView>
+                </View>
+            </View>
+        );
+    }
+
+    return (
+        <View style={s.root}>
+            {renderStrip()}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={[s.flex1, { backgroundColor: T.formBg }]}
+            >
+                {renderRight()}
             </KeyboardAvoidingView>
-        </LinearGradient>
+        </View>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    inner: {
-        flex: 1,
-        justifyContent: 'center',
+// Tiny helper
+const SysRow = ({ k, v }) => (
+    <View style={s.sysRow}>
+        <Text style={s.sysKey}>{k}</Text>
+        <Text style={s.sysVal}>{v}</Text>
+    </View>
+);
+
+// ─── STYLES ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+    root: { flex: 1, backgroundColor: T.panelBg },
+    split: { flex: 1, flexDirection: 'row' },
+    flex1: { flex: 1 },
+
+    // ── TOP STRIP ──────────────────────────────────────────────────────────
+    strip: {
+        flexDirection: 'row',
         alignItems: 'center',
+        height: 22,
+        backgroundColor: T.stripBg,
+        borderBottomWidth: 1,
+        borderBottomColor: T.stripBorder,
+        paddingHorizontal: 10,
+        gap: 6,
     },
-    scrollContainer: {
-        flexGrow: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: SPACING.xl,
-        paddingHorizontal: SPACING.md,
+    stripLabel: {
+        fontSize: 9,
+        fontWeight: '600',
+        color: T.stripText,
+        letterSpacing: 0.8,
     },
-    glowBlob1: {
-        position: 'absolute',
-        top: '20%',
-        left: '20%',
-        width: 300,
-        height: 300,
-        borderRadius: 150,
-        backgroundColor: 'rgba(79, 163, 154, 0.04)',
-        filter: Platform.OS === 'web' ? 'blur(80px)' : undefined,
+    stripSep: {
+        fontSize: 9,
+        color: 'rgba(255,255,255,0.12)',
     },
-    glowBlob2: {
-        position: 'absolute',
-        bottom: '25%',
-        right: '15%',
-        width: 250,
-        height: 250,
-        borderRadius: 125,
-        backgroundColor: 'rgba(45, 139, 131, 0.03)',
-        filter: Platform.OS === 'web' ? 'blur(60px)' : undefined,
+    stripDot: {
+        width: 5,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: T.stripHi,
     },
-    card: {
-        backgroundColor: 'rgba(11, 21, 40, 0.75)',
-        borderRadius: RADIUS.md,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
-        // Extreme Stripe/Linear-style deep glassmorphism shadow
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 24 },
-        shadowOpacity: 0.45,
-        shadowRadius: 40,
-        elevation: 24,
-        overflow: 'hidden',
-        backdropFilter: Platform.OS === 'web' ? 'blur(16px)' : undefined,
-    },
-    topStreak: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 2.5,
-    },
-    closeButton: {
-        position: 'absolute',
-        top: 14,
-        right: 14,
-        padding: 4,
-        borderRadius: 999,
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    },
-    logoWrapper: {
-        position: 'relative',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 8,
-        marginTop: 4,
-    },
-    logoGlow: {
-        position: 'absolute',
-        backgroundColor: 'rgba(79, 163, 154, 0.12)',
-        filter: Platform.OS === 'web' ? 'blur(10px)' : undefined,
-    },
-    welcomeText: {
+    stripOnline: {
         fontSize: 9,
         fontWeight: '700',
-        color: '#4FA39A',
-        letterSpacing: 2,
-        opacity: 0.85,
-        marginBottom: 2,
-        textAlign: 'center',
+        color: T.stripHi,
+        letterSpacing: 0.5,
+    },
+
+    // ── LEFT PANEL ─────────────────────────────────────────────────────────
+    left: {
+        width: 260,
+        backgroundColor: T.panelBg,
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 10,
+        borderRightWidth: 1,
+        borderRightColor: T.panelBorder,
     },
     brand: {
-        fontWeight: '800',
-        color: '#FFFFFF',
-        letterSpacing: -0.8,
-        textAlign: 'center',
-        marginBottom: 4,
-    },
-    subtitle: {
-        fontSize: 12.5,
-        color: 'rgba(255, 255, 255, 0.45)',
-        marginBottom: SPACING.lg,
-        fontWeight: '400',
-        textAlign: 'center',
-        letterSpacing: -0.1,
-    },
-    errorBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 6,
-        marginBottom: SPACING.md,
-        width: '100%',
-        gap: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(239, 68, 68, 0.15)',
+        marginBottom: 10,
     },
-    errorText: {
-        color: '#FCA5A5',
-        fontSize: 12,
+    brandIcon: {
+        width: 26,
+        height: 26,
+        marginRight: 8,
+    },
+    brandName: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: T.white,
+        letterSpacing: -0.3,
+    },
+    brandX: {
+        color: T.panelAccent,
+    },
+    brandSub: {
+        fontSize: 8.5,
+        fontWeight: '600',
+        color: T.panelMuted,
+        letterSpacing: 2,
+        marginTop: 0,
+    },
+    rule: {
+        height: 1,
+        backgroundColor: T.panelBorder,
+        marginVertical: 10,
+    },
+    sectionHead: {
+        fontSize: 8.5,
+        fontWeight: '700',
+        color: T.panelMuted,
+        letterSpacing: 1.8,
+        marginBottom: 6,
+    },
+    moduleList: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+    },
+    moduleItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '50%',
+        paddingVertical: 2,
+    },
+    moduleBullet: {
+        fontSize: 11,
+        color: T.panelAccent,
+        marginRight: 5,
+        fontWeight: '700',
+    },
+    moduleLabel: {
+        fontSize: 10.5,
+        color: T.panelDim,
         fontWeight: '500',
     },
-    fieldContainer: {
-        width: '100%',
-        marginBottom: 12,
+    sysBlock: {
+        gap: 3,
     },
-    inputGroup: {
+    sysRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    sysKey: {
+        fontSize: 10,
+        color: T.panelMuted,
+        fontWeight: '500',
+    },
+    sysVal: {
+        fontSize: 10,
+        color: T.panelDim,
+        fontWeight: '400',
+    },
+    leftFoot: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.02)',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.06)',
-        paddingHorizontal: SPACING.md,
+        marginTop: 'auto',
+        paddingTop: 8,
+    },
+    statusDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: T.panelAccent,
+        marginRight: 5,
+    },
+    leftFootText: {
+        fontSize: 9,
+        color: T.panelMuted,
+        fontWeight: '500',
+    },
+
+    // ── RIGHT PANEL ────────────────────────────────────────────────────────
+    right: {
+        flex: 1,
+        backgroundColor: T.formBg,
+    },
+    formArea: {
+        paddingLeft: 24,
+        paddingRight: 24,
+        paddingTop: 16,
+        paddingBottom: 12,
+        maxWidth: 360,
         width: '100%',
     },
-    inputGroupFocused: {
-        borderColor: 'rgba(79, 163, 154, 0.6)',
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
-        // Glow effect
-        shadowColor: '#4FA39A',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-        elevation: 6,
+    formHeader: {
+        marginBottom: 8,
     },
-    inputGroupError: {
-        borderColor: 'rgba(239, 68, 68, 0.5)',
+    formTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: T.heading,
+        letterSpacing: 0,
     },
-    inputIcon: {
-        marginRight: 12,
+
+    // Card
+    card: {
+        backgroundColor: T.cardBg,
+        borderRadius: 2,
+        borderWidth: 1,
+        borderColor: T.ruleStrong,
+        paddingHorizontal: 14,
+        paddingTop: 12,
+        paddingBottom: 14,
     },
-    inputContent: {
+
+    // Error
+    errBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: T.errBg,
+        borderWidth: 1,
+        borderColor: T.errBorder,
+        borderRadius: 1,
+        paddingVertical: 5,
+        paddingHorizontal: 8,
+        marginBottom: 10,
+        gap: 6,
+    },
+    errMark: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: T.errText,
+        width: 14,
+        textAlign: 'center',
+    },
+    errText: {
+        color: T.errText,
+        fontSize: 11,
+        fontWeight: '500',
         flex: 1,
-        justifyContent: 'center',
     },
-    floatingLabel: {
-        fontSize: 9,
-        color: '#4FA39A',
+
+    // Fields
+    field: {
+        marginBottom: 10,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 3,
+    },
+    fieldLabel: {
+        fontSize: 10.5,
         fontWeight: '600',
-        marginBottom: -6,
-        marginTop: 2,
-        letterSpacing: 0.5,
+        color: T.label,
+        marginBottom: 3,
+        letterSpacing: 0.2,
+    },
+    req: {
+        color: T.errText,
+        fontWeight: '400',
+    },
+    forgotLink: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: T.btnBg,
+        marginBottom: 3,
+        textDecorationLine: 'underline',
+    },
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: T.inputBg,
+        borderWidth: 1,
+        borderColor: T.inputBorder,
+        borderRadius: 2,
+        height: 36,
+        paddingHorizontal: 8,
+    },
+    inputRowFocus: {
+        borderColor: T.inputFocus,
+        borderWidth: 1.5,
+    },
+    inputRowErr: {
+        borderColor: T.errText,
     },
     input: {
         flex: 1,
-        color: '#FFFFFF',
-        fontSize: 14,
-        paddingVertical: 10,
-        outlineStyle: 'none',
+        fontSize: 12.5,
+        color: T.heading,
+        paddingVertical: 0,
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
-    inputWithLabel: {
-        fontSize: 13,
-        paddingTop: 12,
-        paddingBottom: 4,
+    eyeBtn: {
+        paddingLeft: 6,
+        paddingVertical: 2,
     },
-    inlineErrorText: {
-        color: '#FCA5A5',
-        fontSize: 11,
-        marginTop: 4,
-        marginLeft: 4,
+    eyeLabel: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: T.muted,
+        letterSpacing: 0.5,
+    },
+    fieldErr: {
+        fontSize: 10,
+        color: T.errText,
         fontWeight: '500',
+        marginTop: 2,
     },
-    forgotPasswordBtn: {
-        alignSelf: 'flex-end',
-        marginBottom: SPACING.lg,
+    cardDivider: {
+        height: 1,
+        backgroundColor: T.rule,
+        marginVertical: 10,
     },
-    forgotPasswordText: {
-        color: 'rgba(255, 255, 255, 0.4)',
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    authBtn: {
-        width: '100%',
-        marginTop: SPACING.xs,
-    },
-    shortcutsContainer: {
+
+    // Submit
+    submitBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: SPACING.lg,
-        width: '100%',
-    },
-    shortcutBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: SPACING.md,
-        paddingVertical: 6,
-        gap: 6,
-        borderRadius: 6,
+        backgroundColor: T.btnBg,
+        borderRadius: 2,
+        height: 34,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.04)',
-        backgroundColor: 'rgba(255, 255, 255, 0.01)',
+        borderColor: '#164A3B',
     },
-    shortcutText: {
-        color: 'rgba(255, 255, 255, 0.6)',
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    shortcutDivider: {
-        width: 1,
-        height: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        marginHorizontal: SPACING.md,
-    },
-    footerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: SPACING.xl,
+    submitBtnOff: {
         opacity: 0.5,
     },
-    footerIcon: {
-        marginRight: 4,
-    },
-    footerText: {
-        color: '#FFFFFF',
+    submitText: {
+        color: T.btnText,
         fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 1.2,
+    },
+
+    // Session info
+    sessionInfo: {
+        fontSize: 9.5,
+        color: T.footerText,
+        marginTop: 8,
+    },
+
+    // Footer
+    rightFoot: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 16,
+        borderTopWidth: 1,
+        borderTopColor: T.ruleStrong,
+        gap: 8,
+    },
+    footText: {
+        fontSize: 9.5,
+        color: T.footerText,
         fontWeight: '500',
-        letterSpacing: 0.5,
+    },
+    footSep: {
+        fontSize: 9,
+        color: T.rule,
     },
 });

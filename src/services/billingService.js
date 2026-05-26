@@ -72,6 +72,19 @@ export const getInvoices = async (params = {}) => {
 };
 
 /**
+ * Get recent sales / history
+ * @param {Object} params - { page, limit, sort }
+ */
+export const getRecentSales = async (params = { page: 1, limit: 10, sort: 'desc' }) => {
+    try {
+        const response = await api.get('/sales/history', { params });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
  * Get dashboard stats (dummy endpoint — adjust to your backend)
  */
 export const getDashboardStats = async () => {

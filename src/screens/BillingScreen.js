@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
-import { searchProducts, processCheckout, updateCheckout } from '../services/billingService';
+import { searchProducts, processCheckout, updateCheckout, getRecentSales } from '../services/billingService';
 import { searchCustomer, getCustomerLastPurchase, getCustomerCredit, payCustomerDue } from '../services/customerService';
 import { getProducts, getProductById, createProduct, getLoosePrice } from '../services/inventoryService';
 import MemoryCache from '../services/cacheService';
@@ -639,6 +639,28 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     const [freeEntry, setFreeEntry] = useState({ name: '', mrp: '', stock: '' });
     const [freeEntryLoading, setFreeEntryLoading] = useState(false);
 
+    // Recent Sales
+    const [recentSales, setRecentSales] = useState([]);
+    const [recentSalesLoading, setRecentSalesLoading] = useState(false);
+
+    const fetchRecentSalesList = async () => {
+        try {
+            setRecentSalesLoading(true);
+            const res = await getRecentSales({ page: 1, limit: 10, sort: 'desc' });
+            const list = Array.isArray(res)
+                ? res
+                : (Array.isArray(res?.data)
+                    ? res.data
+                    : (Array.isArray(res?.invoices)
+                        ? res.invoices
+                        : []));
+            setRecentSales(list);
+        } catch (error) {
+            console.warn('Failed to fetch recent sales:', error.message);
+        } finally {
+            setRecentSalesLoading(false);
+        }
+    };
 
     const searchTimeout = useRef(null);
     const customerSearchTimeout = useRef(null);
@@ -680,6 +702,13 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                 }
             } catch (e) {
                 console.warn('Product preload failed:', e.message);
+            }
+            try {
+                if (!cancelled) {
+                    await fetchRecentSalesList();
+                }
+            } catch (e) {
+                console.warn('Fetch recent sales on mount failed:', e.message);
             }
         })();
         return () => { cancelled = true; };
@@ -1116,24 +1145,22 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             if (e.key === 'F2') {
                 e.preventDefault();
                 searchInputRef.current?.focus();
-            } else if (e.key === 'F4') {
-                e.preventDefault();
-                const qtyInput = document.getElementById('qty-input-0');
-                if (qtyInput) {
-                    qtyInput.focus();
-                    qtyInput.select?.();
-                }
             } else if (e.key === 'F9') {
                 e.preventDefault();
                 if (cart.length > 0) {
                     handleCheckout();
+                }
+            } else if (e.key === 'F10') {
+                e.preventDefault();
+                if (printModalVisible) {
+                    handlePrintAndSave();
                 }
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [cart, handleCheckout]);
+    }, [cart, handleCheckout, printModalVisible]);
 
 
     // Step 2: Payment modal confirms → call API
@@ -1217,6 +1244,9 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             }
             // Clear customer cache so credit balances are fresh
             customerCacheRef.current.clear();
+
+            // Refresh recent sales activity list
+            fetchRecentSalesList().catch(() => {});
 
             if (savedDue > 0 && selectedCustomer) {
                 Alert.alert(
@@ -1328,6 +1358,29 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                 {/* ═══════════ LEFT PANE ═══════════ */}
                 <View style={[styles.leftPane, { flex: leftFlex }]}>
         
+                {/* ── Invoice Metadata Bar ── */}
+                <View style={erpStyles.metaBar}>
+                    <View style={erpStyles.metaItem}>
+                        <Text style={erpStyles.metaLabel}>BILL NO:</Text>
+                        <Text style={erpStyles.metaValue}>{editInvoice ? (editInvoice.invoice_number || 'EDIT') : 'AUTO-GEN'}</Text>
+                    </View>
+                    <Text style={erpStyles.metaSep}>│</Text>
+                    <View style={erpStyles.metaItem}>
+                        <Text style={erpStyles.metaLabel}>DATE:</Text>
+                        <Text style={erpStyles.metaValue}>{new Date().toLocaleDateString('en-GB')}</Text>
+                    </View>
+                    <Text style={erpStyles.metaSep}>│</Text>
+                    <View style={erpStyles.metaItem}>
+                        <Text style={erpStyles.metaLabel}>OPERATOR:</Text>
+                        <Text style={erpStyles.metaValue}>ADMIN_01</Text>
+                    </View>
+                    <View style={{ flex: 1 }} />
+                    <View style={erpStyles.metaItem}>
+                        <Ionicons name="wifi" size={10} color="#16A34A" style={{marginRight: 4}} />
+                        <Text style={[erpStyles.metaValue, { color: '#16A34A' }]}>SYNCED</Text>
+                    </View>
+                </View>
+
                 {/* ── Combined Input Bar Row ── */}
                 <View style={styles.inputBarRow}>
                     {/* Customer Field */}
@@ -1366,21 +1419,36 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
                                 {/* Customer Dropdown */}
                                 {showCustomerDropdown && customerResults.length > 0 && (
-                                    <View style={styles.floatingDropdown}>
+                                    <View style={erpStyles.dropdownBox}>
+                                        <View style={erpStyles.dropdownHeader}>
+                                            <Text style={[erpStyles.dropdownHeaderCol, { flex: 2 }]}>CUSTOMER NAME</Text>
+                                            <Text style={[erpStyles.dropdownHeaderCol, { flex: 1.5 }]}>PHONE NUMBER</Text>
+                                            <Text style={[erpStyles.dropdownHeaderCol, { flex: 1.2, textAlign: 'right' }]}>OUTSTANDING DUE</Text>
+                                        </View>
                                         <ScrollView style={{ maxHeight: 220 }} keyboardShouldPersistTaps="handled">
-                                            {customerResults.map((c, idx) => (
-                                                <TouchableOpacity
-                                                    key={c._id || c.id || idx}
-                                                    style={styles.dropdownItem}
-                                                    onPress={() => handleSelectCustomer(c)}
-                                                >
-                                                    <View style={{ flex: 1 }}>
-                                                        <Text style={styles.dropdownName}>{c.name || c.customer_name}</Text>
-                                                        <Text style={styles.dropdownMeta}>{c.phone_no || c.phone_number}</Text>
-                                                    </View>
-                                                    <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.primary} />
-                                                </TouchableOpacity>
-                                            ))}
+                                            {customerResults.map((c, idx) => {
+                                                const name = c.name || c.customer_name || 'N/A';
+                                                const phone = c.phone_no || c.phone_number || 'N/A';
+                                                const due = Number(c.due_balance ?? c.total_due ?? c.credit_balance ?? c.due ?? 0);
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={c._id || c.id || idx}
+                                                        style={[erpStyles.dropdownRow, idx % 2 === 1 && { backgroundColor: '#F8F9F9' }]}
+                                                        onPress={() => handleSelectCustomer(c)}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Text style={[erpStyles.dropdownColTextBold, { flex: 2 }]} numberOfLines={1}>{name}</Text>
+                                                        <Text style={[erpStyles.dropdownColText, { flex: 1.5 }]} numberOfLines={1}>{phone}</Text>
+                                                        <Text style={[
+                                                            erpStyles.dropdownColTextBold, 
+                                                            { flex: 1.2, textAlign: 'right' }, 
+                                                            due > 0 && { color: COLORS.error }
+                                                        ]}>
+                                                            {due > 0 ? `₹${due.toFixed(2)}` : '₹0.00'}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
                                         </ScrollView>
                                     </View>
                                 )}
@@ -1424,36 +1492,50 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
                             {/* Product Search Dropdown */}
                             {showDropdown && searchResults.length > 0 && (
-                                <View style={styles.floatingDropdown}>
+                                <View style={erpStyles.dropdownBox}>
+                                    <View style={erpStyles.dropdownHeader}>
+                                        <Text style={[erpStyles.dropdownHeaderCol, { flex: 2.5 }]}>MEDICINE NAME</Text>
+                                        <Text style={[erpStyles.dropdownHeaderCol, { flex: 1 }]}>BATCH NO</Text>
+                                        <Text style={[erpStyles.dropdownHeaderCol, { flex: 1 }]}>EXPIRY</Text>
+                                        <Text style={[erpStyles.dropdownHeaderCol, { flex: 0.8, textAlign: 'right' }]}>STOCK</Text>
+                                        <Text style={[erpStyles.dropdownHeaderCol, { flex: 1, textAlign: 'right' }]}>MRP</Text>
+                                    </View>
                                     <ScrollView style={{ maxHeight: 240 }} keyboardShouldPersistTaps="handled">
                                         {searchResults.map((product, idx) => {
                                             const stock = product.quantity ?? product.stock ?? 0;
                                             const isOutOfStock = stock <= 0;
+                                            const batch = product.batch_number || product.batch || 'N/A';
+                                            const expiry = product.expiry_date || product.expiry || 'N/A';
+                                            const price = Number(getPrice(product)).toFixed(2);
                                             return (
                                                 <TouchableOpacity
                                                     key={product._id || product.id || idx}
-                                                    style={[styles.dropdownItem, isOutOfStock && { opacity: 0.45, backgroundColor: '#fef2f2' }]}
+                                                    style={[
+                                                        erpStyles.dropdownRow, 
+                                                        idx % 2 === 1 && { backgroundColor: '#F8F9F9' },
+                                                        isOutOfStock && { backgroundColor: '#FFF5F5' }
+                                                    ]}
                                                     onPress={() => !isOutOfStock && addToCart(product)}
                                                     activeOpacity={isOutOfStock ? 1 : 0.7}
+                                                    disabled={isOutOfStock}
                                                 >
-                                                    <View style={{ flex: 1 }}>
-                                                        <Text style={styles.dropdownName} numberOfLines={1}>{getName(product)}</Text>
-                                                        <Text style={styles.dropdownMeta}>
-                                                            {isOutOfStock ? (
-                                                                <Text style={{ color: COLORS.error, fontWeight: '500' }}>OUT OF STOCK</Text>
-                                                            ) : (
-                                                                <>Stock: {stock}</>
-                                                            )}
-                                                        </Text>
-                                                    </View>
-                                                    <Text style={styles.dropdownPrice}>₹{Number(getPrice(product)).toFixed(2)}</Text>
-                                                    {isOutOfStock ? (
-                                                        <View style={{ marginLeft: 8, backgroundColor: COLORS.error, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>
-                                                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500' }}>NO STOCK</Text>
-                                                        </View>
-                                                    ) : (
-                                                        <Ionicons name="add-circle" size={22} color={COLORS.primary} style={{ marginLeft: 8 }} />
-                                                    )}
+                                                    <Text style={[
+                                                        erpStyles.dropdownColTextBold, 
+                                                        { flex: 2.5 }, 
+                                                        isOutOfStock && { color: COLORS.textMuted, textDecorationLine: 'line-through' }
+                                                    ]} numberOfLines={1}>
+                                                        {getName(product)}
+                                                    </Text>
+                                                    <Text style={[erpStyles.dropdownColText, { flex: 1 }]} numberOfLines={1}>{batch}</Text>
+                                                    <Text style={[erpStyles.dropdownColText, { flex: 1 }]} numberOfLines={1}>{expiry}</Text>
+                                                    <Text style={[
+                                                        erpStyles.dropdownColTextBold, 
+                                                        { flex: 0.8, textAlign: 'right' },
+                                                        isOutOfStock ? { color: COLORS.error } : (stock < 5 && { color: COLORS.warning })
+                                                    ]} numberOfLines={1}>
+                                                        {isOutOfStock ? 'OUT' : stock}
+                                                    </Text>
+                                                    <Text style={[erpStyles.dropdownColTextBold, { flex: 1, textAlign: 'right', color: '#059669' }]} numberOfLines={1}>₹{price}</Text>
                                                 </TouchableOpacity>
                                             );
                                         })}
@@ -1604,8 +1686,8 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
                             return (
                                 <View>
-                                    <View style={styles.tableRow}>
-                                        <View style={[styles.tdCell, { flex: 2.5 }]}>
+                                    <View style={[styles.tableRow, index % 2 !== 0 && { backgroundColor: '#F9F9F9' }]}>
+                                        <View style={[styles.tdCell, { flex: 2.5, paddingVertical: 4 }]}>
                                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                                 <Text style={styles.tdName} numberOfLines={1}>
                                                     {getName(item)}
@@ -1614,9 +1696,14 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                                     <Ionicons name="close" size={14} color={COLORS.textMuted} />
                                                 </TouchableOpacity>
                                             </View>
-                                            <Text style={styles.tdSub} numberOfLines={1}>
-                                                {item.manufacturer || ''}{item.manufacturer && item.expiry_date ? ' • ' : ''}{item.expiry_date ? `Exp: ${item.expiry_date}` : ''}
-                                            </Text>
+                                            
+                                            {/* ERP Batch/Exp/Stock Strip */}
+                                            <View style={erpStyles.batchStrip}>
+                                                <Text style={erpStyles.batchText}>BATCH: <Text style={erpStyles.batchVal}>{item.batch_number || 'N/A'}</Text></Text>
+                                                <Text style={erpStyles.batchText}>EXP: <Text style={erpStyles.batchVal}>{item.expiry_date || 'N/A'}</Text></Text>
+                                                <Text style={erpStyles.batchText}>STOCK: <Text style={[erpStyles.batchVal, (item.available_stock || 0) < 5 && { color: COLORS.error }]}>{item.available_stock ?? item.quantity ?? item.stock ?? 0}</Text></Text>
+                                            </View>
+
                                             {/* Loose / Strip toggle pill */}
                                             {canLoose && (
                                                 <TouchableOpacity
@@ -1842,9 +1929,26 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             <Text style={styles.addUnlistedText}>Add Unlisted Item</Text>
                         </TouchableOpacity>
                     )}
+
+                {/* ── Bottom Transaction Status Panel ── */}
+                <View style={erpStyles.statusPanel}>
+                    <View style={erpStyles.statusItem}>
+                        <Text style={erpStyles.statusLabel}>ITEMS:</Text>
+                        <Text style={erpStyles.statusValue}>{cart.length}</Text>
+                    </View>
+                    <Text style={erpStyles.statusSep}>│</Text>
+                    <View style={erpStyles.statusItem}>
+                        <Text style={erpStyles.statusLabel}>QTY:</Text>
+                        <Text style={erpStyles.statusValue}>
+                            {cart.reduce((sum, item) => sum + (item.is_loose_mode ? (item.loose_tablet_count || 1) : (item.cart_quantity || 1)), 0)}
+                        </Text>
+                    </View>
+                    <Text style={erpStyles.statusSep}>│</Text>
+                    <View style={{ flex: 1 }} />
+                    <Text style={erpStyles.statusLabel}>Terminal 01</Text>
                 </View>
 
-
+            </View>
             {/* ═══════════ RIGHT PANE ═══════════ */}
             <View style={[styles.rightPane, { flex: rightFlex }]}>
                 <ScrollView
@@ -1932,50 +2036,52 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                     </View>
 
                     {/* ── Totals Section ── */}
-                    <View style={styles.totalsSection}>
-                        <View style={styles.totalRow}>
-                            <Text style={styles.totalLabel}>Subtotal</Text>
-                            <Text style={styles.totalValue}>₹{cartSummary.subtotal.toFixed(2)}</Text>
+                    <View style={erpStyles.erpTotalsBox}>
+                        <View style={erpStyles.erpTotalRow}>
+                            <Text style={erpStyles.erpTotalLabel}>SUBTOTAL</Text>
+                            <Text style={erpStyles.erpTotalValue}>₹{cartSummary.subtotal.toFixed(2)}</Text>
                         </View>
-                        <View style={styles.totalRow}>
-                            <Text style={styles.totalLabel}>Discount</Text>
-                            <Text style={[styles.totalValue, cartSummary.totalDiscount > 0 && { color: COLORS.error }]}>
+                        <View style={erpStyles.erpTotalRow}>
+                            <Text style={erpStyles.erpTotalLabel}>DISCOUNT</Text>
+                            <Text style={[erpStyles.erpTotalValue, cartSummary.totalDiscount > 0 && { color: COLORS.error }]}>
                                 {cartSummary.totalDiscount > 0 ? `-₹${cartSummary.totalDiscount.toFixed(2)}` : '₹0.00'}
                             </Text>
                         </View>
-                        <View style={styles.totalRow}>
-                            <Text style={styles.totalLabel}>Doctor Fee</Text>
-                            <Text style={styles.totalValue}>₹{cartSummary.doctorFee.toFixed(2)}</Text>
+                        <View style={erpStyles.erpTotalRow}>
+                            <Text style={erpStyles.erpTotalLabel}>DOCTOR FEE</Text>
+                            <Text style={erpStyles.erpTotalValue}>₹{cartSummary.doctorFee.toFixed(2)}</Text>
                         </View>
                         {cartSummary.otcTotal > 0 && (
-                            <View style={styles.totalRow}>
-                                <Text style={styles.totalLabel}>OTC Total</Text>
-                                <Text style={styles.totalValue}>+₹{cartSummary.otcTotal.toFixed(2)}</Text>
+                            <View style={erpStyles.erpTotalRow}>
+                                <Text style={erpStyles.erpTotalLabel}>OTC TOTAL</Text>
+                                <Text style={erpStyles.erpTotalValue}>+₹{cartSummary.otcTotal.toFixed(2)}</Text>
                             </View>
                         )}
-                        <View style={styles.grandTotalRow}>
-                            <Text style={styles.grandTotalLabel}>Grand Total</Text>
-                            <Text style={styles.grandTotalValue}>₹{cartSummary.grandTotal.toFixed(2)}</Text>
+                        <View style={erpStyles.erpGrandTotalRow}>
+                            <Text style={erpStyles.erpGrandTotalLabel}>NET PAYABLE</Text>
+                            <Text style={erpStyles.erpGrandTotalValue}>₹{cartSummary.grandTotal.toFixed(2)}</Text>
                         </View>
                     </View>
 
                     {/* ── Payment Chips ── */}
-                    <View style={styles.payChipsRow}>
+                    <View style={[styles.payChipsRow, { marginBottom: 8, gap: 4 }]}>
                         {PAYMENT_METHODS.map((m) => (
                             <TouchableOpacity
                                 key={m.key}
                                 style={[
                                     styles.payChip,
-                                    paymentMethod === m.key && styles.payChipActive,
+                                    { height: 32, borderRadius: 2, borderWidth: 1, borderColor: '#C4CCCA', backgroundColor: '#F3F5F4' },
+                                    paymentMethod === m.key && { backgroundColor: '#164A3B', borderColor: '#164A3B' },
                                 ]}
                                 onPress={() => setPaymentMethod(m.key)}
                                 activeOpacity={0.7}
                             >
                                 <Text style={[
                                     styles.payChipText,
-                                    paymentMethod === m.key && styles.payChipTextActive,
+                                    { fontSize: 11, fontWeight: '600', color: '#6B807A' },
+                                    paymentMethod === m.key && { color: '#FFFFFF' },
                                 ]}>
-                                    {m.label}
+                                    {m.label.toUpperCase()}
                                 </Text>
                             </TouchableOpacity>
                         ))}
@@ -1983,40 +2089,53 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
                     {/* ── Pay Button ── */}
                     <TouchableOpacity
-                        style={[styles.payBtn, cart.length === 0 && styles.payBtnDisabled]}
+                        style={[
+                            styles.payBtn,
+                            { borderRadius: 2, height: 40, backgroundColor: '#059669' },
+                            cart.length === 0 && styles.payBtnDisabled
+                        ]}
                         onPress={handleCheckout}
                         disabled={cart.length === 0 || checkoutLoading}
                         activeOpacity={0.8}
                     >
                         {checkoutLoading ? (
-                            <ActivityIndicator size="small" color={COLORS.textPrimary} />
+                            <ActivityIndicator size="small" color="#FFFFFF" />
                         ) : (
-                            <Text style={styles.payBtnText}>Pay ₹{cartSummary.grandTotal.toFixed(2)}</Text>
+                            <Text style={[styles.payBtnText, { fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }]}>
+                                PAY ₹{cartSummary.grandTotal.toFixed(2)}
+                            </Text>
                         )}
                     </TouchableOpacity>
+
+                    {/* ── Recent Activity ── */}
+                    <View style={erpStyles.erpRecentBox}>
+                        <View style={erpStyles.erpRecentHeader}>
+                            <Text style={erpStyles.erpRecentHeaderText}>RECENT ACTIVITY</Text>
+                        </View>
+                        {recentSalesLoading ? (
+                            <ActivityIndicator size="small" color="#059669" style={{ marginVertical: 12 }} />
+                        ) : recentSales.length > 0 ? (
+                            recentSales.slice(0, 5).map((sale, idx) => {
+                                const invNo = sale.invoice_number ? `#${sale.invoice_number}` : (sale._id ? `#${sale._id.slice(-6).toUpperCase()}` : `INV-${idx}`);
+                                const amount = Number(sale.grand_total || sale.total || 0).toFixed(2);
+                                return (
+                                    <View key={sale._id || idx} style={erpStyles.erpRecentItem}>
+                                        <Text style={erpStyles.erpTotalLabel}>{invNo}</Text>
+                                        <Text style={[erpStyles.erpTotalValue, { color: '#059669' }]}>₹{amount}</Text>
+                                    </View>
+                                );
+                            })
+                        ) : (
+                            <Text style={{ fontSize: 10, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 12 }}>No recent activity</Text>
+                        )}
+                    </View>
 
                 </ScrollView>
             </View>
 
             </View>
 
-            {/* Bottom Keyboard Hints Bar */}
-            <View style={styles.keyboardHintsBar}>
-                <View style={styles.hintItem}>
-                    <Text style={styles.hintKey}>F2</Text>
-                    <Text style={styles.hintText}>Search</Text>
-                </View>
-                <View style={styles.hintSeparator} />
-                <View style={styles.hintItem}>
-                    <Text style={styles.hintKey}>F4</Text>
-                    <Text style={styles.hintText}>Qty</Text>
-                </View>
-                <View style={styles.hintSeparator} />
-                <View style={styles.hintItem}>
-                    <Text style={styles.hintKey}>F9</Text>
-                    <Text style={styles.hintText}>Pay</Text>
-                </View>
-            </View>
+
 
             {/* ═══════════ PAYMENT MODAL (Credit System) ═══════════ */}
             <PaymentModal
@@ -2853,42 +2972,8 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         color: COLORS.primary,
     },
-    keyboardHintsBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#24312E',
-        height: 24,
-        borderTopWidth: 0.5,
-        borderTopColor: COLORS.border,
-        gap: 16,
-    },
-    hintItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-    },
-    hintKey: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: '#1C5C4A',
-        backgroundColor: '#EFF2F1',
-        paddingHorizontal: 4,
-        paddingVertical: 1,
-        borderRadius: 2,
-    },
-    hintText: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: '#EFF2F1',
-        textTransform: 'uppercase',
-    },
-    hintSeparator: {
-        width: 1,
-        height: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    },
 });
+
 
 // ═══════════════════════════════════════════════
 // LOOSE TABLET STYLES
@@ -3040,5 +3125,212 @@ const printStyles = StyleSheet.create({
         fontSize: FONT_SIZES.sm,
         color: 'rgba(255,255,255,0.75)',
         fontWeight: '500',
+    },
+});
+
+// ═══════════════════════════════════════════════
+// ERP DENSITY STYLES
+// ═══════════════════════════════════════════════
+const erpStyles = StyleSheet.create({
+    metaBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#EBEBEB',
+        borderBottomWidth: 1,
+        borderBottomColor: '#C4CCCA',
+        paddingHorizontal: 8,
+        height: 22,
+    },
+    metaItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    metaLabel: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#6B807A',
+        letterSpacing: 0.5,
+        marginRight: 4,
+    },
+    metaValue: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#1A2B28',
+    },
+    metaSep: {
+        fontSize: 9,
+        color: '#C4CCCA',
+        marginHorizontal: 8,
+    },
+    statusPanel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F3F5F4',
+        borderTopWidth: 1,
+        borderTopColor: '#C4CCCA',
+        paddingHorizontal: 12,
+        height: 28,
+        marginTop: 'auto',
+    },
+    statusItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    statusLabel: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#6B807A',
+        marginRight: 4,
+    },
+    statusValue: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#1A2B28',
+    },
+    statusSep: {
+        fontSize: 10,
+        color: '#C4CCCA',
+        marginHorizontal: 10,
+    },
+    batchStrip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFA',
+        paddingVertical: 3,
+        paddingHorizontal: 6,
+        borderTopWidth: 0.5,
+        borderTopColor: '#E2E8E5',
+        marginTop: 2,
+    },
+    batchText: {
+        fontSize: 9,
+        fontWeight: '500',
+        color: '#6B807A',
+        marginRight: 10,
+    },
+    batchVal: {
+        fontWeight: '600',
+        color: '#1A2B28',
+    },
+    erpTotalsBox: {
+        borderWidth: 1,
+        borderColor: '#C4CCCA',
+        backgroundColor: '#FFFFFF',
+        marginBottom: 12,
+    },
+    erpTotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#E2E8E5',
+    },
+    erpTotalLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#6B807A',
+    },
+    erpTotalValue: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#1A2B28',
+    },
+    erpGrandTotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        backgroundColor: '#D1FAE5',
+    },
+    erpGrandTotalLabel: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#065F46',
+    },
+    erpGrandTotalValue: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#065F46',
+    },
+    erpRecentBox: {
+        borderWidth: 1,
+        borderColor: '#C4CCCA',
+        backgroundColor: '#FFFFFF',
+        marginTop: 16,
+    },
+    erpRecentHeader: {
+        backgroundColor: '#EBEBEB',
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#C4CCCA',
+    },
+    erpRecentHeaderText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#6B807A',
+        letterSpacing: 0.5,
+    },
+    erpRecentItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 6,
+        paddingHorizontal: 8,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#E2E8E5',
+    },
+    dropdownBox: {
+        position: 'absolute',
+        top: 34,
+        left: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#C4CCCA',
+        borderRadius: 2,
+        zIndex: 9999,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 5,
+        overflow: 'hidden',
+    },
+    dropdownHeader: {
+        flexDirection: 'row',
+        backgroundColor: '#EBEBEB',
+        borderBottomWidth: 1,
+        borderBottomColor: '#C4CCCA',
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        alignItems: 'center',
+    },
+    dropdownHeaderCol: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#6B807A',
+        letterSpacing: 0.5,
+    },
+    dropdownRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 5,
+        paddingHorizontal: 8,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#E2E8E5',
+    },
+    dropdownColText: {
+        fontSize: 11,
+        color: '#1A2B28',
+    },
+    dropdownColTextBold: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#1A2B28',
+    },
+    dropdownColTextMuted: {
+        fontSize: 10,
+        color: '#6B807A',
     },
 });
