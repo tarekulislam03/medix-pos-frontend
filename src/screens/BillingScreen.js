@@ -22,6 +22,22 @@ import MemoryCache from '../services/cacheService';
 import { printReceipt58mm } from '../utils/printReceipt';
 import { useResponsive } from '../utils/responsive';
 
+// Helper to format expiry date safely and compactly
+const formatExpiryDate = (dateStr) => {
+    if (!dateStr || dateStr === 'N/A') return 'N/A';
+    if (/^\d{2}\/\d{2,4}$/.test(dateStr)) return dateStr;
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return dateStr;
+    }
+};
+
 // ═══════════════════════════════════════════════
 // INPUT MODAL COMPONENT  (keyboard / mouse friendly)
 // ═══════════════════════════════════════════════
@@ -1505,7 +1521,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                             const stock = product.quantity ?? product.stock ?? 0;
                                             const isOutOfStock = stock <= 0;
                                             const batch = product.batch_number || product.batch || 'N/A';
-                                            const expiry = product.expiry_date || product.expiry || 'N/A';
+                                            const expiry = formatExpiryDate(product.expiry_date || product.expiry || 'N/A');
                                             const price = Number(getPrice(product)).toFixed(2);
                                             return (
                                                 <TouchableOpacity
@@ -1697,12 +1713,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                                 </TouchableOpacity>
                                             </View>
                                             
-                                            {/* ERP Batch/Exp/Stock Strip */}
-                                            <View style={erpStyles.batchStrip}>
-                                                <Text style={erpStyles.batchText}>BATCH: <Text style={erpStyles.batchVal}>{item.batch_number || 'N/A'}</Text></Text>
-                                                <Text style={erpStyles.batchText}>EXP: <Text style={erpStyles.batchVal}>{item.expiry_date || 'N/A'}</Text></Text>
-                                                <Text style={erpStyles.batchText}>STOCK: <Text style={[erpStyles.batchVal, (item.available_stock || 0) < 5 && { color: COLORS.error }]}>{item.available_stock ?? item.quantity ?? item.stock ?? 0}</Text></Text>
-                                            </View>
+
 
                                             {/* Loose / Strip toggle pill */}
                                             {canLoose && (
@@ -2534,6 +2545,8 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '500',
         color: COLORS.textPrimary,
+        flex: 1,
+        marginRight: 4,
     },
     tdSub: {
         fontSize: 10,
