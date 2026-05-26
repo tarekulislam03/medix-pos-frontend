@@ -8,9 +8,10 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
+import { COLORS } from '../constants/theme';
 import { fetchStoreSettings, saveStoreSettings, DEFAULT_SETTINGS } from '../utils/storeSettings';
 import { useResponsive } from '../utils/responsive';
 import { AuthContext } from '../context/AuthContext';
@@ -66,7 +67,6 @@ export default function SettingsScreen() {
             setDirty(false);
         } else {
             Alert.alert('Error', result.message || 'Failed to save settings. Changes saved locally.');
-            // Still mark as saved locally
             setSaved(true);
             setDirty(false);
         }
@@ -94,7 +94,7 @@ export default function SettingsScreen() {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
-                <Text style={{ marginTop: SPACING.md, color: COLORS.textMuted, fontSize: FONT_SIZES.sm }}>Loading settings…</Text>
+                <Text style={{ marginTop: 12, color: COLORS.textMuted, fontSize: 13 }}>Loading settings…</Text>
             </View>
         );
     }
@@ -104,9 +104,6 @@ export default function SettingsScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <View style={styles.headerIconBox}>
-                        <Ionicons name="settings" size={24} color={COLORS.primary} />
-                    </View>
                     <View>
                         <Text style={styles.headerTitle}>Settings</Text>
                         <Text style={styles.headerSub}>Configure your store information for bills & receipts</Text>
@@ -114,7 +111,7 @@ export default function SettingsScreen() {
                 </View>
                 {saved && (
                     <View style={styles.savedBadge}>
-                        <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />
+                        <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
                         <Text style={styles.savedText}>Saved</Text>
                     </View>
                 )}
@@ -125,7 +122,7 @@ export default function SettingsScreen() {
                 {/* ── Bill Header Preview ── */}
                 <View style={styles.previewCard}>
                     <Text style={styles.previewTitle}>
-                        <Ionicons name="receipt-outline" size={14} color={COLORS.textMuted} />
+                        <Ionicons name="receipt-outline" size={13} color={COLORS.textMuted} />
                         {' '}Live Receipt Preview (58mm)
                     </Text>
                     <View style={styles.receiptPreview}>
@@ -142,7 +139,7 @@ export default function SettingsScreen() {
                 {/* ── Store Info Form ── */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Ionicons name="storefront-outline" size={18} color={COLORS.primary} />
+                        <Ionicons name="storefront-outline" size={16} color={COLORS.primary} />
                         <Text style={styles.sectionTitle}>Store Information</Text>
                     </View>
                     <Text style={styles.sectionSub}>
@@ -214,7 +211,7 @@ export default function SettingsScreen() {
 
                 {/* ── Info note ── */}
                 <View style={styles.infoNote}>
-                    <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
+                    <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
                     <Text style={styles.infoNoteText}>
                         Changes are saved to the cloud and applied to all new bills.
                         Settings sync across devices when you log in.
@@ -228,7 +225,7 @@ export default function SettingsScreen() {
                         onPress={handleReset}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="refresh-outline" size={18} color={COLORS.textMuted} />
+                        <Ionicons name="refresh-outline" size={14} color={COLORS.textMuted} style={{ marginRight: 6 }} />
                         <Text style={styles.resetBtnText}>Reset to Defaults</Text>
                     </TouchableOpacity>
 
@@ -236,12 +233,12 @@ export default function SettingsScreen() {
                         style={[styles.saveBtn, (!dirty || saving) && styles.saveBtnDisabled]}
                         onPress={handleSave}
                         activeOpacity={dirty && !saving ? 0.8 : 1}
-                        disabled={saving}
+                        disabled={saving || !dirty}
                     >
                         {saving ? (
-                            <ActivityIndicator size="small" color={COLORS.white} />
+                            <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 6 }} />
                         ) : (
-                            <Ionicons name="cloud-upload-outline" size={20} color={COLORS.white} />
+                            <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
                         )}
                         <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save Settings'}</Text>
                     </TouchableOpacity>
@@ -262,7 +259,7 @@ function Field({ label, icon, placeholder, value, onChangeText, required, multil
                 {required && <Text style={{ color: COLORS.error }}> *</Text>}
             </Text>
             <View style={[fStyles.inputRow, focused && fStyles.inputRowFocused, multiline && fStyles.inputRowMulti]}>
-                <Ionicons name={icon} size={18} color={focused ? COLORS.primary : COLORS.textMuted} style={{ marginTop: multiline ? 2 : 0 }} />
+                <Ionicons name={icon} size={16} color={focused ? COLORS.primary : COLORS.textMuted} style={{ marginTop: multiline ? 2 : 0, marginRight: 6 }} />
                 <TextInput
                     style={[fStyles.input, multiline && fStyles.inputMulti]}
                     value={value}
@@ -275,6 +272,7 @@ function Field({ label, icon, placeholder, value, onChangeText, required, multil
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
                     autoCapitalize={autoCapitalize || 'none'}
+                    {...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {})}
                 />
             </View>
         </View>
@@ -283,51 +281,60 @@ function Field({ label, icon, placeholder, value, onChangeText, required, multil
 
 // ── Styles ──
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.bgDark },
+    container: { flex: 1, backgroundColor: COLORS.bgDark, padding: 12 },
 
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: SPACING.xxl,
-        paddingVertical: SPACING.lg,
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
+        paddingBottom: 10,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
+        marginBottom: 10,
     },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
-    headerIconBox: {
-        width: 48, height: 48, borderRadius: RADIUS.lg,
-        backgroundColor: COLORS.primaryGhost,
-        alignItems: 'center', justifyContent: 'center',
-    },
-    headerTitle: { fontSize: FONT_SIZES.xl, fontWeight: '800', color: COLORS.textPrimary },
-    headerSub: { fontSize: FONT_SIZES.sm, color: COLORS.textMuted, marginTop: 2 },
+    headerLeft: { flexDirection: 'row', alignItems: 'center' },
+    headerTitle: { fontSize: 16, fontWeight: '500', color: COLORS.textPrimary },
+    headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
     savedBadge: {
-        flexDirection: 'row', alignItems: 'center', gap: 5,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         backgroundColor: COLORS.successLight,
-        borderWidth: 1, borderColor: COLORS.success + '40',
-        paddingHorizontal: SPACING.md, paddingVertical: 7,
-        borderRadius: RADIUS.full,
+        borderWidth: 0.5,
+        borderColor: COLORS.success,
+        paddingHorizontal: 8,
+        height: 22,
+        borderRadius: 2,
     },
-    savedText: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: COLORS.success },
+    savedText: { fontSize: 11, fontWeight: '600', color: COLORS.success },
 
-    body: { padding: SPACING.xxl, gap: SPACING.xl, paddingBottom: 60 },
+    body: { gap: 12, paddingBottom: 60 },
 
     // Live preview card
     previewCard: {
-        backgroundColor: COLORS.white, borderRadius: RADIUS.lg,
-        padding: SPACING.lg, borderWidth: 1, borderColor: COLORS.border, ...SHADOWS.sm,
+        backgroundColor: COLORS.white,
+        borderRadius: 2,
+        padding: 12,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
     },
-    previewTitle: { fontSize: FONT_SIZES.sm, color: COLORS.textMuted, fontWeight: '600', marginBottom: SPACING.md },
+    previewTitle: {
+        fontSize: 11,
+        color: COLORS.textMuted,
+        fontWeight: '500',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+    },
     receiptPreview: {
-        backgroundColor: '#FAFAFA',
-        borderRadius: RADIUS.md,
-        padding: SPACING.lg,
+        backgroundColor: '#F8FAF9',
+        borderRadius: 2,
+        padding: 12,
         alignItems: 'center',
-        borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.border,
+        borderWidth: 0.5,
+        borderStyle: 'dashed',
+        borderColor: COLORS.border,
     },
-    rStoreName: { fontSize: 15, fontWeight: '900', color: '#000', fontFamily: 'monospace' },
+    rStoreName: { fontSize: 14, fontWeight: '700', color: '#000', fontFamily: 'monospace' },
     rAddress: { fontSize: 10, color: '#555', fontFamily: 'monospace', textAlign: 'center', marginTop: 2 },
     rPhone: { fontSize: 10, color: '#555', fontFamily: 'monospace', marginTop: 1 },
     rGST: { fontSize: 10, color: '#555', fontFamily: 'monospace', marginTop: 1, fontWeight: '700' },
@@ -335,54 +342,91 @@ const styles = StyleSheet.create({
     rDimLabel: { fontSize: 10, color: '#aaa', fontFamily: 'monospace' },
 
     // Section
-    section: { gap: SPACING.md },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
-    sectionTitle: { fontSize: FONT_SIZES.lg, fontWeight: '800', color: COLORS.textPrimary },
-    sectionSub: { fontSize: FONT_SIZES.sm, color: COLORS.textMuted, lineHeight: 18 },
+    section: { gap: 8 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    sectionTitle: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, textTransform: 'uppercase' },
+    sectionSub: { fontSize: 11, color: COLORS.textMuted, lineHeight: 16 },
 
     formCard: {
-        backgroundColor: COLORS.white, borderRadius: RADIUS.lg,
-        padding: SPACING.xl, gap: SPACING.lg,
-        borderWidth: 1, borderColor: COLORS.borderLight, ...SHADOWS.sm,
+        backgroundColor: COLORS.white,
+        borderRadius: 2,
+        padding: 12,
+        gap: 12,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
     },
 
     // Info note
     infoNote: {
-        flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm,
-        backgroundColor: COLORS.primaryGhost, borderRadius: RADIUS.md,
-        padding: SPACING.md, borderWidth: 1, borderColor: COLORS.primary + '30',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 6,
+        backgroundColor: COLORS.primaryGhost,
+        borderRadius: 2,
+        padding: 10,
+        borderWidth: 0.5,
+        borderColor: COLORS.primarySoft,
     },
-    infoNoteText: { flex: 1, fontSize: FONT_SIZES.sm, color: COLORS.primary, lineHeight: 18, fontWeight: '500' },
+    infoNoteText: { flex: 1, fontSize: 11, color: COLORS.primary, lineHeight: 16, fontWeight: '500' },
 
     // Action row
-    actionRow: { flexDirection: 'row', gap: SPACING.md, alignItems: 'center' },
+    actionRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
     resetBtn: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.xs,
-        paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md,
-        borderRadius: RADIUS.md, borderWidth: 1.5, borderColor: COLORS.border,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 2,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
         backgroundColor: COLORS.white,
     },
-    resetBtnText: { fontSize: FONT_SIZES.sm, fontWeight: '600', color: COLORS.textMuted },
+    resetBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
     saveBtn: {
-        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        gap: SPACING.sm, backgroundColor: COLORS.primary,
-        paddingVertical: SPACING.md, borderRadius: RADIUS.md,
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 32,
+        borderRadius: 2,
+        backgroundColor: COLORS.primary,
+        borderWidth: 0.5,
+        borderColor: COLORS.primary,
     },
-    saveBtnDisabled: { backgroundColor: COLORS.textMuted, opacity: 0.5 },
-    saveBtnText: { fontSize: FONT_SIZES.md, fontWeight: '800', color: COLORS.white },
+    saveBtnDisabled: {
+        backgroundColor: COLORS.white,
+        borderColor: COLORS.border,
+        opacity: 0.5,
+    },
+    saveBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.white,
+    },
 });
 
 const fStyles = StyleSheet.create({
-    container: { gap: 6 },
-    label: { fontSize: FONT_SIZES.sm, fontWeight: '600', color: COLORS.textSecondary },
+    container: { gap: 4 },
+    label: { fontSize: 11, fontWeight: '500', color: COLORS.textSecondary, textTransform: 'uppercase' },
     inputRow: {
-        flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
-        borderWidth: 1.5, borderColor: COLORS.border, borderRadius: RADIUS.md,
-        backgroundColor: COLORS.bgInput, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
-        minHeight: 48,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        borderRadius: 2,
+        backgroundColor: COLORS.bgInput,
+        paddingHorizontal: 8,
+        height: 34,
     },
     inputRowFocused: { borderColor: COLORS.primary, backgroundColor: COLORS.white },
-    inputRowMulti: { alignItems: 'flex-start', paddingTop: SPACING.sm, minHeight: 64 },
-    input: { flex: 1, fontSize: FONT_SIZES.md, color: COLORS.textPrimary },
-    inputMulti: { minHeight: 48 },
+    inputRowMulti: { alignItems: 'flex-start', paddingTop: 6, height: 60 },
+    input: {
+        flex: 1,
+        fontSize: 12,
+        color: COLORS.textPrimary,
+        height: '100%',
+        paddingVertical: 0,
+    },
+    inputMulti: { height: 48, textAlignVertical: 'top' },
 });

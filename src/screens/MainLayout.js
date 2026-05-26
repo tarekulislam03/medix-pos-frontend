@@ -19,13 +19,15 @@ import { AuthContext } from '../context/AuthContext';
 
 // Screen label for the top bar & browser tab title
 const SCREEN_TITLES = {
-    Billing: 'Point of Sale',
-    Inventory: 'Inventory',
-    Invoices: 'Invoices',
-    Returns: 'Returns & Refunds',
-    Customers: 'Customer Management',
-    SalesAnalytics: 'Sales Analytics',
-    Settings: 'Settings',
+    Billing: 'Billing & POS',
+    Customers: 'Customer Records',
+    Inventory: 'Inventory Management',
+    Purchase: 'Purchase Orders',
+    SalesAnalytics: 'Reports & Analytics',
+    Returns: 'Sales Returns',
+    Suppliers: 'Supplier Directory',
+    Expenses: 'Expense Tracking',
+    Settings: 'System Settings',
 };
 
 const getFormattedDate = () => {
@@ -47,6 +49,24 @@ const getFormattedDate = () => {
     return `${day}${getOrdinalSuffix(day)} ${month}, ${year}`;
 };
 
+const getOperationalDateStr = (d) => {
+    const day = String(d.getDate()).padStart(2, '0');
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+};
+
+const getOperationalTimeStr = (d) => {
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const hoursStr = String(hours).padStart(2, '0');
+    return `${hoursStr}:${minutes} ${ampm}`;
+};
+
 export default function MainLayout({ navigation }) {
     const { signOut, storeData } = React.useContext(AuthContext);
     const [activeScreen, setActiveScreen] = useState('Billing');
@@ -60,6 +80,15 @@ export default function MainLayout({ navigation }) {
     const logoEntryAnim = React.useRef(new Animated.Value(0)).current;
     
     const r = useResponsive();
+
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 10000);
+        return () => clearInterval(timer);
+    }, []);
 
     useEffect(() => {
         const checkJustLoggedIn = async () => {
@@ -191,6 +220,15 @@ export default function MainLayout({ navigation }) {
             case 'SalesAnalytics':
                 CurrentScreen = <AnalyticsScreen navigation={proxyNavigation} />;
                 break;
+            case 'Purchase':
+                CurrentScreen = <ComingSoonScreen screenKey="Purchase" />;
+                break;
+            case 'Suppliers':
+                CurrentScreen = <ComingSoonScreen screenKey="Suppliers" />;
+                break;
+            case 'Expenses':
+                CurrentScreen = <ComingSoonScreen screenKey="Expenses" />;
+                break;
             case 'Settings':
                 CurrentScreen = <SettingsScreen />;
                 break;
@@ -219,8 +257,6 @@ export default function MainLayout({ navigation }) {
         large: 680,
         xlarge: 720,
     });
-
-    const topBarHeight = r.pick({ small: 44, medium: 48, large: 52, xlarge: 56 });
 
     const leftTranslate = curtainAnim.interpolate({
         inputRange: [0, 1],
@@ -262,76 +298,41 @@ export default function MainLayout({ navigation }) {
 
     return (
         <View style={styles.container}>
-            {/* Top Bar with hamburger */}
-            <View style={[styles.topBar, { height: topBarHeight, paddingHorizontal: r.pick({ small: SPACING.sm, medium: SPACING.md, large: SPACING.md, xlarge: SPACING.md }) }]}>
+            {/* Top Bar */}
+            <View style={styles.topBar}>
                 <View style={styles.topBarLeft}>
-                    <Pressable
-                        style={({ pressed }) => [styles.hamburgerBtn, { width: r.pick({ small: 36, medium: 38, large: 42, xlarge: 42 }), height: r.pick({ small: 36, medium: 38, large: 42, xlarge: 42 }), opacity: pressed ? 0.7 : 1 }]}
-                        onPress={() => setSidebarOpen(true)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                        <Ionicons name="menu" size={r.pick({ small: 22, medium: 24, large: 26, xlarge: 26 })} color={COLORS.white} />
-                    </Pressable>
                     <View style={styles.topBarBrand}>
                         <Image
                             source={require('../../assets/icon.png')}
                             style={{
-                                width: r.pick({ small: 28, medium: 32, large: 34, xlarge: 34 }),
-                                height: r.pick({ small: 28, medium: 32, large: 34, xlarge: 34 })
+                                width: 22,
+                                height: 22
                             }}
                             resizeMode="contain"
                         />
-                        <Text style={[styles.topBarTitle, { fontSize: r.pick({ small: 16, medium: 18, large: FONT_SIZES.lg, xlarge: FONT_SIZES.lg }) }]}>MediX</Text>
+                        <Text style={styles.topBarTitle}>MediX POS & ERP</Text>
                     </View>
-                    {!r.isSmall && (
-                        <>
-                            <View style={styles.topBarDivider} />
-                            <Text style={[styles.topBarScreen, { fontSize: r.pick({ medium: 14, large: FONT_SIZES.md, xlarge: FONT_SIZES.md }) }]}>
-                                {SCREEN_TITLES[activeScreen] || activeScreen}
-                            </Text>
-                        </>
-                    )}
                 </View>
 
-                {/* Top Bar Right: Current Date */}
+                {/* Top Bar Right: Operational Info */}
                 <View style={styles.topBarRight}>
-                    <Text style={[styles.topBarDate, { fontSize: r.pick({ small: 12, medium: 14, large: FONT_SIZES.md, xlarge: FONT_SIZES.md }) }]}>
-                        {getFormattedDate()}
+                    <Text style={[styles.topBarOperationalInfo, { fontSize: r.isSmall ? 10 : 12 }]}>
+                    {getOperationalDateStr(currentTime)} | {getOperationalTimeStr(currentTime)}
                     </Text>
                 </View>
             </View>
 
-            {/* Content */}
-            <View style={styles.content}>{renderScreen()}</View>
-
-            {/* Floating Sidebar Panel */}
-            {sidebarOpen && (
-                <View style={styles.drawerOverlay} pointerEvents="box-none">
-                    {/* Backdrop — tap to close */}
-                    <Pressable
-                        style={styles.backdrop}
-                        onPress={() => setSidebarOpen(false)}
-                    />
-                    {/* Floating panel - slides from left */}
-                    <View style={[
-                        styles.drawerPanel,
-                        {
-                            width: drawerWidth,
-                            borderRadius: r.isSmall ? 0 : r.pick({ medium: 16, large: 18, xlarge: 18 }),
-                            height: r.isSmall ? '100%' : 'auto',
-                            maxHeight: r.isSmall ? '100%' : '90%',
-                            alignSelf: r.isSmall ? 'stretch' : 'center'
-                        }
-                    ]}>
-                        <Sidebar
-                            activeScreen={activeScreen}
-                            onNavigate={navigateTo}
-                            onLogout={handleLogout}
-                            onClose={() => setSidebarOpen(false)}
-                        />
-                    </View>
+            {/* Main Area: Sidebar + Content */}
+            <View style={styles.mainArea}>
+                <Sidebar
+                    activeScreen={activeScreen}
+                    onNavigate={navigateTo}
+                    onLogout={handleLogout}
+                />
+                <View style={styles.content}>
+                    {renderScreen()}
                 </View>
-            )}
+            </View>
 
             {/* ─── THEATRE CURTAIN OPENING ANIMATION ─── */}
             {isOpening && (
@@ -421,36 +422,44 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: COLORS.bgSidebar,
-        paddingVertical: SPACING.sm,
+        backgroundColor: '#24312E',
+        height: 36,
+        paddingHorizontal: 12,
+        borderBottomWidth: 0.5,
+        borderBottomColor: 'rgba(255,255,255,0.1)',
     },
     topBarLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: SPACING.sm,
+        gap: 10,
     },
     hamburgerBtn: {
-        borderRadius: RADIUS.md,
+        borderRadius: 4,
+        borderWidth: 0.5,
+        borderColor: 'rgba(255,255,255,0.15)',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        width: 32,
+        height: 26,
     },
     topBarBrand: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
-        marginLeft: SPACING.xs,
+        gap: 8,
+        marginLeft: 4,
     },
     topBarTitle: {
-        fontWeight: '800',
+        fontWeight: '500',
         color: COLORS.white,
-        letterSpacing: 0.5,
+        fontSize: 14,
+        letterSpacing: 1.0,
     },
     topBarDivider: {
         width: 1,
-        height: 24,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        marginHorizontal: SPACING.sm,
+        height: 18,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        marginHorizontal: 12,
     },
     topBarScreen: {
         fontWeight: '500',
@@ -459,45 +468,19 @@ const styles = StyleSheet.create({
     topBarRight: {
         flexDirection: 'row',
         alignItems: 'center',
+        marginRight: 4,
     },
-    topBarDate: {
-        color: 'rgba(255,255,255,0.85)',
+    topBarOperationalInfo: {
+        color: 'rgba(255, 255, 255, 0.75)',
         fontWeight: '500',
+        letterSpacing: 0.5,
+    },
+    mainArea: {
+        flex: 1,
+        flexDirection: 'row',
     },
     content: {
         flex: 1,
-    },
-
-    // Sidebar overlay + floating panel
-    drawerOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 1000,
-        elevation: 1000,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    backdrop: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    },
-    drawerPanel: {
-        overflow: 'hidden',
-        elevation: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.45,
-        shadowRadius: 32,
-        zIndex: 1001,
-        maxHeight: '90%',
     },
     // Theatre Curtain Animation Styles
     curtainContainer: {

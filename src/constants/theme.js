@@ -1,5 +1,5 @@
-// MediX POS — Teal Theme (#4FA39A) for Tablet POS
-// Now with responsive scaling via the responsive utility
+// MediX POS — Deep Forest Green Theme (#1C5C4A) for Tablet POS
+// Updated: Ruled ledger aesthetic — no shadows, 0.5px borders, 4–6px radius
 
 import { Dimensions, Platform } from 'react-native';
 
@@ -20,54 +20,54 @@ export const FONTS = {
 };
 
 export const COLORS = {
-    // Primary — Medical Teal
-    primary: '#4FA39A',
-    primaryDark: '#3D8880',
-    primaryLight: '#7DC4BD',
-    primaryGhost: 'rgba(79, 163, 154, 0.10)',
-    primarySoft: 'rgba(79, 163, 154, 0.18)',
+    // Primary — Deep Forest Green
+    primary: '#1C5C4A',
+    primaryDark: '#144439',
+    primaryLight: '#2D7A63',
+    primaryGhost: 'rgba(28, 92, 74, 0.08)',
+    primarySoft: 'rgba(28, 92, 74, 0.15)',
 
-    // Secondary — Deep Teal
-    accent: '#2D8B83',
-    accentLight: 'rgba(45, 139, 131, 0.12)',
+    // Secondary — Deeper accent
+    accent: '#17493B',
+    accentLight: 'rgba(23, 73, 59, 0.10)',
 
-    // Status
-    success: '#16A34A',
-    successLight: 'rgba(22, 163, 74, 0.12)',
-    warning: '#F59E0B',
-    warningLight: 'rgba(245, 158, 11, 0.12)',
-    error: '#EF4444',
-    errorLight: 'rgba(239, 68, 68, 0.10)',
-    info: '#3B82F6',
-    infoLight: 'rgba(59, 130, 246, 0.10)',
+    // Status — tint-based
+    success: '#1C5C4A',
+    successLight: 'rgba(28, 92, 74, 0.10)',
+    warning: '#B8860B',
+    warningLight: 'rgba(184, 134, 11, 0.10)',
+    error: '#C0392B',
+    errorLight: 'rgba(192, 57, 43, 0.08)',
+    info: '#2C6E8A',
+    infoLight: 'rgba(44, 110, 138, 0.10)',
 
     // Backgrounds
-    bgDark: '#F0F5F4',
+    bgDark: '#F4F6F5',
     bgCard: '#FFFFFF',
-    bgCardHover: '#F5FAF9',
-    bgInput: '#F7FAFA',
-    bgSurface: '#ECF2F1',
-    bgSidebar: '#1A3F3A',
-    bgSidebarHover: '#245650',
+    bgCardHover: '#F7F9F8',
+    bgInput: '#F8FAF9',
+    bgSurface: '#EFF2F1',
+    bgSidebar: '#1C2B2A',
+    bgSidebarHover: '#263B39',
 
     // Text
-    textPrimary: '#1A2E2B',
-    textSecondary: '#4A635F',
-    textMuted: '#7A948F',
+    textPrimary: '#1C2B2A',
+    textSecondary: '#4A5C58',
+    textMuted: '#7A8E89',
     textInverse: '#FFFFFF',
     textSidebarActive: '#FFFFFF',
-    textSidebarInactive: 'rgba(255,255,255,0.65)',
+    textSidebarInactive: 'rgba(255,255,255,0.55)',
 
     // Borders
-    border: '#D0DDD9',
-    borderLight: '#E3EEEB',
-    borderFocus: '#4FA39A',
+    border: '#CDD5D1',
+    borderLight: '#DCE4E1',
+    borderFocus: '#1C5C4A',
 
     // Misc
     white: '#FFFFFF',
     black: '#000000',
     overlay: 'rgba(0, 0, 0, 0.35)',
-    shadow: 'rgba(0, 50, 45, 0.08)',
+    shadow: 'rgba(0, 0, 0, 0.04)',
 };
 
 export const FONT_SIZES = {
@@ -82,43 +82,26 @@ export const FONT_SIZES = {
 };
 
 export const SPACING = {
-    xs: Math.round(6 * s),
-    sm: Math.round(10 * s),
-    md: Math.round(16 * s),
-    lg: Math.round(20 * s),
-    xl: Math.round(26 * s),
-    xxl: Math.round(34 * s),
-    xxxl: Math.round(44 * s),
-};
-
-export const RADIUS = {
+    xs: Math.round(4 * s),
     sm: Math.round(8 * s),
     md: Math.round(12 * s),
     lg: Math.round(16 * s),
-    xl: Math.round(22 * s),
-    full: 999,
+    xl: Math.round(20 * s),
+    xxl: Math.round(26 * s),
+    xxxl: Math.round(34 * s),
 };
 
+export const RADIUS = {
+    sm: 2,
+    md: 3,
+    lg: 3,
+    xl: 3,
+    full: 3,   // Sharp 2-3px corners
+};
+
+// No box shadows — clean ruled aesthetic
 export const SHADOWS = {
-    sm: {
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 1,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    md: {
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 1,
-        shadowRadius: 12,
-        elevation: 5,
-    },
-    lg: {
-        shadowColor: COLORS.shadow,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 1,
-        shadowRadius: 24,
-        elevation: 10,
-    },
+    sm: {},
+    md: {},
+    lg: {},
 };

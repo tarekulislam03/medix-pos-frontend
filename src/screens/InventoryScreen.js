@@ -34,11 +34,10 @@ import imageCompression from 'browser-image-compression';
 
 // ─── FILTER TABS ────────────────────────────────
 const FILTERS = [
-    { key: 'all', label: 'All Products', icon: 'cube-outline' },
-    { key: 'low_stock', label: 'Low Stock', icon: 'warning-outline' },
-    { key: 'expiring_soon', label: 'Expiring Soon', icon: 'time-outline' },
-    { key: 'expired', label: 'Expired', icon: 'skull-outline' },
-    { key: 'zero_stock', label: 'Zero Stock', icon: 'close-circle-outline' },
+    { key: 'all', label: 'All products', icon: 'cube-outline' },
+    { key: 'low_stock', label: 'Low stock', icon: 'warning-outline' },
+    { key: 'expiring_soon', label: 'Expiring soon', icon: 'time-outline' },
+    { key: 'zero_stock', label: 'Zero stock', icon: 'close-circle-outline' },
 ];
 
 // ─── EMPTY PRODUCT FORM ────────────────────────
@@ -773,13 +772,30 @@ export default function InventoryScreen({ navigation }) {
                     <View style={styles.mobileCardBody}>
                         <View style={styles.mobileCardStat}>
                             <Text style={styles.mobileStatLabel}>Stock</Text>
-                            <Text style={[styles.mobileStatValue, { color: stockStatus.color }]}>
-                                {item.quantity ?? item.stock ?? 0}
-                            </Text>
+                            {stockStatus.label === 'Out of Stock' ? (
+                                <View style={styles.outOfStockTag}>
+                                    <Text style={styles.outOfStockTagText}>Out of stock</Text>
+                                </View>
+                            ) : (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Text style={styles.mobileStatValue}>
+                                        {item.quantity ?? item.stock ?? 0}
+                                    </Text>
+                                    {stockStatus.label === 'Low Stock' && (
+                                        <View style={styles.lowStockTag}>
+                                            <Text style={styles.lowStockTagText}>Low</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
                         </View>
                         <View style={styles.mobileCardStat}>
                             <Text style={styles.mobileStatLabel}>Expiry</Text>
-                            <Text style={[styles.mobileStatValue, expiryStatus && { color: expiryStatus.color }]}>
+                            <Text style={[
+                                styles.mobileStatValue,
+                                expiryStatus?.label === 'Expired' && { color: COLORS.error },
+                                expiryStatus?.label?.includes('left') && { color: COLORS.warning }
+                            ]}>
                                 {formatDate(item.expiry_date)}
                             </Text>
                         </View>
@@ -788,16 +804,16 @@ export default function InventoryScreen({ navigation }) {
                     <View style={styles.mobileCardFooter}>
                         <View style={styles.mobileActionGroup}>
                             <TouchableOpacity style={styles.mobileActionBtn} onPress={() => openEditModal(item)}>
-                                <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+                                <Ionicons name="create-outline" size={18} color={COLORS.textSecondary} />
                                 <Text style={styles.mobileActionText}>Edit</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.mobileActionBtn} onPress={() => printLabels58mm([{ product: item, copies: 1 }])}>
-                                <Ionicons name="barcode-outline" size={20} color={COLORS.textSecondary} />
+                                <Ionicons name="scan-outline" size={18} color={COLORS.textSecondary} />
                                 <Text style={styles.mobileActionText}>Label</Text>
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity style={[styles.mobileActionBtn, { borderLeftWidth: 1, borderLeftColor: COLORS.borderLight }]} onPress={() => confirmDelete(item)}>
-                            <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                        <TouchableOpacity style={[styles.mobileActionBtn, { borderLeftWidth: 0.5, borderLeftColor: 'rgba(0,0,0,0.1)', paddingLeft: 12 }]} onPress={() => confirmDelete(item)}>
+                            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
                         </TouchableOpacity>
                     </View>
                 </TouchableOpacity>
@@ -806,12 +822,12 @@ export default function InventoryScreen({ navigation }) {
 
         return (
             <TouchableOpacity
-                style={[styles.tableRow, index % 2 === 0 && styles.tableRowAlt]}
+                style={styles.tableRow}
                 onPress={() => openViewModal(item)}
                 activeOpacity={0.7}
             >
                 {/* Name */}
-                <View style={[styles.cell, { flex: 2.5 }]}>
+                <View style={[styles.tdCell, { flex: 2.5 }]}>
                     <Text style={styles.cellName} numberOfLines={1}>
                         {item.medicine_name || '—'}
                     </Text>
@@ -821,61 +837,87 @@ export default function InventoryScreen({ navigation }) {
                 </View>
 
                 {/* MRP */}
-                <View style={[styles.cell, { flex: 0.8 }]}>
-                    <Text style={styles.cellPrice}>₹{Number(item.mrp ?? 0).toFixed(2)}</Text>
+                <View style={[styles.tdCell, { flex: 0.8 }]}>
+                    <Text
+                        style={styles.cellPrice}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        ₹{Number(item.mrp ?? 0).toFixed(2)}
+                    </Text>
                 </View>
 
                 {/* Stock */}
-                <View style={[styles.cell, { flex: 0.8, alignItems: 'center' }]}>
-                    <Text style={[styles.cellText, { fontWeight: '700' }]}>
-                        {item.quantity ?? item.stock ?? 0}
-                    </Text>
-                    <View style={[styles.statusBadge, { backgroundColor: stockStatus.bg }]}>
-                        <Text style={[styles.statusText, { color: stockStatus.color }]}>
-                            {stockStatus.label}
-                        </Text>
-                    </View>
-                </View>
-
-                {/* Expiry */}
-                <View style={[styles.cell, { flex: 1.2, paddingLeft: SPACING.lg }]}>
-                    <Text style={styles.cellText}>{formatDate(item.expiry_date)}</Text>
-                    {expiryStatus && (
-                        <View style={[styles.statusBadge, { backgroundColor: expiryStatus.bg }]}>
-                            <Text style={[styles.statusText, { color: expiryStatus.color }]}>
-                                {expiryStatus.label}
-                            </Text>
+                <View style={[styles.tdCell, { flex: 0.8, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                    {stockStatus.label === 'Out of Stock' ? (
+                        <View style={styles.outOfStockTag}>
+                            <Text style={styles.outOfStockTagText} numberOfLines={1}>Out of stock</Text>
                         </View>
+                    ) : (
+                        <>
+                            <Text style={styles.cellText} numberOfLines={1}>
+                                {item.quantity ?? item.stock ?? 0}
+                            </Text>
+                            {stockStatus.label === 'Low Stock' && (
+                                <View style={styles.lowStockTag}>
+                                    <Text style={styles.lowStockTagText} numberOfLines={1}>Low</Text>
+                                </View>
+                            )}
+                        </>
                     )}
                 </View>
 
+                {/* Expiry */}
+                <View style={[styles.tdCell, { flex: 1.2 }]}>
+                    <Text
+                        style={[
+                            styles.cellText,
+                            expiryStatus?.label === 'Expired' && { color: COLORS.error },
+                            expiryStatus?.label?.includes('left') && { color: COLORS.warning }
+                        ]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        {formatDate(item.expiry_date)}
+                    </Text>
+                </View>
+
                 {/* Last Updated */}
-                <View style={[styles.cell, { flex: 1.2, paddingLeft: SPACING.lg }]}>
-                    <Text style={styles.cellText}>{formatDate(item.updatedAt || item.createdAt)}</Text>
+                <View style={[styles.tdCell, { flex: 1.2 }]}>
+                    <Text
+                        style={styles.cellText}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                    >
+                        {formatDate(item.updatedAt || item.createdAt)}
+                    </Text>
                 </View>
 
                 {/* Actions */}
-                <View style={[styles.cell, styles.actionsCell, { flex: 1.1 }]}>
+                <View style={[styles.tdCell, styles.actionsCell, { flex: 1.1, borderRightWidth: 0 }]}>
                     <TouchableOpacity
                         style={styles.actionBtn}
                         onPress={() => openEditModal(item)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                        <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+                        <Ionicons name="create-outline" size={16} color={COLORS.textSecondary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.actionBtn}
                         onPress={() => printLabels58mm([{ product: item, copies: 1 }])}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                        <Ionicons name="barcode-outline" size={20} color={COLORS.textSecondary} />
+                        <Ionicons name="scan-outline" size={16} color={COLORS.textSecondary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.actionBtn, styles.actionBtnDanger]}
                         onPress={() => confirmDelete(item)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                        <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                        <Ionicons name="trash-outline" size={16} color={COLORS.error} />
                     </TouchableOpacity>
                 </View>
             </TouchableOpacity>
@@ -904,7 +946,7 @@ export default function InventoryScreen({ navigation }) {
                     )}
                 </View>
 
-                {/* headerActions row on mobile */}
+                {/* headerActions row */}
                 <View style={[
                     styles.headerActions,
                     r.isSmall && {
@@ -914,108 +956,98 @@ export default function InventoryScreen({ navigation }) {
                         gap: 6
                     }
                 ]}>
-
-
-                        <TouchableOpacity
-                            style={[styles.importBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
-                            onPress={handleAutoImportPress}
-                            disabled={autoImportUploading}
-                        >
-                            {autoImportUploading ? (
-                                <ActivityIndicator size="small" color={COLORS.primary} />
-                            ) : (
-                                <Ionicons name="document-attach-outline" size={r.isSmall ? 20 : 20} color={COLORS.primary} />
-                            )}
-                            {!r.isSmall && <Text style={styles.importBtnText}>Upload Bill</Text>}
-                        </TouchableOpacity>
-
                     <TouchableOpacity
-                        style={[styles.printLabelsBtn, { minWidth: r.isSmall ? 40 : 120, height: r.isSmall ? 38 : 46, paddingHorizontal: r.isSmall ? 8 : SPACING.md }]}
-                        onPress={openLabelModal}
+                        style={[styles.actionHeaderBtn, { height: r.isSmall ? 32 : 32, paddingHorizontal: r.isSmall ? 8 : 12 }]}
+                        onPress={handleAutoImportPress}
+                        disabled={autoImportUploading}
                     >
-                        <Ionicons name="pricetag-outline" size={r.isSmall ? 20 : 20} color={COLORS.accent} />
-                        {!r.isSmall && <Text style={styles.printLabelsBtnText}>Labels</Text>}
+                        {autoImportUploading ? (
+                            <ActivityIndicator size="small" color={COLORS.primary} />
+                        ) : (
+                            <Ionicons name="arrow-up-outline" size={16} color={COLORS.textSecondary} />
+                        )}
+                        {!r.isSmall && <Text style={styles.actionHeaderBtnText}>Upload bill</Text>}
                     </TouchableOpacity>
 
-                    <GradientButton
-                        title={r.isSmall ? "" : "Add Product"}
+                    <TouchableOpacity
+                        style={[styles.actionHeaderBtn, { height: r.isSmall ? 32 : 32, paddingHorizontal: r.isSmall ? 8 : 12 }]}
+                        onPress={openLabelModal}
+                    >
+                        <Ionicons name="pricetag-outline" size={16} color={COLORS.textSecondary} />
+                        {!r.isSmall && <Text style={styles.actionHeaderBtnText}>Labels</Text>}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.actionHeaderBtnPrimary, { height: r.isSmall ? 32 : 32, paddingHorizontal: r.isSmall ? 10 : 12 }]}
                         onPress={openAddModal}
-                        icon={<Ionicons name="add-circle-outline" size={r.isSmall ? 22 : 22} color={COLORS.white} />}
-                        style={{ height: r.isSmall ? 38 : 46, minWidth: r.isSmall ? 40 : 140, paddingHorizontal: r.isSmall ? 0 : SPACING.md }}
-                    />
+                    >
+                        <Ionicons name="add-outline" size={16} color={COLORS.white} />
+                        {!r.isSmall && <Text style={styles.actionHeaderBtnPrimaryText}>Add product</Text>}
+                    </TouchableOpacity>
                 </View>
             </View>
 
+            {/* ─── TOOLBAR ROW (Tabs + Search) ─── */}
             <View style={[
                 styles.filterBar,
-                r.isSmall && {
-                    flexDirection: 'column',
-                    alignItems: 'stretch',
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    gap: 8
-                }
+                r.isSmall && styles.filterBarMobile
             ]}>
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={[styles.filterTabs, { paddingBottom: r.isSmall ? 4 : 0 }]}
+                    contentContainerStyle={styles.filterTabs}
                 >
                     {FILTERS.map((filter) => {
                         const isActive = activeFilter === filter.key;
-                        const count =
-                            filter.key === 'low_stock'
-                                ? lowStockCount
-                                : filter.key === 'expiring_soon'
-                                    ? expiringSoonCount
-                                    : filter.key === 'expired'
-                                        ? expiredCount
-                                        : filter.key === 'zero_stock'
-                                            ? zeroStockCount
-                                            : products.length;
-
-                        const isDangerTab = filter.key === 'expired' || filter.key === 'zero_stock';
-                        const dangerCount = filter.key === 'expired' ? expiredCount : filter.key === 'zero_stock' ? zeroStockCount : 0;
+                        let badgeCount = 0;
+                        if (filter.key === 'low_stock') badgeCount = lowStockCount;
+                        if (filter.key === 'zero_stock') badgeCount = zeroStockCount;
+                        if (filter.key === 'expiring_soon') badgeCount = expiringSoonCount;
+                        if (filter.key === 'expired') badgeCount = expiredCount;
 
                         return (
                             <TouchableOpacity
                                 key={filter.key}
                                 style={[
                                     styles.filterTab,
-                                    r.isSmall && { paddingHorizontal: 10, paddingVertical: 6 },
-                                    isActive && styles.filterTabActive,
-                                    isActive && isDangerTab && dangerCount > 0 && { backgroundColor: COLORS.error, borderColor: COLORS.error },
+                                    isActive && styles.filterTabActive
                                 ]}
                                 onPress={() => setActiveFilter(filter.key)}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons
-                                    name={filter.icon}
-                                    size={r.isSmall ? 14 : 18}
-                                    color={isActive ? COLORS.white : (isDangerTab && dangerCount > 0 ? COLORS.error : COLORS.textMuted)}
-                                />
                                 <Text style={[
                                     styles.filterTabText,
-                                    r.isSmall && { fontSize: 11 },
-                                    isActive && styles.filterTabTextActive,
-                                    !isActive && isDangerTab && dangerCount > 0 && { color: COLORS.error },
+                                    isActive && styles.filterTabTextActive
                                 ]}>
                                     {filter.label}
                                 </Text>
+                                {badgeCount > 0 && (
+                                    <View style={[
+                                        styles.filterTabBadge,
+                                        filter.key === 'zero_stock' || filter.key === 'expired' ? styles.filterTabBadgeDanger : styles.filterTabBadgeWarning
+                                    ]}>
+                                        <Text style={[
+                                            styles.filterTabBadgeText,
+                                            filter.key === 'zero_stock' || filter.key === 'expired' ? styles.filterTabBadgeTextDanger : styles.filterTabBadgeTextWarning
+                                        ]}>
+                                            {badgeCount}
+                                        </Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
                         );
                     })}
                 </ScrollView>
 
-                {/* Filters right side: Search */}
-                <View style={[styles.filterBarRight, r.isSmall && { width: '100%', marginTop: 0 }]} >
-                    <View style={[styles.searchBox, r.isSmall && { flex: 1, height: 38 }]}>
-                        <Ionicons name="search-outline" size={r.isSmall ? 18 : 20} color={COLORS.textMuted} />
+                {/* Search on Right */}
+                <View style={[styles.filterBarRight, r.isSmall && styles.searchContainerMobile]} >
+                    <View style={styles.searchBox}>
+                        <Ionicons name="search-outline" size={16} color={COLORS.textMuted} />
                         <TextInput
-                            style={[styles.searchInput, r.isSmall && { fontSize: 13 }]}
+                            style={styles.searchInput}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
-                            placeholder="Search products..."
+                            placeholder="Search..."
                             placeholderTextColor={COLORS.textMuted}
                         />
                         {searchQuery.length > 0 && (
@@ -1035,19 +1067,6 @@ export default function InventoryScreen({ navigation }) {
                     marginTop: SPACING.md
                 }
             ]}>
-                {/* Table Header - Hidden on Small screens */}
-                {!r.isSmall && (
-                    <View style={styles.tableHeader}>
-                        <Text style={[styles.th, { flex: 2.5 }]}>Medicine</Text>
-                        <Text style={[styles.th, { flex: 0.8 }]}>MRP</Text>
-                        <Text style={[styles.th, { flex: 0.8, textAlign: 'center' }]}>Stock</Text>
-                        <Text style={[styles.th, { flex: 1.2, paddingLeft: SPACING.lg }]}>Expiry</Text>
-                        <Text style={[styles.th, { flex: 1.2, paddingLeft: SPACING.lg }]}>Last Updated</Text>
-                        <Text style={[styles.th, { flex: 1.1, textAlign: 'center' }]}>Actions</Text>
-                    </View>
-                )}
-
-                {/* Table Body */}
                 {loading ? (
                     <View style={{ flex: 1, padding: SPACING.md, gap: SPACING.sm }}>
                         {[...Array(8)].map((_, i) => (
@@ -1064,12 +1083,63 @@ export default function InventoryScreen({ navigation }) {
                             </View>
                         ))}
                     </View>
-                ) : filteredProducts.length > 0 ? (
+                ) : (
                     <FlatList
                         data={filteredProducts}
                         keyExtractor={(item, i) => item._id || item.id || String(i)}
+                        contentContainerStyle={filteredProducts.length === 0 ? { flexGrow: 1 } : null}
+                        ListHeaderComponent={!r.isSmall ? () => (
+                            <View style={styles.tableHeader}>
+                                <View style={[styles.thCell, { flex: 2.5 }]}>
+                                    <Text style={styles.th}>Medicine</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 0.8 }]}>
+                                    <Text style={styles.th}>MRP</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 0.8 }]}>
+                                    <Text style={styles.th}>Stock</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 1.2 }]}>
+                                    <Text style={styles.th}>Expiry</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 1.2 }]}>
+                                    <Text style={styles.th}>Last Updated</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 1.1, borderRightWidth: 0, alignItems: 'center' }]}>
+                                    <Text style={styles.th}>Actions</Text>
+                                </View>
+                            </View>
+                        ) : null}
+                        stickyHeaderIndices={!r.isSmall ? [0] : undefined}
+                        ListEmptyComponent={() => (
+                            <View style={styles.centerBox}>
+                                <Ionicons
+                                    name={
+                                        activeFilter === 'low_stock' ? 'warning-outline' :
+                                            activeFilter === 'expiring_soon' ? 'time-outline' :
+                                                activeFilter === 'expired' ? 'skull-outline' :
+                                                    activeFilter === 'zero_stock' ? 'close-circle-outline' :
+                                                        'cube-outline'
+                                    }
+                                    size={56}
+                                    color={(activeFilter === 'expired' || activeFilter === 'zero_stock') ? COLORS.error : COLORS.border}
+                                />
+                                <Text style={[
+                                    styles.emptyText,
+                                    (activeFilter === 'expired' || activeFilter === 'zero_stock') && !searchQuery && { color: COLORS.success },
+                                ]}>
+                                    {searchQuery
+                                        ? 'No products match your search'
+                                        : activeFilter === 'expired'
+                                            ? '✓ No expired products — stock is clean!'
+                                            : activeFilter === 'zero_stock'
+                                                ? '✓ All products have stock — nothing is empty!'
+                                                : `No ${activeFilter === 'all' ? '' : activeFilter.replace('_', ' ')} products`}
+                                </Text>
+                            </View>
+                        )}
                         renderItem={renderProduct}
-                        showsVerticalScrollIndicator={false}
+                        showsVerticalScrollIndicator={true}
                         onRefresh={onRefresh}
                         refreshing={refreshing}
                         initialNumToRender={15}
@@ -1077,40 +1147,6 @@ export default function InventoryScreen({ navigation }) {
                         windowSize={7}
                         removeClippedSubviews={true}
                     />
-                ) : (
-                    <View style={styles.centerBox}>
-                        <Ionicons
-                            name={
-                                activeFilter === 'low_stock' ? 'warning-outline' :
-                                    activeFilter === 'expiring_soon' ? 'time-outline' :
-                                        activeFilter === 'expired' ? 'skull-outline' :
-                                            activeFilter === 'zero_stock' ? 'close-circle-outline' :
-                                                'cube-outline'
-                            }
-                            size={56}
-                            color={(activeFilter === 'expired' || activeFilter === 'zero_stock') ? COLORS.error : COLORS.border}
-                        />
-                        <Text style={[
-                            styles.emptyText,
-                            (activeFilter === 'expired' || activeFilter === 'zero_stock') && !searchQuery && { color: COLORS.success },
-                        ]}>
-                            {searchQuery
-                                ? 'No products match your search'
-                                : activeFilter === 'expired'
-                                    ? '✓ No expired products — stock is clean!'
-                                    : activeFilter === 'zero_stock'
-                                        ? '✓ All products have stock — nothing is empty!'
-                                        : `No ${activeFilter === 'all' ? '' : activeFilter.replace('_', ' ')} products`}
-                        </Text>
-                        {activeFilter === 'all' && !searchQuery && (
-                            <GradientButton
-                                title="Add First Product"
-                                small
-                                onPress={openAddModal}
-                                style={{ marginTop: SPACING.md }}
-                            />
-                        )}
-                    </View>
                 )}
             </View>
 
@@ -1858,110 +1894,132 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.bgDark,
     },
 
-    // Header
+    // Header (Light theme matching POS screen)
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: SPACING.xxl,
-        paddingVertical: SPACING.lg,
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
+        paddingHorizontal: SPACING.lg,
+        paddingVertical: 10,
+        backgroundColor: COLORS.bgSurface,
+        height: 52,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
     },
     headerTitle: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '700',
         color: COLORS.textPrimary,
     },
     headerSub: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 11,
         color: COLORS.textMuted,
         marginTop: 2,
+        fontWeight: '500',
     },
     headerActions: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: SPACING.sm,
+        gap: 8,
     },
-    importBtn: {
+    actionHeaderBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: SPACING.xs,
-        paddingHorizontal: SPACING.md,
-        paddingVertical: SPACING.sm,
-        borderRadius: RADIUS.md,
-        borderWidth: 1.5,
+        gap: 6,
+        borderRadius: 2,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+    },
+    actionHeaderBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+    },
+    actionHeaderBtnPrimary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        borderRadius: 2,
+        backgroundColor: COLORS.primary,
+        borderWidth: 0.5,
         borderColor: COLORS.primary,
-        backgroundColor: COLORS.primaryGhost,
-        minHeight: 46,
+        justifyContent: 'center',
     },
-    importBtnText: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
-        color: COLORS.primary,
-    },
-    importBtnLoading: {
-        opacity: 0.7,
+    actionHeaderBtnPrimaryText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.white,
     },
 
-    // Filter Bar
+    // Filter Bar / Toolbar Row
     filterBar: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: SPACING.xxl,
-        paddingVertical: SPACING.md,
+        paddingHorizontal: SPACING.lg,
+        paddingVertical: 4,
         backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.borderLight,
         gap: SPACING.md,
+    },
+    filterBarMobile: {
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: SPACING.sm,
+        paddingHorizontal: SPACING.md,
+        paddingVertical: SPACING.sm,
     },
     filterTabs: {
         flexDirection: 'row',
-        gap: SPACING.sm,
+        alignItems: 'center',
+        gap: SPACING.md,
     },
     filterTab: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: SPACING.xs,
-        paddingVertical: SPACING.sm,
-        paddingHorizontal: SPACING.md,
-        borderRadius: RADIUS.md,
-        backgroundColor: COLORS.bgSurface,
-        borderWidth: 1,
-        borderColor: COLORS.borderLight,
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
     },
     filterTabActive: {
-        backgroundColor: COLORS.primary,
-        borderColor: COLORS.primaryDark,
+        borderBottomColor: COLORS.primary,
     },
     filterTabText: {
         fontSize: FONT_SIZES.sm,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textMuted,
     },
     filterTabTextActive: {
-        color: COLORS.white,
+        color: COLORS.primary,
     },
-    filterCount: {
-        minWidth: 24,
-        height: 22,
-        borderRadius: RADIUS.full,
-        backgroundColor: COLORS.border,
+    filterTabBadge: {
+        borderRadius: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        marginLeft: 4,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 6,
     },
-    filterCountActive: {
-        backgroundColor: 'rgba(255,255,255,0.25)',
+    filterTabBadgeDanger: {
+        backgroundColor: COLORS.error,
     },
-    filterCountText: {
+    filterTabBadgeWarning: {
+        backgroundColor: COLORS.warning,
+    },
+    filterTabBadgeText: {
         fontSize: 11,
-        fontWeight: '700',
-        color: COLORS.textMuted,
+        fontWeight: '500',
+        color: COLORS.white,
     },
-    filterCountTextActive: {
+    filterTabBadgeTextDanger: {
+        color: COLORS.white,
+    },
+    filterTabBadgeTextWarning: {
         color: COLORS.white,
     },
     filterBarRight: {
@@ -1970,27 +2028,19 @@ const styles = StyleSheet.create({
         gap: SPACING.md,
         flexWrap: 'wrap',
     },
-    dateFilterBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.bgInput,
-        borderRadius: RADIUS.md,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        paddingHorizontal: SPACING.md,
-        height: 44,
-        minWidth: 160,
-        gap: SPACING.sm,
+    searchContainerMobile: {
+        width: '100%',
+        marginTop: SPACING.xs,
     },
     searchBox: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.bgInput,
-        borderRadius: RADIUS.md,
-        borderWidth: 1,
+        borderRadius: 3,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         paddingHorizontal: SPACING.md,
-        height: 44,
+        height: 32,
         minWidth: 240,
         gap: SPACING.sm,
     },
@@ -1998,79 +2048,79 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: FONT_SIZES.sm,
         color: COLORS.textPrimary,
+        fontWeight: '400',
     },
 
     // Table
     tableContainer: {
         flex: 1,
-        marginHorizontal: SPACING.xxl,
-        marginTop: SPACING.lg,
+        marginHorizontal: SPACING.lg,
+        marginTop: 8,
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.lg,
-        borderWidth: 1,
+        borderRadius: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         overflow: 'hidden',
-        ...SHADOWS.sm,
     },
     tableHeader: {
         flexDirection: 'row',
-        backgroundColor: COLORS.bgSurface,
-        paddingVertical: SPACING.md,
-        paddingHorizontal: SPACING.lg,
-        borderBottomWidth: 1,
+        alignItems: 'center',
+        backgroundColor: COLORS.borderLight,
+        height: 28,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
     },
     th: {
-        fontSize: FONT_SIZES.xs,
+        fontSize: 11,
         fontWeight: '700',
-        color: COLORS.textMuted,
+        color: COLORS.textSecondary,
         textTransform: 'uppercase',
-        letterSpacing: 0.8,
+        letterSpacing: 0.5,
+    },
+    thCell: {
+        justifyContent: 'center',
+        paddingHorizontal: 8,
+        height: '100%',
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
     },
     tableRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: SPACING.md,
-        paddingHorizontal: SPACING.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.borderLight,
-        minHeight: 64,
+        alignItems: 'stretch',
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
+        backgroundColor: COLORS.white,
+        height: 46,
     },
-    tableRowAlt: {
-        backgroundColor: COLORS.bgInput,
+    tdCell: {
+        justifyContent: 'center',
+        paddingHorizontal: 8,
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
     },
     cell: {
         paddingRight: SPACING.sm,
     },
     cellName: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '600',
+        fontSize: 13,
+        fontWeight: '500',
         color: COLORS.textPrimary,
         marginBottom: 2,
     },
     cellSub: {
-        fontSize: FONT_SIZES.xs,
+        fontSize: 10,
         color: COLORS.textMuted,
+        fontWeight: '500',
     },
     cellText: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 12,
         color: COLORS.textSecondary,
+        fontWeight: '500',
     },
     cellPrice: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '700',
-        color: COLORS.primary,
-    },
-    statusBadge: {
-        marginTop: 4,
-        paddingHorizontal: SPACING.sm,
-        paddingVertical: 2,
-        borderRadius: RADIUS.full,
-        alignSelf: 'flex-start',
-    },
-    statusText: {
-        fontSize: 11,
-        fontWeight: '700',
+        fontSize: 13,
+        fontWeight: '500',
+        color: COLORS.textPrimary,
     },
     actionsCell: {
         flexDirection: 'row',
@@ -2078,14 +2128,17 @@ const styles = StyleSheet.create({
         gap: SPACING.sm,
     },
     actionBtn: {
-        width: 42,
-        height: 42,
-        borderRadius: RADIUS.md,
-        backgroundColor: COLORS.primaryGhost,
+        width: 26,
+        height: 26,
+        borderRadius: 2,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.bgInput,
         alignItems: 'center',
         justifyContent: 'center',
     },
     actionBtnDanger: {
+        borderColor: COLORS.errorLight,
         backgroundColor: COLORS.errorLight,
     },
     centerBox: {
@@ -2094,11 +2147,44 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: SPACING.xxxl,
         gap: SPACING.sm,
+        opacity: 0.20,
     },
     emptyText: {
         fontSize: FONT_SIZES.lg,
         color: COLORS.textMuted,
-        fontWeight: '600',
+        fontWeight: '500',
+    },
+
+    // Badges / Tags
+    outOfStockTag: {
+        backgroundColor: COLORS.errorLight,
+        borderColor: COLORS.error,
+        borderWidth: 0.5,
+        borderRadius: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    outOfStockTagText: {
+        color: COLORS.error,
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    lowStockTag: {
+        backgroundColor: COLORS.warningLight,
+        borderColor: COLORS.warning,
+        borderWidth: 0.5,
+        borderRadius: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    lowStockTagText: {
+        color: COLORS.warning,
+        fontSize: 12,
+        fontWeight: '500',
     },
 
     // ─── MODAL ────────────────────────────
@@ -2112,8 +2198,9 @@ const styles = StyleSheet.create({
         maxWidth: 700,
         maxHeight: '85%',
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
-        ...SHADOWS.lg,
+        borderRadius: 5,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
         overflow: 'hidden',
     },
     modalHeader: {
@@ -2121,7 +2208,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: SPACING.xl,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
     },
     modalHeaderLeft: {
@@ -2130,21 +2217,21 @@ const styles = StyleSheet.create({
         gap: SPACING.md,
     },
     modalIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: RADIUS.md,
+        width: 36,
+        height: 36,
+        borderRadius: 4,
         alignItems: 'center',
         justifyContent: 'center',
     },
     modalTitle: {
         fontSize: FONT_SIZES.xl,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     modalCloseBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: RADIUS.full,
+        width: 32,
+        height: 32,
+        borderRadius: 4,
         backgroundColor: COLORS.bgSurface,
         alignItems: 'center',
         justifyContent: 'center',
@@ -2161,15 +2248,15 @@ const styles = StyleSheet.create({
     },
     detailCard: {
         backgroundColor: COLORS.bgInput,
-        borderRadius: RADIUS.md,
+        borderRadius: 5,
         padding: SPACING.lg,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         marginBottom: SPACING.sm,
     },
     detailSectionTitle: {
         fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textMuted,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -2199,11 +2286,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: SPACING.md,
         padding: SPACING.xl,
-        borderTopWidth: 1,
+        borderTopWidth: 0.5,
         borderTopColor: COLORS.border,
     },
 
-    // Form
+    // Form Grid / Fields
     formGrid: {
         gap: SPACING.md,
     },
@@ -2216,15 +2303,15 @@ const styles = StyleSheet.create({
     },
     fieldLabel: {
         fontSize: FONT_SIZES.sm,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textSecondary,
         marginBottom: SPACING.xs,
     },
     fieldInput: {
         backgroundColor: COLORS.bgInput,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
-        borderRadius: RADIUS.md,
+        borderRadius: 5,
         paddingHorizontal: SPACING.md,
         paddingVertical: SPACING.md,
         fontSize: FONT_SIZES.md,
@@ -2243,15 +2330,16 @@ const styles = StyleSheet.create({
     // Delete Modal
     deleteModal: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
+        borderRadius: 5,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
         padding: SPACING.xxl,
         alignItems: 'center',
-        ...SHADOWS.lg,
     },
     deleteIconBox: {
-        width: 64,
-        height: 64,
-        borderRadius: RADIUS.full,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         backgroundColor: COLORS.errorLight,
         alignItems: 'center',
         justifyContent: 'center',
@@ -2259,7 +2347,7 @@ const styles = StyleSheet.create({
     },
     deleteTitle: {
         fontSize: FONT_SIZES.xl,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textPrimary,
         marginBottom: SPACING.sm,
     },
@@ -2276,39 +2364,21 @@ const styles = StyleSheet.create({
         width: '100%',
     },
 
-    // ─── PRINT LABELS ────────────────────────
-    printLabelsBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: SPACING.xs,
-        paddingHorizontal: SPACING.md,
-        paddingVertical: SPACING.sm,
-        borderRadius: RADIUS.md,
-        borderWidth: 1.5,
-        borderColor: COLORS.accent,
-        backgroundColor: COLORS.accentLight,
-        minHeight: 46,
-    },
-    printLabelsBtnText: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
-        color: COLORS.accent,
-    },
-
-    // Label Modal
+    // Labels Modal
     labelModalCard: {
         maxWidth: 750,
         maxHeight: '88%',
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
-        ...SHADOWS.lg,
+        borderRadius: 5,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
         overflow: 'hidden',
     },
     checkbox: {
-        width: 22,
-        height: 22,
-        borderRadius: RADIUS.sm / 2,
-        borderWidth: 2,
+        width: 20,
+        height: 20,
+        borderRadius: 3,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         alignItems: 'center',
         justifyContent: 'center',
@@ -2327,7 +2397,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.bgInput,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
         paddingHorizontal: SPACING.lg,
         height: 50,
@@ -2357,7 +2427,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: SPACING.md,
         paddingHorizontal: SPACING.lg,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.borderLight,
         minHeight: 62,
     },
@@ -2372,7 +2442,7 @@ const styles = StyleSheet.create({
     },
     labelProductName: {
         fontSize: FONT_SIZES.md,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textPrimary,
         marginBottom: 2,
     },
@@ -2386,7 +2456,7 @@ const styles = StyleSheet.create({
     },
     labelCopiesLabel: {
         fontSize: 11,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textMuted,
         marginBottom: 4,
         textTransform: 'uppercase',
@@ -2396,8 +2466,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.bgInput,
-        borderRadius: RADIUS.md,
-        borderWidth: 1,
+        borderRadius: 4,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         overflow: 'hidden',
     },
@@ -2413,25 +2483,19 @@ const styles = StyleSheet.create({
         height: 34,
         textAlign: 'center',
         fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textPrimary,
         paddingVertical: 0,
     },
-    labelModalFooter: {
-        flexDirection: 'row',
-        gap: SPACING.md,
-        padding: SPACING.xl,
-        borderTopWidth: 1,
-        borderTopColor: COLORS.border,
-    },
 
-    // ─── AUTO IMPORT MODAL ────────────────────────
+    // Auto Import Modal
     autoImportModalCard: {
         maxWidth: 860,
         maxHeight: '90%',
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
-        ...SHADOWS.lg,
+        borderRadius: 5,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
         overflow: 'hidden',
     },
     autoImportSubtitle: {
@@ -2445,12 +2509,12 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.bgSurface,
         paddingVertical: SPACING.sm,
         paddingHorizontal: SPACING.lg,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
     },
     aiTh: {
         fontSize: FONT_SIZES.xs,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textMuted,
         textTransform: 'uppercase',
         letterSpacing: 0.7,
@@ -2463,7 +2527,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: SPACING.sm,
         paddingHorizontal: SPACING.lg,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.borderLight,
         minHeight: 58,
     },
@@ -2472,9 +2536,9 @@ const styles = StyleSheet.create({
     },
     aiCellInput: {
         backgroundColor: COLORS.white,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
-        borderRadius: RADIUS.sm,
+        borderRadius: 4,
         paddingHorizontal: SPACING.sm,
         paddingVertical: 8,
         fontSize: FONT_SIZES.sm,
@@ -2484,7 +2548,7 @@ const styles = StyleSheet.create({
     aiRemoveBtn: {
         width: 34,
         height: 34,
-        borderRadius: RADIUS.sm,
+        borderRadius: 4,
         backgroundColor: COLORS.errorLight,
         alignItems: 'center',
         justifyContent: 'center',
@@ -2498,19 +2562,19 @@ const styles = StyleSheet.create({
     aiEmptyText: {
         fontSize: FONT_SIZES.md,
         color: COLORS.textMuted,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     aiErrorBanner: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: SPACING.sm,
         backgroundColor: COLORS.errorLight,
-        borderLeftWidth: 4,
+        borderLeftWidth: 3,
         borderLeftColor: COLORS.error,
         marginHorizontal: SPACING.lg,
         marginTop: SPACING.md,
         marginBottom: SPACING.sm,
-        borderRadius: RADIUS.md,
+        borderRadius: 4,
         padding: SPACING.md,
     },
     aiErrorText: {
@@ -2522,8 +2586,8 @@ const styles = StyleSheet.create({
     aiCancelBtn: {
         flex: 1,
         height: 48,
-        borderRadius: RADIUS.md,
-        borderWidth: 1.5,
+        borderRadius: 5,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         alignItems: 'center',
         justifyContent: 'center',
@@ -2531,7 +2595,7 @@ const styles = StyleSheet.create({
     },
     aiCancelBtnText: {
         fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textSecondary,
     },
 
@@ -2551,41 +2615,42 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.success,
         paddingHorizontal: SPACING.xl,
         paddingVertical: SPACING.md,
-        borderRadius: RADIUS.full,
-        ...SHADOWS.md,
+        borderRadius: 5,
+        borderWidth: 0.5,
+        borderColor: COLORS.primaryDark,
     },
     toastText: {
         fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.white,
     },
-    // ─── AUTO IMPORT MODAL ENHANCEMENTS ───
+
+    // Auto Import Responsive Cards
     aiCard: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.md,
-        borderWidth: 1,
+        borderRadius: 4,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         marginVertical: SPACING.sm,
         padding: SPACING.md,
-        ...SHADOWS.sm,
     },
     aiCardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.borderLight,
         paddingBottom: SPACING.sm,
         marginBottom: SPACING.md,
     },
     aiCardIndex: {
         fontSize: 12,
-        fontWeight: '800',
-        color: COLORS.primary,
-        backgroundColor: COLORS.primaryGhost,
+        fontWeight: '500',
+        color: COLORS.white,
+        backgroundColor: COLORS.primary,
         paddingHorizontal: 8,
         paddingVertical: 2,
-        borderRadius: 4,
+        borderRadius: 3,
     },
     aiRemoveBtnSmall: {
         width: 28,
@@ -2607,20 +2672,20 @@ const styles = StyleSheet.create({
     },
     aiFieldLabel: {
         fontSize: 11,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textMuted,
         textTransform: 'uppercase',
     },
-    // ─── MOBILE CARD STYLES ───
+
+    // Mobile Card (Responsive)
     mobileCard: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.md,
+        borderRadius: 5,
         marginHorizontal: 8,
         marginVertical: 6,
         padding: 12,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.borderLight,
-        ...SHADOWS.sm,
     },
     mobileCardHeader: {
         flexDirection: 'row',
@@ -2632,12 +2697,12 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primaryGhost,
         paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: 4,
     },
     mobileCardBody: {
         flexDirection: 'row',
-        backgroundColor: COLORS.bgLight,
-        borderRadius: 8,
+        backgroundColor: COLORS.bgSurface,
+        borderRadius: 4,
         padding: 10,
         marginBottom: 12,
         gap: 20,
@@ -2649,12 +2714,12 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: COLORS.textMuted,
         textTransform: 'uppercase',
-        fontWeight: '700',
+        fontWeight: '500',
         marginBottom: 2,
     },
     mobileStatValue: {
         fontSize: 13,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     mobileCardFooter: {
@@ -2662,7 +2727,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingTop: 10,
-        borderTopWidth: 1,
+        borderTopWidth: 0.5,
         borderTopColor: COLORS.borderLight,
     },
     mobileActionGroup: {
@@ -2677,7 +2742,7 @@ const styles = StyleSheet.create({
     },
     mobileActionText: {
         fontSize: 12,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textSecondary,
     },
 });

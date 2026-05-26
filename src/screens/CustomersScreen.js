@@ -10,10 +10,10 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
-import GradientButton from '../components/GradientButton';
+import { COLORS } from '../constants/theme';
 import Skeleton from '../components/Skeleton';
 import {
     getCustomers,
@@ -49,6 +49,7 @@ const FormField = ({ label, value, onChangeText, placeholder, keyboardType, mult
             keyboardType={keyboardType || "default"}
             multiline={multiline}
             editable={editable}
+            {...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {})}
         />
     </View>
 );
@@ -257,36 +258,31 @@ export default function CustomersScreen({ navigation }) {
                     <Text style={[styles.cellDue, hasDue && styles.cellDueActive]}>
                         ₹{dueBalance.toFixed(2)}
                     </Text>
-                    {hasDue && (
-                        <View style={styles.dueBadge}>
-                            <Text style={styles.dueBadgeText}>Unpaid</Text>
-                        </View>
-                    )}
                 </View>
 
-                <View style={[styles.cell, styles.actionsCell, { flex: 1.5 }]}>
+                <View style={[styles.cell, styles.actionsCell, { flex: 1.5, borderRightWidth: 0 }]}>
                     {hasDue && (
                         <TouchableOpacity
-                            style={[styles.actionBtn, { backgroundColor: COLORS.successLight }]}
-                            onPress={() => openPayModal(item)}
+                            style={[styles.actionBtn, { borderColor: COLORS.primary, backgroundColor: COLORS.primaryGhost }]}
+                            onPress={(e) => { e.stopPropagation(); openPayModal(item); }}
                             title="Clear Dues"
                         >
-                            <Ionicons name="wallet-outline" size={20} color={COLORS.success} />
+                            <Ionicons name="wallet-outline" size={14} color={COLORS.primary} />
                         </TouchableOpacity>
                     )}
                     <TouchableOpacity
                         style={styles.actionBtn}
-                        onPress={() => openEditModal(item)}
+                        onPress={(e) => { e.stopPropagation(); openEditModal(item); }}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                        <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+                        <Ionicons name="create-outline" size={14} color={COLORS.primary} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.actionBtn, styles.actionBtnDanger]}
-                        onPress={() => confirmDelete(item)}
+                        onPress={(e) => { e.stopPropagation(); confirmDelete(item); }}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
-                        <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                        <Ionicons name="trash-outline" size={14} color={COLORS.error} />
                     </TouchableOpacity>
                 </View>
             </TouchableOpacity>
@@ -304,11 +300,10 @@ export default function CustomersScreen({ navigation }) {
                     </Text>
                 </View>
                 <View style={styles.headerActions}>
-                    <GradientButton
-                        title="Add Customer"
-                        onPress={openAddModal}
-                        icon={<Ionicons name="add-circle-outline" size={22} color={COLORS.white} />}
-                    />
+                    <TouchableOpacity style={styles.btnPrimary} onPress={openAddModal}>
+                        <Ionicons name="add-circle-outline" size={16} color={COLORS.white} style={{ marginRight: 6 }} />
+                        <Text style={styles.btnPrimaryText}>Add Customer</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -316,7 +311,7 @@ export default function CustomersScreen({ navigation }) {
             <View style={[styles.filterBar, r.isSmall && { flexDirection: 'column', alignItems: 'stretch' }]}>
                 {/* Search */}
                 <View style={[styles.searchBox, r.isSmall ? { width: '100%' } : { minWidth: 280 }]}>
-                    <Ionicons name="search-outline" size={20} color={COLORS.textMuted} />
+                    <Ionicons name="search-outline" size={16} color={COLORS.textMuted} />
                     <TextInput
                         style={styles.searchInput}
                         value={searchQuery}
@@ -326,7 +321,7 @@ export default function CustomersScreen({ navigation }) {
                     />
                     {searchQuery.length > 0 && (
                         <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+                            <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -336,21 +331,29 @@ export default function CustomersScreen({ navigation }) {
             <View style={styles.tableContainer}>
                 {/* Table Header */}
                 <View style={styles.tableHeader}>
-                    <Text style={[styles.th, { flex: 2 }]}>Customer Name</Text>
-                    <Text style={[styles.th, { flex: 1.5, textAlign: 'center' }]}>Phone</Text>
-                    <Text style={[styles.th, { flex: 1, textAlign: 'center' }]}>Due Balance</Text>
-                    <Text style={[styles.th, { flex: 1.5, textAlign: 'center' }]}>Actions</Text>
+                    <View style={[styles.thCell, { flex: 2 }]}>
+                        <Text style={styles.th}>Customer Name</Text>
+                    </View>
+                    <View style={[styles.thCell, { flex: 1.5, alignItems: 'center' }]}>
+                        <Text style={styles.th}>Phone</Text>
+                    </View>
+                    <View style={[styles.thCell, { flex: 1, alignItems: 'center' }]}>
+                        <Text style={styles.th}>Due Balance</Text>
+                    </View>
+                    <View style={[styles.thCell, { flex: 1.5, alignItems: 'center', borderRightWidth: 0 }]}>
+                        <Text style={styles.th}>Actions</Text>
+                    </View>
                 </View>
 
                 {/* Table Body */}
                 {loading ? (
-                    <View style={{ flex: 1, padding: SPACING.lg, gap: SPACING.md }}>
+                    <View style={{ flex: 1, padding: 12, gap: 8 }}>
                         {[...Array(6)].map((_, i) => (
-                            <View key={i} style={[styles.tableRow, { height: 64, paddingHorizontal: SPACING.lg }]}>
-                                <Skeleton width="30%" height={18} style={{ flex: 2 }} />
-                                <Skeleton width="20%" height={18} style={{ flex: 1.5, alignSelf: 'center' }} />
-                                <Skeleton width="15%" height={20} style={{ flex: 1, alignSelf: 'center' }} />
-                                <Skeleton width="20%" height={24} style={{ flex: 1.5, alignSelf: 'center', marginLeft: SPACING.xl }} />
+                            <View key={i} style={[styles.tableRow, { height: 46, paddingHorizontal: 12 }]}>
+                                <Skeleton width="30%" height={14} style={{ flex: 2 }} />
+                                <Skeleton width="20%" height={14} style={{ flex: 1.5, alignSelf: 'center' }} />
+                                <Skeleton width="15%" height={14} style={{ flex: 1, alignSelf: 'center' }} />
+                                <Skeleton width="20%" height={20} style={{ flex: 1.5, alignSelf: 'center', marginLeft: 16 }} />
                             </View>
                         ))}
                     </View>
@@ -365,17 +368,14 @@ export default function CustomersScreen({ navigation }) {
                     />
                 ) : (
                     <View style={styles.centerBox}>
-                        <Ionicons name="people-outline" size={56} color={COLORS.border} />
+                        <Ionicons name="people-outline" size={44} color={COLORS.border} />
                         <Text style={styles.emptyText}>
                             {searchQuery ? 'No customers match your search' : 'No customers yet'}
                         </Text>
                         {!searchQuery && (
-                            <GradientButton
-                                title="Add First Customer"
-                                small
-                                onPress={openAddModal}
-                                style={{ marginTop: SPACING.md }}
-                            />
+                            <TouchableOpacity style={[styles.btnPrimary, { marginTop: 10 }]} onPress={openAddModal}>
+                                <Text style={styles.btnPrimaryText}>Add First Customer</Text>
+                            </TouchableOpacity>
                         )}
                     </View>
                 )}
@@ -389,11 +389,11 @@ export default function CustomersScreen({ navigation }) {
                         <View style={styles.modalHeader}>
                             <View style={styles.modalHeaderLeft}>
                                 <View style={[styles.modalIcon, {
-                                    backgroundColor: modalMode === 'edit' ? COLORS.warningLight : COLORS.primaryGhost
+                                    backgroundColor: modalMode === 'edit' ? 'rgba(184, 134, 11, 0.10)' : COLORS.primaryGhost
                                 }]}>
                                     <Ionicons
                                         name={modalMode === 'edit' ? 'create-outline' : 'person-add-outline'}
-                                        size={22}
+                                        size={18}
                                         color={modalMode === 'edit' ? COLORS.warning : COLORS.primary}
                                     />
                                 </View>
@@ -402,7 +402,7 @@ export default function CustomersScreen({ navigation }) {
                                 </Text>
                             </View>
                             <TouchableOpacity onPress={closeModal} style={styles.modalCloseBtn}>
-                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                                <Ionicons name="close" size={18} color={COLORS.textMuted} />
                             </TouchableOpacity>
                         </View>
 
@@ -429,19 +429,15 @@ export default function CustomersScreen({ navigation }) {
 
                         {/* Modal Footer */}
                         <View style={styles.modalFooter}>
-                            <GradientButton
-                                title="Cancel"
-                                variant="secondary"
-                                onPress={closeModal}
-                                style={{ flex: 1 }}
-                            />
-                            <GradientButton
-                                title={modalMode === 'edit' ? 'Update Customer' : 'Add Customer'}
-                                onPress={handleSave}
-                                loading={saving}
-                                icon={<Ionicons name={modalMode === 'edit' ? 'checkmark' : 'add'} size={20} color={COLORS.white} />}
-                                style={{ flex: 2 }}
-                            />
+                            <TouchableOpacity style={[styles.btnSecondary, { flex: 1 }]} onPress={closeModal}>
+                                <Text style={styles.btnSecondaryText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.btnPrimary, { flex: 2 }]} onPress={handleSave}>
+                                <Ionicons name={modalMode === 'edit' ? 'checkmark' : 'add'} size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                                <Text style={styles.btnPrimaryText}>
+                                    {modalMode === 'edit' ? 'Update Customer' : 'Add Customer'}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
@@ -454,12 +450,12 @@ export default function CustomersScreen({ navigation }) {
                         <View style={styles.modalHeader}>
                             <View style={styles.modalHeaderLeft}>
                                 <View style={[styles.modalIcon, { backgroundColor: COLORS.successLight }]}>
-                                    <Ionicons name="wallet-outline" size={22} color={COLORS.success} />
+                                    <Ionicons name="wallet-outline" size={18} color={COLORS.primary} />
                                 </View>
                                 <Text style={styles.modalTitle}>Clear Dues</Text>
                             </View>
                             <TouchableOpacity onPress={() => setPayModalVisible(false)} style={styles.modalCloseBtn}>
-                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                                <Ionicons name="close" size={18} color={COLORS.textMuted} />
                             </TouchableOpacity>
                         </View>
 
@@ -479,7 +475,7 @@ export default function CustomersScreen({ navigation }) {
                                 />
                             </View>
 
-                            <Text style={[styles.fieldLabel, { marginBottom: SPACING.sm }]}>Payment Method</Text>
+                            <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>Payment Method</Text>
                             <View style={styles.methodRow}>
                                 {['cash', 'upi', 'card'].map(m => (
                                     <TouchableOpacity
@@ -500,19 +496,13 @@ export default function CustomersScreen({ navigation }) {
                         </View>
 
                         <View style={styles.modalFooter}>
-                            <GradientButton
-                                title="Cancel"
-                                variant="secondary"
-                                onPress={() => setPayModalVisible(false)}
-                                style={{ flex: 1 }}
-                            />
-                            <GradientButton
-                                title="Record Payment"
-                                onPress={handlePayDue}
-                                loading={paying}
-                                icon={<Ionicons name="checkmark" size={20} color={COLORS.white} />}
-                                style={{ flex: 1.5 }}
-                            />
+                            <TouchableOpacity style={[styles.btnSecondary, { flex: 1 }]} onPress={() => setPayModalVisible(false)}>
+                                <Text style={styles.btnSecondaryText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.btnPrimary, { flex: 1.5 }]} onPress={handlePayDue}>
+                                <Ionicons name="checkmark" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                                <Text style={styles.btnPrimaryText}>Record Payment</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
@@ -523,7 +513,7 @@ export default function CustomersScreen({ navigation }) {
                 <View style={styles.modalOverlay}>
                     <View style={[styles.deleteModal, { width: r.pick({ small: '90%', medium: 400, large: 400, xlarge: 400 }) }]}>
                         <View style={styles.deleteIconBox}>
-                            <Ionicons name="warning" size={36} color={COLORS.error} />
+                            <Ionicons name="warning-outline" size={32} color={COLORS.error} />
                         </View>
                         <Text style={styles.deleteTitle}>Delete Customer?</Text>
                         <Text style={styles.deleteDesc}>
@@ -534,23 +524,22 @@ export default function CustomersScreen({ navigation }) {
                             ? This action cannot be undone.
                         </Text>
                         <View style={styles.deleteActions}>
-                            <GradientButton
-                                title="Cancel"
-                                variant="secondary"
+                            <TouchableOpacity
+                                style={[styles.btnSecondary, { flex: 1 }]}
                                 onPress={() => {
                                     setDeleteModalVisible(false);
                                     setDeletingCustomer(null);
                                 }}
-                                style={{ flex: 1 }}
-                            />
-                            <GradientButton
-                                title="Delete"
-                                variant="danger"
+                            >
+                                <Text style={styles.btnSecondaryText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.btnDanger, { flex: 1 }]}
                                 onPress={handleDelete}
-                                loading={deleting}
-                                icon={<Ionicons name="trash" size={18} color={COLORS.white} />}
-                                style={{ flex: 1 }}
-                            />
+                            >
+                                <Ionicons name="trash-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                                <Text style={styles.btnDangerText}>Delete</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
@@ -564,26 +553,25 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.bgDark,
+        padding: 12,
     },
-
     // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: SPACING.xxl,
-        paddingVertical: SPACING.lg,
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
+        paddingBottom: 10,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
+        marginBottom: 10,
     },
     headerTitle: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     headerSub: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 11,
         color: COLORS.textMuted,
         marginTop: 2,
     },
@@ -591,272 +579,335 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-
     // Filter Bar
     filterBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: SPACING.xxl,
-        paddingVertical: SPACING.md,
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
+        paddingBottom: 10,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
+        marginBottom: 10,
     },
     searchBox: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.bgInput,
-        borderRadius: RADIUS.md,
-        borderWidth: 1,
+        borderRadius: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
-        paddingHorizontal: SPACING.md,
-        height: 44,
-        gap: SPACING.sm,
+        paddingHorizontal: 8,
+        height: 32,
+        gap: 6,
     },
     searchInput: {
         flex: 1,
-        fontSize: FONT_SIZES.sm,
+        fontSize: 12,
         color: COLORS.textPrimary,
+        height: '100%',
+        paddingVertical: 0,
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
-
     // Table
     tableContainer: {
         flex: 1,
-        marginHorizontal: SPACING.xxl,
-        marginTop: SPACING.lg,
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.lg,
-        borderWidth: 1,
+        borderRadius: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         overflow: 'hidden',
-        ...SHADOWS.sm,
     },
     tableHeader: {
         flexDirection: 'row',
-        backgroundColor: COLORS.bgSurface,
-        paddingVertical: SPACING.md,
-        paddingHorizontal: SPACING.lg,
-        borderBottomWidth: 1,
+        alignItems: 'stretch',
+        backgroundColor: '#EFF2F1',
+        height: 34,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
     },
+    thCell: {
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
+        height: '100%',
+    },
     th: {
-        fontSize: FONT_SIZES.xs,
-        fontWeight: '700',
+        fontSize: 10,
+        fontWeight: '500',
         color: COLORS.textMuted,
         textTransform: 'uppercase',
-        letterSpacing: 0.8,
+        letterSpacing: 0.5,
     },
     tableRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: SPACING.md,
-        paddingHorizontal: SPACING.lg,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.borderLight,
-        minHeight: 64,
+        alignItems: 'stretch',
+        height: 46,
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
     },
     tableRowAlt: {
-        backgroundColor: COLORS.bgInput,
+        backgroundColor: '#F8FAF9',
     },
     cell: {
-        paddingRight: SPACING.sm,
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
+        height: '100%',
     },
     cellName: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '600',
+        fontSize: 12,
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     cellText: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 12,
         color: COLORS.textSecondary,
     },
     cellDue: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '700',
+        fontSize: 12,
+        fontWeight: '600',
         color: COLORS.textMuted,
     },
     cellDueActive: {
         color: COLORS.error,
     },
-    dueBadge: {
-        marginTop: 4,
-        paddingHorizontal: SPACING.sm,
-        paddingVertical: 2,
-        borderRadius: RADIUS.full,
-        backgroundColor: COLORS.errorLight,
-    },
-    dueBadgeText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: COLORS.error,
-    },
     actionsCell: {
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: SPACING.sm,
+        alignItems: 'center',
+        gap: 6,
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
     },
     actionBtn: {
-        width: 42,
-        height: 42,
-        borderRadius: RADIUS.md,
-        backgroundColor: COLORS.primaryGhost,
+        width: 28,
+        height: 28,
+        borderRadius: 2,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.white,
         alignItems: 'center',
         justifyContent: 'center',
     },
     actionBtnDanger: {
         backgroundColor: COLORS.errorLight,
+        borderColor: COLORS.error,
     },
     centerBox: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: SPACING.xxxl,
-        gap: SPACING.sm,
+        padding: 40,
+        gap: 8,
+        opacity: 0.20,
     },
     emptyText: {
-        fontSize: FONT_SIZES.lg,
+        fontSize: 14,
         color: COLORS.textMuted,
-        fontWeight: '600',
+        fontWeight: '500',
     },
-
-    // Form
+    // Form / Fields
     fieldContainer: {
-        marginBottom: SPACING.lg,
+        marginBottom: 12,
     },
     fieldLabel: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '600',
-        color: COLORS.textPrimary,
-        marginBottom: SPACING.xs,
+        fontSize: 11,
+        fontWeight: '500',
+        color: COLORS.textSecondary,
+        marginBottom: 4,
+        textTransform: 'uppercase',
     },
     fieldInput: {
         backgroundColor: COLORS.bgInput,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
-        borderRadius: RADIUS.md,
-        paddingHorizontal: SPACING.md,
-        minHeight: 48,
-        fontSize: FONT_SIZES.md,
+        borderRadius: 2,
+        paddingHorizontal: 8,
+        height: 34,
+        fontSize: 12,
         color: COLORS.textPrimary,
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
-
+    fieldInputMultiline: {
+        minHeight: 60,
+        textAlignVertical: 'top',
+        paddingVertical: 6,
+    },
+    fieldInputDisabled: {
+        backgroundColor: COLORS.bgSurface,
+        color: COLORS.textMuted,
+    },
+    // Buttons (Flat POS style)
+    btnPrimary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 2,
+        backgroundColor: COLORS.primary,
+        borderWidth: 0.5,
+        borderColor: COLORS.primary,
+    },
+    btnPrimaryText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.white,
+    },
+    btnSecondary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 2,
+        backgroundColor: COLORS.white,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+    },
+    btnSecondaryText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+    },
+    btnDanger: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 2,
+        backgroundColor: COLORS.error,
+        borderWidth: 0.5,
+        borderColor: COLORS.error,
+    },
+    btnDangerText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.white,
+    },
     // Modal
     modalOverlay: {
         flex: 1,
         backgroundColor: COLORS.overlay,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: SPACING.xl,
+        padding: 16,
     },
     modalCard: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
+        borderRadius: 3,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
         overflow: 'hidden',
         maxHeight: '90%',
-        ...SHADOWS.lg,
     },
     modalHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: SPACING.xl,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         backgroundColor: COLORS.bgSurface,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
     },
     modalHeaderLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: SPACING.md,
+        gap: 8,
     },
     modalIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: RADIUS.md,
+        width: 28,
+        height: 28,
+        borderRadius: 2,
         alignItems: 'center',
         justifyContent: 'center',
     },
     modalTitle: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: '800',
+        fontSize: 14,
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     modalCloseBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: RADIUS.full,
-        backgroundColor: COLORS.border,
+        width: 24,
+        height: 24,
+        borderRadius: 2,
+        backgroundColor: 'rgba(0,0,0,0.05)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     modalBody: {
-        padding: SPACING.xl,
+        padding: 16,
+    },
+    formGrid: {
+        gap: 10,
     },
     modalFooter: {
         flexDirection: 'row',
-        gap: SPACING.md,
-        padding: SPACING.xl,
+        gap: 8,
+        padding: 16,
         backgroundColor: COLORS.bgSurface,
-        borderTopWidth: 1,
+        borderTopWidth: 0.5,
         borderTopColor: COLORS.border,
     },
-    formGrid: {
-        gap: SPACING.md,
-    },
-
     // Delete Modal
     deleteModal: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
-        padding: SPACING.xxl,
+        borderRadius: 3,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        padding: 20,
         alignItems: 'center',
-        ...SHADOWS.lg,
     },
     deleteIconBox: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
         backgroundColor: COLORS.errorLight,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: SPACING.xl,
+        marginBottom: 16,
+        borderWidth: 0.5,
+        borderColor: COLORS.error,
     },
     deleteTitle: {
-        fontSize: FONT_SIZES.xxl,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '500',
         color: COLORS.textPrimary,
-        marginBottom: SPACING.sm,
+        marginBottom: 8,
         textAlign: 'center',
     },
     deleteDesc: {
-        fontSize: FONT_SIZES.md,
+        fontSize: 12,
         color: COLORS.textSecondary,
         textAlign: 'center',
-        marginBottom: SPACING.xxl,
-        lineHeight: 24,
+        marginBottom: 20,
+        lineHeight: 18,
     },
     deleteActions: {
         flexDirection: 'row',
-        gap: SPACING.md,
+        gap: 8,
         width: '100%',
     },
-
-    // Pay Due Styles
+    // Pay Due
     payDuesTitle: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '700',
+        fontSize: 13,
+        fontWeight: '500',
         color: COLORS.textPrimary,
-        marginBottom: SPACING.xl,
+        marginBottom: 16,
     },
     methodRow: {
         flexDirection: 'row',
-        gap: SPACING.md,
+        gap: 8,
+        marginBottom: 12,
     },
     methodTab: {
         flex: 1,
-        height: 44,
-        borderRadius: RADIUS.md,
-        borderWidth: 1,
+        height: 34,
+        borderRadius: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         alignItems: 'center',
         justifyContent: 'center',
@@ -867,8 +918,8 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primaryGhost,
     },
     methodText: {
-        fontSize: FONT_SIZES.xs,
-        fontWeight: '700',
+        fontSize: 10,
+        fontWeight: '600',
         color: COLORS.textMuted,
     },
     methodTextActive: {

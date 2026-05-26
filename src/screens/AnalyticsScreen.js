@@ -13,7 +13,7 @@ import {
     Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
+import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 import Skeleton from '../components/Skeleton';
 import api from '../services/api';
@@ -43,6 +43,7 @@ export default function AnalyticsScreen({ navigation }) {
             });
         }, 3000);
     }, [toastOpacity]);
+    
     const [recentSales, setRecentSales] = useState([]);
     const [allSales, setAllSales] = useState([]);
     const [showAllSalesModal, setShowAllSalesModal] = useState(false);
@@ -65,8 +66,8 @@ export default function AnalyticsScreen({ navigation }) {
                 style: {
                     flex: 1,
                     marginLeft: 8,
-                    fontSize: 14,
-                    color: '#1f2937',
+                    fontSize: 12,
+                    color: COLORS.textPrimary,
                     border: 'none',
                     outline: 'none',
                     backgroundColor: 'transparent'
@@ -88,12 +89,10 @@ export default function AnalyticsScreen({ navigation }) {
         try {
             const todayReq = api.get('/sales/today').catch(e => null);
             const monthReq = api.get('/sales/monthly').catch(e => null);
-            // Use a large limit to allow local aggregation of history for daily/monthly arrays
             const invoicesReq = api.get('/sales/history', { params: { page: 1, limit: 5000, sort: 'desc' } }).catch(e => null);
 
             const [todayRes, monthRes, invoicesRes] = await Promise.all([todayReq, monthReq, invoicesReq]);
 
-            // Safely extract the monetary value from the response
             const extractValue = (res) => {
                 if (!res || !res.data) return 0;
                 if (typeof res.data === 'number') return res.data;
@@ -113,10 +112,10 @@ export default function AnalyticsScreen({ navigation }) {
                         ? resData.invoices
                         : []));
 
-            setRecentSales(fullList.slice(0, 10)); // Use top 10 for recent
-            setAllSales(fullList); // Store full list for View All modal
+            setRecentSales(fullList.slice(0, 10)); 
+            setAllSales(fullList); 
 
-            // Generate aggregate daily/monthly maps locally
+            // Aggregate daily/monthly locally
             const dMap = {};
             const mMap = {};
             const pMap = {};
@@ -178,11 +177,9 @@ export default function AnalyticsScreen({ navigation }) {
         try {
             setDeletingId(sale._id);
             await api.delete(`/sales/history/${sale._id}`);
-            // Remove from local state immediately for snappy UX
             setRecentSales(prev => prev.filter(s => s._id !== sale._id));
             setAllSales(prev => prev.filter(s => s._id !== sale._id));
             showToast('Sale deleted successfully', 'success');
-            // Refresh analytics totals
             fetchAnalytics();
         } catch (error) {
             const msg = error?.message || 'Failed to delete sale';
@@ -192,379 +189,509 @@ export default function AnalyticsScreen({ navigation }) {
         }
     };
 
-    const scrollPadding = r.pick({ small: SPACING.md, medium: SPACING.lg, large: SPACING.xxl, xlarge: SPACING.xxl });
-    const statCardStyle = r.isSmall ? { width: '100%', marginBottom: SPACING.md } : { flex: 1 };
-
     return (
         <View style={styles.container}>
-            <View style={[styles.header, { paddingHorizontal: scrollPadding, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }]}>
+            {/* ─── HEADER ─── */}
+            <View style={styles.header}>
                 <View>
-                    <Text style={[styles.headerTitle, { fontSize: r.pick({ small: FONT_SIZES.xl, medium: FONT_SIZES.xxl, large: FONT_SIZES.xxl, xlarge: FONT_SIZES.xxl }) }]}>
-                        Sales Analytics
-                    </Text>
+                    <Text style={styles.headerTitle}>Sales Analytics</Text>
                     <Text style={styles.headerSub}>Overview of your business performance</Text>
                 </View>
-                <TouchableOpacity
-                    style={styles.moreInfoBtn}
-                    onPress={() => setShowMoreModal(true)}
-                >
-                    <Ionicons name="bar-chart-outline" size={18} color={COLORS.primary} />
-                    <Text style={styles.moreInfoBtnText}>More Analytical Info</Text>
+                <TouchableOpacity style={styles.btnSecondary} onPress={() => setShowMoreModal(true)}>
+                    <Ionicons name="bar-chart-outline" size={14} color={COLORS.primary} style={{ marginRight: 6 }} />
+                    <Text style={styles.btnSecondaryText}>More Analytical Info</Text>
                 </TouchableOpacity>
             </View>
 
+            {/* ─── CONTENT BODY ─── */}
             <ScrollView
-                contentContainerStyle={[styles.scroll, { padding: scrollPadding }]}
+                contentContainerStyle={styles.scroll}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+                showsVerticalScrollIndicator={false}
             >
                 {loading ? (
-                    <View>
-                        <View style={[styles.statsRow, r.isSmall && { flexDirection: 'column' }, { marginBottom: SPACING.xxl }]}>
-                            <View style={[styles.statCard, statCardStyle, { height: 130 }]}><Skeleton width="100%" height="100%" borderRadius={RADIUS.md} /></View>
-                            <View style={[styles.statCard, statCardStyle, { height: 130 }]}><Skeleton width="100%" height="100%" borderRadius={RADIUS.md} /></View>
+                    <View style={{ gap: 12 }}>
+                        <View style={[styles.statsRow, r.isSmall && { flexDirection: 'column' }]}>
+                            <View style={[styles.statCard, { height: 80, flex: 1 }]}><Skeleton width="100%" height="100%" /></View>
+                            <View style={[styles.statCard, { height: 80, flex: 1 }]}><Skeleton width="100%" height="100%" /></View>
                         </View>
-                        <Text style={[styles.sectionTitle, { opacity: 0.5 }]}>Recent Sales History</Text>
-                        {[...Array(5)].map((_, i) => (
-                            <View key={i} style={{ height: 80, marginBottom: SPACING.md, borderRadius: RADIUS.md, overflow: 'hidden' }}>
-                                <Skeleton width="100%" height="100%" borderRadius={RADIUS.md} />
+                        <Text style={[styles.sectionTitle, { opacity: 0.20, marginTop: 10 }]}>Recent Sales History</Text>
+                        <View style={styles.tableContainer}>
+                            <View style={styles.tableHeader}>
+                                <View style={[styles.thCell, { flex: 1.5 }]}><Skeleton width="40%" height={10} /></View>
+                                <View style={[styles.thCell, { flex: 2 }]}><Skeleton width="50%" height={10} /></View>
+                                <View style={[styles.thCell, { flex: 1.2 }]}><Skeleton width="30%" height={10} /></View>
+                                <View style={[styles.thCell, { flex: 1.5 }]}><Skeleton width="40%" height={10} /></View>
+                                <View style={[styles.thCell, { flex: 2, borderRightWidth: 0 }]}><Skeleton width="40%" height={10} /></View>
                             </View>
-                        ))}
+                            {[...Array(6)].map((_, i) => (
+                                <View key={i} style={[styles.tableRow, { height: 46 }]}>
+                                    <View style={[styles.cell, { flex: 1.5 }]}><Skeleton width="50%" height={12} /></View>
+                                    <View style={[styles.cell, { flex: 2 }]}><Skeleton width="70%" height={12} /></View>
+                                    <View style={[styles.cell, { flex: 1.2 }]}><Skeleton width="40%" height={12} /></View>
+                                    <View style={[styles.cell, { flex: 1.5 }]}><Skeleton width="60%" height={12} /></View>
+                                    <View style={[styles.cell, { flex: 2, borderRightWidth: 0 }]}><Skeleton width="50%" height={16} /></View>
+                                </View>
+                            ))}
+                        </View>
                     </View>
                 ) : (
-                    <View style={[styles.statsRow, r.isSmall && { flexDirection: 'column' }]}>
-                        {/* Today's Sale */}
-                        <View style={[styles.statCard, statCardStyle]}>
-                            <View style={styles.statHeader}>
-                                <View style={[styles.iconBox, { backgroundColor: COLORS.primaryGhost }]}>
-                                    <Ionicons name="today" size={24} color={COLORS.primary} />
+                    <View style={{ gap: 12 }}>
+                        {/* Stats Cards Row */}
+                        <View style={[styles.statsRow, r.isSmall && { flexDirection: 'column' }]}>
+                            {/* Today's Sale */}
+                            <View style={[styles.statCard, { flex: 1 }]}>
+                                <View style={styles.statHeader}>
+                                    <View style={[styles.iconBox, { backgroundColor: COLORS.primaryGhost }]}>
+                                        <Ionicons name="today" size={16} color={COLORS.primary} />
+                                    </View>
+                                    <Text style={styles.statLabel}>Today's Sale</Text>
                                 </View>
-                                <Text style={styles.statLabel}>Today's Sale</Text>
-
+                                <Text style={styles.statValue}>
+                                    ₹{Number(todaySales).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Text>
                             </View>
 
-                            <Text style={styles.statValue}>
-                                ₹{Number(todaySales).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </Text>
-                        </View>
-
-                        {/* Monthly Sale */}
-                        <View style={[styles.statCard, statCardStyle]}>
-                            <View style={styles.statHeader}>
-                                <View style={[styles.iconBox, { backgroundColor: COLORS.successLight }]}>
-                                    <Ionicons name="calendar-outline" size={24} color={COLORS.success} />
+                            {/* Monthly Sale */}
+                            <View style={[styles.statCard, { flex: 1 }]}>
+                                <View style={styles.statHeader}>
+                                    <View style={[styles.iconBox, { backgroundColor: COLORS.successLight }]}>
+                                        <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
+                                    </View>
+                                    <Text style={styles.statLabel}>Monthly Sale</Text>
                                 </View>
-                                <Text style={styles.statLabel}>Monthly Sale</Text>
+                                <Text style={styles.statValue}>
+                                    ₹{Number(monthlySales).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Text>
                             </View>
-                            <Text style={styles.statValue}>
-                                ₹{Number(monthlySales).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </Text>
                         </View>
-                    </View>
-                )}
 
-                {!loading && (
-                    <View style={styles.historySection}>
-                        <View style={styles.sectionHeaderRow}>
-                            <Text style={styles.sectionTitle}>Recent Sales History</Text>
-                            <TouchableOpacity
-                                style={styles.viewAllBtn}
-                                onPress={() => { setAllSalesSearch(''); setShowAllSalesModal(true); }}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.viewAllBtnText}>View All</Text>
-                                <Ionicons name="arrow-forward" size={14} color={COLORS.primary} />
-                            </TouchableOpacity>
-                        </View>
-                        {recentSales.length > 0 ? (
-                            recentSales.map((sale, idx) => (
-                                <View key={sale._id || idx} style={styles.saleRow}>
-                                    <View style={styles.saleInfo}>
-                                        <Text style={styles.saleId}>Invoice {sale.invoice_number ? `#${sale.invoice_number}` : sale._id.slice(-6).toUpperCase()}</Text>
-                                        <Text style={styles.saleDetails}>
-                                            ₹{Number(sale.grand_total || sale.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • {String(sale.payment_method || 'CASH').toUpperCase()}
-                                        </Text>
-                                        <Text style={styles.saleTime}>
-                                            {new Date(sale.created_at || sale.createdAt || sale.date || new Date()).toLocaleString('en-IN', {
-                                                day: '2-digit', month: 'short', year: 'numeric',
-                                                hour: '2-digit', minute: '2-digit', hour12: true
-                                            })}
-                                        </Text>
+                        {/* Recent Sales History Section */}
+                        <View style={styles.historySection}>
+                            <View style={styles.sectionHeaderRow}>
+                                <Text style={styles.sectionTitle}>Recent Sales History</Text>
+                                <TouchableOpacity
+                                    style={styles.btnSecondary}
+                                    onPress={() => { setAllSalesSearch(''); setShowAllSalesModal(true); }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={[styles.btnSecondaryText, { color: COLORS.primary }]}>View All</Text>
+                                    <Ionicons name="arrow-forward" size={12} color={COLORS.primary} style={{ marginLeft: 6 }} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.tableContainer}>
+                                {/* Table Header */}
+                                <View style={styles.tableHeader}>
+                                    <View style={[styles.thCell, { flex: 1.5 }]}>
+                                        <Text style={styles.th}>Invoice No.</Text>
                                     </View>
-                                    <View style={{ flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' }}>
-                                        <TouchableOpacity
-                                            style={[styles.printBtn, { backgroundColor: COLORS.warningLight }]}
-                                            onPress={() => navigation.navigate('Billing', { invoice: sale })}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Ionicons name="pencil-outline" size={18} color={COLORS.warning} />
-                                            <Text style={[styles.printBtnText, { color: COLORS.warning }]}>Edit</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.printBtn, { backgroundColor: COLORS.errorLight }]}
-                                            onPress={() => handleDeleteSale(sale)}
-                                            activeOpacity={0.7}
-                                            disabled={deletingId === sale._id}
-                                        >
-                                            {deletingId === sale._id ? (
-                                                <ActivityIndicator size="small" color={COLORS.error} />
-                                            ) : (
-                                                <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-                                            )}
-                                            <Text style={[styles.printBtnText, { color: COLORS.error }]}>Delete</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={styles.printBtn}
-                                            onPress={() => printReceipt58mm(sale)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Ionicons name="print-outline" size={18} color={COLORS.primary} />
-                                            <Text style={styles.printBtnText}>Print</Text>
-                                        </TouchableOpacity>
+                                    <View style={[styles.thCell, { flex: 2 }]}>
+                                        <Text style={styles.th}>Date & Time</Text>
+                                    </View>
+                                    <View style={[styles.thCell, { flex: 1.2, alignItems: 'center' }]}>
+                                        <Text style={styles.th}>Method</Text>
+                                    </View>
+                                    <View style={[styles.thCell, { flex: 1.5, alignItems: 'flex-end' }]}>
+                                        <Text style={styles.th}>Total Amount</Text>
+                                    </View>
+                                    <View style={[styles.thCell, { flex: 2, alignItems: 'center', borderRightWidth: 0 }]}>
+                                        <Text style={styles.th}>Actions</Text>
                                     </View>
                                 </View>
-                            ))
-                        ) : (
-                            <Text style={styles.emptyText}>No recent sales found.</Text>
-                        )}
+
+                                {/* Table Body Rows */}
+                                {recentSales.length > 0 ? (
+                                    recentSales.map((sale, idx) => {
+                                        const invoiceNum = sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6).toUpperCase();
+                                        const method = String(sale.payment_method || 'CASH').toUpperCase();
+                                        const total = Number(sale.grand_total || sale.total || 0).toFixed(2);
+                                        const timeStr = new Date(sale.created_at || sale.createdAt || sale.date || new Date()).toLocaleString('en-IN', {
+                                            day: '2-digit', month: 'short', year: 'numeric',
+                                            hour: '2-digit', minute: '2-digit', hour12: true
+                                        });
+                                        return (
+                                            <View key={sale._id || idx} style={[styles.tableRow, idx % 2 === 1 && styles.tableRowAlt]}>
+                                                <View style={[styles.cell, { flex: 1.5 }]}>
+                                                    <Text style={styles.cellName} numberOfLines={1}>{invoiceNum}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 2 }]}>
+                                                    <Text style={styles.cellText}>{timeStr}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 1.2, alignItems: 'center' }]}>
+                                                    <Text style={styles.cellText}>{method}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 1.5, alignItems: 'flex-end' }]}>
+                                                    <Text style={[styles.cellText, { fontWeight: '600', color: COLORS.primary }]}>₹{total}</Text>
+                                                </View>
+                                                <View style={[styles.cell, styles.actionsCell, { flex: 2, borderRightWidth: 0 }]}>
+                                                    <TouchableOpacity
+                                                        style={[styles.actionBtn, { borderColor: COLORS.warning, backgroundColor: COLORS.warningLight }]}
+                                                        onPress={() => navigation.navigate('Billing', { invoice: sale })}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons name="pencil-outline" size={14} color={COLORS.warning} />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={[styles.actionBtn, styles.actionBtnDanger]}
+                                                        onPress={() => handleDeleteSale(sale)}
+                                                        activeOpacity={0.7}
+                                                        disabled={deletingId === sale._id}
+                                                    >
+                                                        {deletingId === sale._id ? (
+                                                            <ActivityIndicator size="small" color={COLORS.error} />
+                                                        ) : (
+                                                            <Ionicons name="trash-outline" size={14} color={COLORS.error} />
+                                                        )}
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.actionBtn}
+                                                        onPress={() => printReceipt58mm(sale)}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons name="print-outline" size={14} color={COLORS.primary} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        );
+                                    })
+                                ) : (
+                                    <View style={styles.centerBox}>
+                                        <Ionicons name="bar-chart-outline" size={44} color={COLORS.border} />
+                                        <Text style={styles.emptyText}>No recent sales found</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
                     </View>
                 )}
             </ScrollView>
 
-            <Modal visible={showMoreModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowMoreModal(false)}>
+            {/* ─── DETAILED REPORTS MODAL ─── */}
+            <Modal visible={showMoreModal} animationType="fade" transparent onRequestClose={() => setShowMoreModal(false)}>
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Detailed Sales Reports</Text>
-                        <TouchableOpacity onPress={() => setShowMoreModal(false)} style={styles.closeModalBtn}>
-                            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-                        </TouchableOpacity>
-                    </View>
+                    <View style={[styles.modalCard, { width: r.pick({ small: '95%', medium: '90%', large: '80%', xlarge: 960 }), height: '90%' }]}>
+                        {/* Modal Header */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <View style={[styles.modalIcon, { backgroundColor: COLORS.primarySoft }]}>
+                                    <Ionicons name="bar-chart-outline" size={18} color={COLORS.primary} />
+                                </View>
+                                <Text style={styles.modalTitle}>Detailed Sales Reports</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowMoreModal(false)} style={styles.modalCloseBtn}>
+                                <Ionicons name="close" size={18} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
 
-                    <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
-                        <View style={[styles.statsRow, { flexDirection: r.isSmall ? 'column' : 'row' }]}>
-                            {/* Daily Table */}
-                            <View style={[styles.statCard, { flex: 1, padding: SPACING.lg, marginBottom: r.isSmall ? SPACING.md : 0 }]}>
-                                <View style={styles.reportHeaderWrap}>
-                                    <Text style={styles.reportTitle}>Daily Sales</Text>
-                                    <View style={styles.pickerBox}>
-                                        <Ionicons name="calendar-outline" size={16} color={COLORS.textMuted} />
-                                        {renderNativePicker('date', dailySearch, setDailySearch)}
-                                        {dailySearch.length > 0 && (
-                                            <TouchableOpacity onPress={() => setDailySearch('')}>
-                                                <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
-                                            </TouchableOpacity>
-                                        )}
+                        {/* Scrollable Report Body */}
+                        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }} showsVerticalScrollIndicator={false}>
+                            <View style={[styles.reportFlexRow, r.isSmall && { flexDirection: 'column' }]}>
+                                {/* Daily Sales Table */}
+                                <View style={[styles.reportCol, { flex: 1 }]}>
+                                    <View style={styles.reportHeaderWrap}>
+                                        <Text style={styles.reportTitle}>Daily Sales</Text>
+                                        <View style={styles.searchBox}>
+                                            <Ionicons name="calendar-outline" size={14} color={COLORS.textMuted} />
+                                            {renderNativePicker('date', dailySearch, setDailySearch)}
+                                            {dailySearch.length > 0 && (
+                                                <TouchableOpacity onPress={() => setDailySearch('')}>
+                                                    <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    </View>
+
+                                    <View style={[styles.tableContainer, { minHeight: 250, maxHeight: 350 }]}>
+                                        <View style={styles.tableHeader}>
+                                            <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.th}>Date</Text></View>
+                                            <View style={[styles.thCell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={styles.th}>Sales Amount</Text></View>
+                                        </View>
+                                        <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
+                                            {dailyData.filter(d => d.date.includes(dailySearch)).slice(0, 30).map((d, idx) => (
+                                                <View key={d.date} style={[styles.tableRow, { height: 36 }, idx % 2 === 1 && styles.tableRowAlt]}>
+                                                    <View style={[styles.cell, { flex: 1 }]}><Text style={styles.cellText}>{d.date}</Text></View>
+                                                    <View style={[styles.cell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={[styles.cellText, { fontWeight: '600', color: COLORS.primary }]}>₹{Number(d.total).toFixed(2)}</Text></View>
+                                                </View>
+                                            ))}
+                                            {dailyData.filter(d => d.date.includes(dailySearch)).length === 0 && (
+                                                <View style={styles.centerBox}><Text style={styles.emptyText}>No daily sales found</Text></View>
+                                            )}
+                                        </ScrollView>
                                     </View>
                                 </View>
-                                <View style={styles.reportDivider} />
-                                {dailyData.filter(d => d.date.includes(dailySearch)).slice(0, 30).map((d) => (
-                                    <View key={d.date} style={styles.reportRow}>
-                                        <Text style={styles.reportDate}>{d.date}</Text>
-                                        <Text style={styles.reportAmount}>₹{Number(d.total).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+
+                                {/* Monthly Sales Table */}
+                                <View style={[styles.reportCol, { flex: 1 }]}>
+                                    <View style={styles.reportHeaderWrap}>
+                                        <Text style={styles.reportTitle}>Monthly Sales</Text>
+                                        <View style={styles.searchBox}>
+                                            <Ionicons name="calendar" size={14} color={COLORS.textMuted} />
+                                            {renderNativePicker('month', monthlySearch, setMonthlySearch)}
+                                            {monthlySearch.length > 0 && (
+                                                <TouchableOpacity onPress={() => setMonthlySearch('')}>
+                                                    <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
                                     </View>
-                                ))}
-                                {dailyData.filter(d => d.date.includes(dailySearch)).length === 0 && (
-                                    <Text style={styles.emptyText}>No daily sales found</Text>
-                                )}
+
+                                    <View style={[styles.tableContainer, { minHeight: 250, maxHeight: 350 }]}>
+                                        <View style={styles.tableHeader}>
+                                            <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.th}>Month</Text></View>
+                                            <View style={[styles.thCell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={styles.th}>Sales Amount</Text></View>
+                                        </View>
+                                        <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
+                                            {monthlyData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).slice(0, 15).map((d, idx) => (
+                                                <View key={d.monthId} style={[styles.tableRow, { height: 36 }, idx % 2 === 1 && styles.tableRowAlt]}>
+                                                    <View style={[styles.cell, { flex: 1 }]}><Text style={styles.cellText}>{d.month}</Text></View>
+                                                    <View style={[styles.cell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={[styles.cellText, { fontWeight: '600', color: COLORS.primary }]}>₹{Number(d.total).toFixed(2)}</Text></View>
+                                                </View>
+                                            ))}
+                                            {monthlyData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).length === 0 && (
+                                                <View style={styles.centerBox}><Text style={styles.emptyText}>No monthly sales found</Text></View>
+                                            )}
+                                        </ScrollView>
+                                    </View>
+                                </View>
                             </View>
 
-                            {/* Monthly Table */}
-                            <View style={[styles.statCard, { flex: 1, padding: SPACING.lg }]}>
+                            {/* Monthly Profit Table */}
+                            <View style={[styles.reportCol, { marginTop: 16 }]}>
                                 <View style={styles.reportHeaderWrap}>
-                                    <Text style={styles.reportTitle}>Monthly Sales</Text>
-                                    <View style={styles.pickerBox}>
-                                        <Ionicons name="calendar" size={16} color={COLORS.textMuted} />
+                                    <Text style={styles.reportTitle}>Monthly Net Profit</Text>
+                                    <View style={styles.searchBox}>
+                                        <Ionicons name="trending-up" size={14} color={COLORS.textMuted} />
                                         {renderNativePicker('month', monthlySearch, setMonthlySearch)}
                                         {monthlySearch.length > 0 && (
                                             <TouchableOpacity onPress={() => setMonthlySearch('')}>
-                                                <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                                                <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
                                             </TouchableOpacity>
                                         )}
                                     </View>
                                 </View>
-                                <View style={styles.reportDivider} />
-                                {monthlyData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).slice(0, 15).map((d) => (
-                                    <View key={d.monthId} style={styles.reportRow}>
-                                        <Text style={styles.reportDate}>{d.month}</Text>
-                                        <Text style={styles.reportAmount}>₹{Number(d.total).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+
+                                <View style={[styles.tableContainer, { minHeight: 200, maxHeight: 300 }]}>
+                                    <View style={styles.tableHeader}>
+                                        <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.th}>Month</Text></View>
+                                        <View style={[styles.thCell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={styles.th}>Net Profit</Text></View>
                                     </View>
-                                ))}
-                                {monthlyData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).length === 0 && (
-                                    <Text style={styles.emptyText}>No monthly sales found</Text>
+                                    <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
+                                        {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).slice(0, 15).map((d, idx) => {
+                                            const isPositive = d.profit >= 0;
+                                            return (
+                                                <View key={d.monthId} style={[styles.tableRow, { height: 36 }, idx % 2 === 1 && styles.tableRowAlt]}>
+                                                    <View style={[styles.cell, { flex: 1 }]}><Text style={styles.cellText}>{d.month}</Text></View>
+                                                    <View style={[styles.cell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={[styles.cellText, { fontWeight: '600', color: isPositive ? COLORS.primary : COLORS.error }]}>₹{Number(d.profit).toFixed(2)}</Text></View>
+                                                </View>
+                                            );
+                                        })}
+                                        {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).length === 0 && (
+                                            <View style={styles.centerBox}><Text style={styles.emptyText}>No profit data found</Text></View>
+                                        )}
+                                    </ScrollView>
+                                </View>
+                            </View>
+                        </ScrollView>
+
+                        {/* Modal Footer */}
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity style={[styles.btnSecondary, { minWidth: 100 }]} onPress={() => setShowMoreModal(false)}>
+                                <Text style={styles.btnSecondaryText}>Close</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ─── ALL SALES HISTORY MODAL ─── */}
+            <Modal visible={showAllSalesModal} animationType="fade" transparent onRequestClose={() => setShowAllSalesModal(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalCard, { width: r.pick({ small: '95%', medium: '85%', large: '75%', xlarge: 900 }), height: '90%' }]}>
+                        {/* Modal Header */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <View style={[styles.modalIcon, { backgroundColor: COLORS.primarySoft }]}>
+                                    <Ionicons name="receipt-outline" size={18} color={COLORS.primary} />
+                                </View>
+                                <Text style={styles.modalTitle}>All Sales History</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowAllSalesModal(false)} style={styles.modalCloseBtn}>
+                                <Ionicons name="close" size={18} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Search bar inside modal */}
+                        <View style={styles.modalFilterBar}>
+                            <View style={styles.searchBox}>
+                                <Ionicons name="search-outline" size={16} color={COLORS.textMuted} />
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Search by invoice no., amount or payment method..."
+                                    placeholderTextColor={COLORS.textMuted}
+                                    value={allSalesSearch}
+                                    onChangeText={setAllSalesSearch}
+                                />
+                                {allSalesSearch.length > 0 && (
+                                    <TouchableOpacity onPress={() => setAllSalesSearch('')}>
+                                        <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                                    </TouchableOpacity>
                                 )}
                             </View>
                         </View>
 
-                        {/* Monthly Profit Table */}
-                        <View style={[styles.statCard, { flex: 1, padding: SPACING.lg, marginTop: SPACING.lg }]}>
-                            <View style={styles.reportHeaderWrap}>
-                                <Text style={styles.reportTitle}>Monthly Net Profit</Text>
-                                <View style={styles.pickerBox}>
-                                    <Ionicons name="trending-up" size={16} color={COLORS.textMuted} />
-                                    {renderNativePicker('month', monthlySearch, setMonthlySearch)}
-                                    {monthlySearch.length > 0 && (
-                                        <TouchableOpacity onPress={() => setMonthlySearch('')}>
-                                            <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
-                                        </TouchableOpacity>
-                                    )}
+                        {/* Scrollable table container */}
+                        <View style={[styles.tableContainer, { flex: 1, margin: 12, marginTop: 0 }]}>
+                            {/* Table Header */}
+                            <View style={styles.tableHeader}>
+                                <View style={[styles.thCell, { flex: 1.5 }]}>
+                                    <Text style={styles.th}>Invoice No.</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 2 }]}>
+                                    <Text style={styles.th}>Date & Time</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 1.2, alignItems: 'center' }]}>
+                                    <Text style={styles.th}>Method</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 1.5, alignItems: 'flex-end' }]}>
+                                    <Text style={styles.th}>Total Amount</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 2, alignItems: 'center', borderRightWidth: 0 }]}>
+                                    <Text style={styles.th}>Actions</Text>
                                 </View>
                             </View>
-                            <View style={styles.reportDivider} />
-                            {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).slice(0, 15).map((d) => (
-                                <View key={d.monthId} style={styles.reportRow}>
-                                    <Text style={styles.reportDate}>{d.month}</Text>
-                                    <Text style={[styles.reportAmount, { color: d.profit >= 0 ? COLORS.success : COLORS.error }]}>
-                                        ₹{Number(d.profit).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </Text>
-                                </View>
-                            ))}
-                            {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).length === 0 && (
-                                <Text style={styles.emptyText}>No profit data found</Text>
-                            )}
+
+                            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                                {allSales
+                                    .filter(sale => {
+                                        const q = allSalesSearch.toLowerCase();
+                                        if (!q) return true;
+                                        const inv = (sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6) || '').toLowerCase();
+                                        const amt = String(sale.grand_total || sale.total || '');
+                                        const method = (sale.payment_method || '').toLowerCase();
+                                        return inv.includes(q) || amt.includes(q) || method.includes(q);
+                                    })
+                                    .map((sale, idx) => {
+                                        const invoiceNum = sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6).toUpperCase();
+                                        const method = String(sale.payment_method || 'CASH').toUpperCase();
+                                        const total = Number(sale.grand_total || sale.total || 0).toFixed(2);
+                                        const timeStr = new Date(sale.created_at || sale.createdAt || sale.date || new Date()).toLocaleString('en-IN', {
+                                            day: '2-digit', month: 'short', year: 'numeric',
+                                            hour: '2-digit', minute: '2-digit', hour12: true
+                                        });
+                                        return (
+                                            <View key={sale._id || idx} style={[styles.tableRow, idx % 2 === 1 && styles.tableRowAlt]}>
+                                                <View style={[styles.cell, { flex: 1.5 }]}>
+                                                    <Text style={styles.cellName} numberOfLines={1}>{invoiceNum}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 2 }]}>
+                                                    <Text style={styles.cellText}>{timeStr}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 1.2, alignItems: 'center' }]}>
+                                                    <Text style={styles.cellText}>{method}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 1.5, alignItems: 'flex-end' }]}>
+                                                    <Text style={[styles.cellText, { fontWeight: '600', color: COLORS.primary }]}>₹{total}</Text>
+                                                </View>
+                                                <View style={[styles.cell, styles.actionsCell, { flex: 2, borderRightWidth: 0 }]}>
+                                                    <TouchableOpacity
+                                                        style={[styles.actionBtn, { borderColor: COLORS.warning, backgroundColor: COLORS.warningLight }]}
+                                                        onPress={() => { setShowAllSalesModal(false); navigation.navigate('Billing', { invoice: sale }); }}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons name="pencil-outline" size={14} color={COLORS.warning} />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={[styles.actionBtn, styles.actionBtnDanger]}
+                                                        onPress={() => handleDeleteSale(sale)}
+                                                        activeOpacity={0.7}
+                                                        disabled={deletingId === sale._id}
+                                                    >
+                                                        {deletingId === sale._id ? (
+                                                            <ActivityIndicator size="small" color={COLORS.error} />
+                                                        ) : (
+                                                            <Ionicons name="trash-outline" size={14} color={COLORS.error} />
+                                                        )}
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.actionBtn}
+                                                        onPress={() => printReceipt58mm(sale)}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons name="print-outline" size={14} color={COLORS.primary} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        );
+                                    })
+                                }
+                                {allSales.filter(sale => {
+                                    const q = allSalesSearch.toLowerCase();
+                                    if (!q) return true;
+                                    const inv = (sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6) || '').toLowerCase();
+                                    const amt = String(sale.grand_total || sale.total || '');
+                                    const method = (sale.payment_method || '').toLowerCase();
+                                    return inv.includes(q) || amt.includes(q) || method.includes(q);
+                                }).length === 0 && (
+                                    <View style={styles.centerBox}>
+                                        <Text style={styles.emptyText}>No sales found</Text>
+                                    </View>
+                                )}
+                            </ScrollView>
                         </View>
-                    </ScrollView>
-                </View>
-            </Modal>
 
-            {/* All Sales History Modal */}
-            <Modal visible={showAllSalesModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAllSalesModal(false)}>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>All Sales History</Text>
-                        <TouchableOpacity onPress={() => setShowAllSalesModal(false)} style={styles.closeModalBtn}>
-                            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Search bar */}
-                    <View style={styles.allSalesSearchBox}>
-                        <Ionicons name="search-outline" size={16} color={COLORS.textMuted} />
-                        <TextInput
-                            style={styles.allSalesSearchInput}
-                            placeholder="Search by invoice no., amount or payment..."
-                            placeholderTextColor={COLORS.textMuted}
-                            value={allSalesSearch}
-                            onChangeText={setAllSalesSearch}
-                        />
-                        {allSalesSearch.length > 0 && (
-                            <TouchableOpacity onPress={() => setAllSalesSearch('')}>
-                                <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                        {/* Modal Footer */}
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity style={[styles.btnSecondary, { minWidth: 100 }]} onPress={() => setShowAllSalesModal(false)}>
+                                <Text style={styles.btnSecondaryText}>Close</Text>
                             </TouchableOpacity>
-                        )}
+                        </View>
                     </View>
-
-                    <ScrollView contentContainerStyle={{ padding: SPACING.lg }}>
-                        {allSales
-                            .filter(sale => {
-                                const q = allSalesSearch.toLowerCase();
-                                if (!q) return true;
-                                const inv = (sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6) || '').toLowerCase();
-                                const amt = String(sale.grand_total || sale.total || '');
-                                const method = (sale.payment_method || '').toLowerCase();
-                                return inv.includes(q) || amt.includes(q) || method.includes(q);
-                            })
-                            .map((sale, idx) => (
-                                <View key={sale._id || idx} style={styles.saleRow}>
-                                    <View style={styles.saleInfo}>
-                                        <Text style={styles.saleId}>
-                                            Invoice {sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6).toUpperCase()}
-                                        </Text>
-                                        <Text style={styles.saleDetails}>
-                                            ₹{Number(sale.grand_total || sale.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • {String(sale.payment_method || 'CASH').toUpperCase()}
-                                        </Text>
-                                        <Text style={styles.saleTime}>
-                                            {new Date(sale.created_at || sale.createdAt || sale.date || new Date()).toLocaleString('en-IN', {
-                                                day: '2-digit', month: 'short', year: 'numeric',
-                                                hour: '2-digit', minute: '2-digit', hour12: true
-                                            })}
-                                        </Text>
-                                    </View>
-                                    <View style={{ flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' }}>
-                                        <TouchableOpacity
-                                            style={[styles.printBtn, { backgroundColor: COLORS.warningLight }]}
-                                            onPress={() => { setShowAllSalesModal(false); navigation.navigate('Billing', { invoice: sale }); }}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Ionicons name="pencil-outline" size={18} color={COLORS.warning} />
-                                            <Text style={[styles.printBtnText, { color: COLORS.warning }]}>Edit</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.printBtn, { backgroundColor: COLORS.errorLight }]}
-                                            onPress={() => handleDeleteSale(sale)}
-                                            activeOpacity={0.7}
-                                            disabled={deletingId === sale._id}
-                                        >
-                                            {deletingId === sale._id ? (
-                                                <ActivityIndicator size="small" color={COLORS.error} />
-                                            ) : (
-                                                <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-                                            )}
-                                            <Text style={[styles.printBtnText, { color: COLORS.error }]}>Delete</Text>
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={styles.printBtn}
-                                            onPress={() => printReceipt58mm(sale)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Ionicons name="print-outline" size={18} color={COLORS.primary} />
-                                            <Text style={styles.printBtnText}>Print</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            ))
-                        }
-                        {allSales.filter(sale => {
-                            const q = allSalesSearch.toLowerCase();
-                            if (!q) return true;
-                            const inv = (sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6) || '').toLowerCase();
-                            const amt = String(sale.grand_total || sale.total || '');
-                            const method = (sale.payment_method || '').toLowerCase();
-                            return inv.includes(q) || amt.includes(q) || method.includes(q);
-                        }).length === 0 && (
-                            <Text style={styles.emptyText}>No sales found.</Text>
-                        )}
-                    </ScrollView>
                 </View>
             </Modal>
 
-            {/* Delete Confirmation Modal */}
+            {/* ─── DELETE CONFIRM MODAL ─── */}
             <Modal
                 visible={!!deleteConfirmSale}
                 transparent={true}
                 animationType="fade"
                 onRequestClose={() => setDeleteConfirmSale(null)}
             >
-                <View style={styles.confirmOverlay}>
-                    <View style={styles.confirmCard}>
-                        <View style={styles.confirmIconWrap}>
-                            <Ionicons name="warning" size={32} color={COLORS.error} />
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.deleteModal, { width: r.pick({ small: '90%', medium: 400, large: 400, xlarge: 400 }) }]}>
+                        <View style={styles.deleteIconBox}>
+                            <Ionicons name="warning-outline" size={32} color={COLORS.error} />
                         </View>
-                        <Text style={styles.confirmTitle}>Delete Sale</Text>
-                        <Text style={styles.confirmMessage}>
-                            Delete invoice {deleteConfirmSale?.invoice_number ? `#${deleteConfirmSale.invoice_number}` : deleteConfirmSale?._id?.slice(-6).toUpperCase()}?
-                            {"\n\n"}This will restore stock and revert customer credit. This action cannot be undone.
+                        <Text style={styles.deleteTitle}>Delete Sale</Text>
+                        <Text style={styles.deleteDesc}>
+                            Are you sure you want to delete invoice{' '}
+                            <Text style={{ fontWeight: '700' }}>
+                                {deleteConfirmSale?.invoice_number ? `#${deleteConfirmSale.invoice_number}` : deleteConfirmSale?._id?.slice(-6).toUpperCase()}
+                            </Text>
+                            ? This will restore stock and revert customer credit. This action cannot be undone.
                         </Text>
-                        <View style={styles.confirmBtnRow}>
+                        <View style={styles.deleteActions}>
                             <TouchableOpacity
-                                style={[styles.confirmBtn, styles.confirmCancelBtn]}
+                                style={[styles.btnSecondary, { flex: 1 }]}
                                 onPress={() => setDeleteConfirmSale(null)}
                                 activeOpacity={0.7}
                             >
-                                <Text style={styles.confirmCancelText}>Cancel</Text>
+                                <Text style={styles.btnSecondaryText}>Cancel</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.confirmBtn, styles.confirmDeleteBtn]}
+                                style={[styles.btnDanger, { flex: 1 }]}
                                 onPress={confirmDelete}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="trash-outline" size={16} color={COLORS.white} />
-                                <Text style={styles.confirmDeleteText}>Delete</Text>
+                                <Ionicons name="trash-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                                <Text style={styles.btnDangerText}>Delete</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
             </Modal>
 
-            {/* In-app Toast */}
+            {/* ─── IN-APP TOAST ─── */}
             {toastMessage !== '' && (
                 <Animated.View
                     style={[
@@ -585,353 +712,385 @@ export default function AnalyticsScreen({ navigation }) {
     );
 }
 
+// ─── STYLES ─────────────────────────────────────
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.bgDark,
+        padding: 12,
     },
     header: {
-        paddingTop: SPACING.xl,
-        paddingBottom: SPACING.lg,
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: 10,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
+        marginBottom: 10,
     },
     headerTitle: {
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '500',
         color: COLORS.textPrimary,
-        marginBottom: 4,
     },
     headerSub: {
-        fontSize: FONT_SIZES.sm,
-        color: COLORS.textSecondary,
+        fontSize: 11,
+        color: COLORS.textMuted,
+        marginTop: 2,
     },
     scroll: {
-        paddingBottom: SPACING.xxxl,
+        paddingBottom: 24,
     },
     statsRow: {
         flexDirection: 'row',
-        gap: SPACING.lg,
+        gap: 12,
+        marginBottom: 12,
     },
     statCard: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.lg,
-        padding: SPACING.xl,
-        borderWidth: 1,
+        borderRadius: 2,
+        padding: 12,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
-        ...SHADOWS.sm,
     },
     statHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: SPACING.sm,
-        marginBottom: SPACING.lg,
+        gap: 8,
+        marginBottom: 8,
     },
     iconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: RADIUS.md,
+        width: 32,
+        height: 32,
+        borderRadius: 2,
         alignItems: 'center',
         justifyContent: 'center',
     },
     statLabel: {
-        fontSize: FONT_SIZES.md,
+        fontSize: 11,
+        fontWeight: '500',
         color: COLORS.textSecondary,
-        fontWeight: '600',
+        textTransform: 'uppercase',
     },
     statValue: {
-        fontSize: 32,
-        fontWeight: '800',
+        fontSize: 22,
+        fontWeight: '600',
         color: COLORS.textPrimary,
     },
     historySection: {
-        marginTop: SPACING.xxl,
+        marginTop: 12,
     },
     sectionTitle: {
-        fontSize: FONT_SIZES.lg,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-        marginBottom: SPACING.lg,
-    },
-    saleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: COLORS.white,
-        padding: SPACING.lg,
-        borderRadius: RADIUS.md,
-        marginBottom: SPACING.md,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        ...SHADOWS.sm,
-    },
-    saleInfo: {
-        flex: 1,
-    },
-    saleId: {
-        fontWeight: '800',
-        fontSize: FONT_SIZES.md,
-        color: COLORS.textPrimary,
-        marginBottom: 4,
-    },
-    saleDetails: {
-        fontWeight: '700',
-        color: COLORS.success,
-        fontSize: FONT_SIZES.sm,
-        marginBottom: 4,
-    },
-    saleTime: {
-        fontSize: FONT_SIZES.xs,
-        color: COLORS.textMuted,
+        fontSize: 14,
         fontWeight: '500',
-    },
-    printBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: SPACING.xs,
-        backgroundColor: COLORS.primaryGhost,
-        paddingHorizontal: SPACING.md,
-        paddingVertical: SPACING.sm,
-        borderRadius: RADIUS.sm,
-    },
-    printBtnText: {
-        color: COLORS.primary,
-        fontWeight: '800',
-        fontSize: FONT_SIZES.sm,
-    },
-    emptyText: {
-        color: COLORS.textMuted,
-        fontStyle: 'italic',
-        textAlign: 'center',
-        marginTop: SPACING.xl,
-    },
-    allSalesSearchBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
-        paddingHorizontal: SPACING.lg,
-        paddingVertical: SPACING.md,
-        gap: SPACING.sm,
-    },
-    allSalesSearchInput: {
-        flex: 1,
-        fontSize: FONT_SIZES.md,
         color: COLORS.textPrimary,
-        outlineStyle: 'none',
     },
     sectionHeaderRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: SPACING.lg,
-        flexWrap: 'wrap',
-        gap: SPACING.sm
+        marginBottom: 10,
     },
-    viewAllBtn: {
+    // Table
+    tableContainer: {
+        backgroundColor: COLORS.white,
+        borderRadius: 2,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        overflow: 'hidden',
+    },
+    tableHeader: {
         flexDirection: 'row',
+        alignItems: 'stretch',
+        backgroundColor: '#EFF2F1',
+        height: 34,
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
+    },
+    thCell: {
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
+        height: '100%',
+    },
+    th: {
+        fontSize: 10,
+        fontWeight: '500',
+        color: COLORS.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    tableRow: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        height: 46,
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
+    },
+    tableRowAlt: {
+        backgroundColor: '#F8FAF9',
+    },
+    cell: {
+        justifyContent: 'center',
+        paddingHorizontal: 10,
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
+        height: '100%',
+    },
+    cellName: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: COLORS.textPrimary,
+    },
+    cellText: {
+        fontSize: 12,
+        color: COLORS.textSecondary,
+    },
+    actionsCell: {
+        flexDirection: 'row',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: SPACING.xs,
-        backgroundColor: COLORS.primaryGhost,
-        paddingHorizontal: SPACING.md,
-        paddingVertical: SPACING.sm,
-        borderRadius: RADIUS.md,
+        gap: 6,
     },
-    viewAllBtnText: {
-        color: COLORS.primary,
-        fontWeight: '700',
-        fontSize: FONT_SIZES.sm,
+    actionBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 2,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.white,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
+    actionBtnDanger: {
+        backgroundColor: COLORS.errorLight,
+        borderColor: COLORS.error,
+    },
+    centerBox: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 40,
+        gap: 8,
+        opacity: 0.20,
+    },
+    emptyText: {
+        fontSize: 13,
+        color: COLORS.textMuted,
+        fontWeight: '500',
+    },
+    // Search Box / inputs
     searchBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.white,
-        borderWidth: 1,
+        backgroundColor: COLORS.bgInput,
+        borderRadius: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
-        borderRadius: RADIUS.md,
-        paddingHorizontal: SPACING.md,
-        paddingVertical: 6,
-        minWidth: 200,
+        paddingHorizontal: 8,
+        height: 32,
+        gap: 6,
     },
     searchInput: {
         flex: 1,
-        marginLeft: SPACING.sm,
-        fontSize: FONT_SIZES.sm,
+        fontSize: 12,
         color: COLORS.textPrimary,
-        outlineStyle: 'none',
+        height: '100%',
+        paddingVertical: 0,
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
-    reportTitle: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '800',
-        color: COLORS.textPrimary,
-    },
-    reportDivider: {
-        height: 1,
-        backgroundColor: COLORS.border,
-        marginTop: SPACING.sm,
-        marginBottom: SPACING.sm,
-    },
-    reportRow: {
+    // Buttons
+    btnPrimary: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: SPACING.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.bgDark,
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 2,
+        backgroundColor: COLORS.primary,
+        borderWidth: 0.5,
+        borderColor: COLORS.primary,
     },
-    reportDate: {
-        fontSize: FONT_SIZES.sm,
+    btnPrimaryText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.white,
+    },
+    btnSecondary: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 2,
+        backgroundColor: COLORS.white,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+    },
+    btnSecondaryText: {
+        fontSize: 12,
         fontWeight: '600',
         color: COLORS.textSecondary,
     },
-    reportAmount: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '800',
-        color: COLORS.success,
-    },
-    moreInfoBtn: {
+    btnDanger: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: SPACING.md,
-        paddingVertical: SPACING.sm,
-        backgroundColor: COLORS.primaryGhost,
-        borderRadius: RADIUS.md,
-        gap: SPACING.xs
+        justifyContent: 'center',
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 2,
+        backgroundColor: COLORS.error,
+        borderWidth: 0.5,
+        borderColor: COLORS.error,
     },
-    moreInfoBtnText: {
-        color: COLORS.primary,
-        fontWeight: '700',
-        fontSize: FONT_SIZES.sm,
+    btnDangerText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.white,
     },
+    // Modals
     modalOverlay: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.overlay,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+    },
+    modalCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 3,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
     },
     modalHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        padding: SPACING.lg,
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
+        backgroundColor: COLORS.white,
+    },
+    modalHeaderLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    modalIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     modalTitle: {
-        fontSize: FONT_SIZES.lg,
-        fontWeight: '800',
+        fontSize: 14,
+        fontWeight: '600',
         color: COLORS.textPrimary,
     },
-    closeModalBtn: {
-        padding: SPACING.xs,
+    modalCloseBtn: {
+        width: 24,
+        height: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalFilterBar: {
+        padding: 12,
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
+        backgroundColor: '#F8FAF9',
+    },
+    modalFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderTopWidth: 0.5,
+        borderTopColor: COLORS.border,
+        backgroundColor: COLORS.white,
+    },
+    // Reports modal layout elements
+    reportFlexRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    reportCol: {
+        gap: 8,
     },
     reportHeaderWrap: {
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: SPACING.md,
-        flexWrap: 'wrap',
-        gap: SPACING.sm
+        marginVertical: 4,
     },
-    pickerBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: COLORS.bgDark,
-        paddingHorizontal: SPACING.sm,
-        paddingVertical: 6,
-        borderRadius: RADIUS.sm,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        minWidth: 140,
+    reportTitle: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.textPrimary,
+        textTransform: 'uppercase',
     },
-    // Delete confirmation modal
-    confirmOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.45)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: SPACING.lg,
-    },
-    confirmCard: {
+    // Delete modal confirmation specific
+    deleteModal: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.lg,
-        padding: SPACING.xl,
-        width: '100%',
-        maxWidth: 400,
+        borderRadius: 3,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        padding: 20,
         alignItems: 'center',
-        ...SHADOWS.lg,
     },
-    confirmIconWrap: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
+    deleteIconBox: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         backgroundColor: COLORS.errorLight,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: SPACING.md,
+        marginBottom: 12,
     },
-    confirmTitle: {
-        fontSize: FONT_SIZES.lg,
-        fontWeight: '800',
+    deleteTitle: {
+        fontSize: 14,
+        fontWeight: '600',
         color: COLORS.textPrimary,
-        marginBottom: SPACING.sm,
+        marginBottom: 8,
     },
-    confirmMessage: {
-        fontSize: FONT_SIZES.sm,
+    deleteDesc: {
+        fontSize: 12,
         color: COLORS.textSecondary,
         textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: SPACING.xl,
+        lineHeight: 18,
+        marginBottom: 16,
     },
-    confirmBtnRow: {
+    deleteActions: {
         flexDirection: 'row',
-        gap: SPACING.md,
+        gap: 8,
         width: '100%',
-    },
-    confirmBtn: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: SPACING.md,
-        borderRadius: RADIUS.md,
-        gap: SPACING.xs,
-    },
-    confirmCancelBtn: {
-        backgroundColor: COLORS.bgDark,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-    },
-    confirmCancelText: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '700',
-        color: COLORS.textSecondary,
-    },
-    confirmDeleteBtn: {
-        backgroundColor: COLORS.error,
-    },
-    confirmDeleteText: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '700',
-        color: COLORS.white,
     },
     // Toast
     toastContainer: {
         position: 'absolute',
-        top: SPACING.xl,
-        left: SPACING.xl,
-        right: SPACING.xl,
+        top: 16,
+        left: 16,
+        right: 16,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: SPACING.sm,
-        paddingHorizontal: SPACING.lg,
-        paddingVertical: SPACING.md,
-        borderRadius: RADIUS.md,
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 2,
+        borderWidth: 0.5,
+        borderColor: 'rgba(0,0,0,0.1)',
         zIndex: 9999,
-        ...SHADOWS.md,
     },
     toastText: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
+        fontSize: 12,
+        fontWeight: '600',
         color: COLORS.white,
         flex: 1,
     },

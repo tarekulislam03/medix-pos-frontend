@@ -130,7 +130,7 @@ const npStyles = StyleSheet.create({
         width: Math.min(340, Dimensions.get('window').width * 0.85),
         maxWidth: 400,
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
+        borderRadius: RADIUS.lg,
         overflow: 'hidden',
         ...SHADOWS.lg,
     },
@@ -139,12 +139,12 @@ const npStyles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: SPACING.lg,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.borderLight,
     },
     title: {
         fontSize: FONT_SIZES.lg,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     subtitle: {
@@ -155,7 +155,7 @@ const npStyles = StyleSheet.create({
     closeBtn: {
         width: 36,
         height: 36,
-        borderRadius: RADIUS.full,
+        borderRadius: RADIUS.lg,
         backgroundColor: COLORS.bgSurface,
         alignItems: 'center',
         justifyContent: 'center',
@@ -171,7 +171,7 @@ const npStyles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.white,
-        borderWidth: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.primary,
         borderRadius: RADIUS.lg,
         paddingHorizontal: SPACING.md,
@@ -180,7 +180,7 @@ const npStyles = StyleSheet.create({
     textInput: {
         flex: 1,
         fontSize: 36,
-        fontWeight: '800',
+        fontWeight: '500',
         color: COLORS.primary,
         paddingVertical: SPACING.md,
         textAlign: 'center',
@@ -188,7 +188,7 @@ const npStyles = StyleSheet.create({
     },
     unitLabel: {
         fontSize: FONT_SIZES.lg,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textMuted,
         marginLeft: 4,
     },
@@ -201,21 +201,21 @@ const npStyles = StyleSheet.create({
         flexDirection: 'row',
         padding: SPACING.md,
         gap: SPACING.sm,
-        borderTopWidth: 1,
+        borderTopWidth: 0.5,
         borderTopColor: COLORS.borderLight,
     },
     cancelBtn: {
         flex: 1,
         paddingVertical: SPACING.md,
         borderRadius: RADIUS.md,
-        borderWidth: 1.5,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         alignItems: 'center',
         justifyContent: 'center',
     },
     cancelText: {
         fontSize: FONT_SIZES.md,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textSecondary,
     },
     confirmBtn: {
@@ -233,7 +233,7 @@ const npStyles = StyleSheet.create({
     },
     confirmText: {
         fontSize: FONT_SIZES.md,
-        fontWeight: '700',
+        fontWeight: '500',
         color: '#fff',
     },
 });
@@ -466,31 +466,31 @@ const pmStyles = StyleSheet.create({
         width: Math.min(420, Dimensions.get('window').width * 0.9),
         maxHeight: Dimensions.get('window').height * 0.88,
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
+        borderRadius: RADIUS.lg,
         overflow: 'hidden',
         ...SHADOWS.lg,
     },
     header: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
         paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
-        borderBottomWidth: 1, borderBottomColor: COLORS.borderLight,
+        borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight,
     },
-    headerTitle: { fontSize: FONT_SIZES.md, fontWeight: '800', color: COLORS.textPrimary },
+    headerTitle: { fontSize: FONT_SIZES.md, fontWeight: '500', color: COLORS.textPrimary },
     headerSub: { fontSize: FONT_SIZES.xs, color: COLORS.textMuted, marginTop: 1 },
     closeBtn: {
-        width: 30, height: 30, borderRadius: RADIUS.full,
+        width: 30, height: 30, borderRadius: RADIUS.lg,
         backgroundColor: COLORS.bgSurface, alignItems: 'center', justifyContent: 'center',
     },
     // Total strip
     totalStrip: {
         flexDirection: 'row', backgroundColor: COLORS.bgSurface,
-        borderBottomWidth: 1, borderBottomColor: COLORS.border,
+        borderBottomWidth: 0.5, borderBottomColor: COLORS.border,
     },
     totalStripItem: { flex: 1, alignItems: 'center', paddingVertical: 8 },
-    totalStripMid: { borderLeftWidth: 1, borderLeftColor: COLORS.borderLight },
-    totalStripLast: { borderLeftWidth: 1, borderLeftColor: COLORS.border },
-    stripLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase' },
-    stripValue: { fontSize: FONT_SIZES.md, fontWeight: '800', color: COLORS.textPrimary, marginTop: 1 },
+    totalStripMid: { borderLeftWidth: 0.5, borderLeftColor: COLORS.borderLight },
+    totalStripLast: { borderLeftWidth: 0.5, borderLeftColor: COLORS.border },
+    stripLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '500', textTransform: 'uppercase' },
+    stripValue: { fontSize: FONT_SIZES.md, fontWeight: '500', color: COLORS.textPrimary, marginTop: 1 },
     effectiveTotalVal: { color: COLORS.primary, fontSize: FONT_SIZES.lg },
     // Keyboard input fields
     fieldsSection: {
@@ -503,7 +503,7 @@ const pmStyles = StyleSheet.create({
     },
     fieldLabel: {
         fontSize: FONT_SIZES.xs,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textMuted,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -511,7 +511,7 @@ const pmStyles = StyleSheet.create({
     fieldInputWrap: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.primary,
         borderRadius: RADIUS.md,
         paddingHorizontal: SPACING.sm,
@@ -523,14 +523,14 @@ const pmStyles = StyleSheet.create({
     },
     currencySymbol: {
         fontSize: FONT_SIZES.xl,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.primary,
         paddingRight: 4,
     },
     fieldInput: {
         flex: 1,
         fontSize: FONT_SIZES.xl,
-        fontWeight: '800',
+        fontWeight: '500',
         color: COLORS.textPrimary,
         paddingVertical: 10,
         outlineStyle: 'none',
@@ -539,8 +539,8 @@ const pmStyles = StyleSheet.create({
     inputsRow: { flexDirection: 'row' },
     inputBox: { flex: 1 },
     inputBoxActive: {},
-    displayLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase' },
-    displayValue: { fontSize: 32, fontWeight: '900', color: COLORS.textPrimary, letterSpacing: 1 },
+    displayLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '500', textTransform: 'uppercase' },
+    displayValue: { fontSize: 32, fontWeight: '500', color: COLORS.textPrimary, letterSpacing: 1 },
     // Status Stripe
     statusStripe: {
         alignItems: 'center', paddingVertical: 6,
@@ -552,41 +552,41 @@ const pmStyles = StyleSheet.create({
     changeBadge: {
         flexDirection: 'row', alignItems: 'center', gap: 4,
         backgroundColor: '#dcfce7', paddingHorizontal: SPACING.sm, paddingVertical: 3,
-        borderRadius: RADIUS.full,
+        borderRadius: RADIUS.lg,
     },
-    changeText: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: '#16A34A' },
+    changeText: { fontSize: FONT_SIZES.xs, fontWeight: '500', color: '#16A34A' },
     dueBadge: { backgroundColor: COLORS.errorLight },
-    dueText: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.error },
+    dueText: { fontSize: FONT_SIZES.xs, fontWeight: '500', color: COLORS.error },
     // Quick fill
     quickFill: {
         flexDirection: 'row', gap: 5, flexWrap: 'wrap',
         paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
         backgroundColor: COLORS.bgSurface,
-        borderTopWidth: 1, borderTopColor: COLORS.borderLight,
+        borderTopWidth: 0.5, borderTopColor: COLORS.borderLight,
     },
     quickBtn: {
         paddingVertical: 6, paddingHorizontal: 12, borderRadius: RADIUS.sm,
-        borderWidth: 1, borderColor: COLORS.border,
+        borderWidth: 0.5, borderColor: COLORS.border,
         alignItems: 'center', backgroundColor: COLORS.white,
     },
     exactBtn: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryGhost },
-    quickBtnText: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: COLORS.textSecondary },
+    quickBtnText: { fontSize: FONT_SIZES.sm, fontWeight: '500', color: COLORS.textSecondary },
     // Actions
     actions: {
         flexDirection: 'row', padding: 6, gap: 6,
-        borderTopWidth: 1, borderTopColor: COLORS.borderLight,
+        borderTopWidth: 0.5, borderTopColor: COLORS.borderLight,
     },
     cancelBtn: {
         flex: 1, paddingVertical: 10, borderRadius: RADIUS.md,
-        borderWidth: 1.5, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center',
+        borderWidth: 0.5, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center',
     },
-    cancelText: { fontSize: FONT_SIZES.xs, fontWeight: '600', color: COLORS.textSecondary },
+    cancelText: { fontSize: FONT_SIZES.xs, fontWeight: '500', color: COLORS.textSecondary },
     confirmBtn: {
         flex: 2.5, flexDirection: 'row', paddingVertical: 10, borderRadius: RADIUS.md,
         backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', gap: 5,
     },
     confirmDisabled: { backgroundColor: COLORS.border },
-    confirmText: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: '#fff' },
+    confirmText: { fontSize: FONT_SIZES.xs, fontWeight: '500', color: '#fff' },
 });
 
 
@@ -719,6 +719,8 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             return () => clearTimeout(t);
         }
     }, [paymentModalVisible, printModalVisible, lastPurchaseModalVisible, showFreeEntry]);
+
+
 
     // ─── SEARCH CUSTOMERS ──────────────────────────
     const handleCustomerSearch = useCallback((query) => {
@@ -1072,7 +1074,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
     // ─── CHECKOUT ──────────────────────────────────────
     // Step 1: PAY button → open payment modal
-    const handleCheckout = async () => {
+    const handleCheckout = useCallback(async () => {
         if (cart.length === 0) {
             Alert.alert('Empty Cart', 'Add items before checkout.');
             return;
@@ -1104,7 +1106,34 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
         }
 
         setPaymentModalVisible(true);
-    };
+    }, [cart, selectedCustomer]);
+
+    // ─── KEYBOARD HOTKEYS FOR ERP OPERATION ───
+    useEffect(() => {
+        if (Platform.OS !== 'web') return;
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'F2') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            } else if (e.key === 'F4') {
+                e.preventDefault();
+                const qtyInput = document.getElementById('qty-input-0');
+                if (qtyInput) {
+                    qtyInput.focus();
+                    qtyInput.select?.();
+                }
+            } else if (e.key === 'F9') {
+                e.preventDefault();
+                if (cart.length > 0) {
+                    handleCheckout();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [cart, handleCheckout]);
 
 
     // Step 2: Payment modal confirms → call API
@@ -1281,326 +1310,349 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     };
 
     const PAYMENT_METHODS = [
-        { key: 'cash', label: 'CASH', icon: 'cash-outline', color: '#16A34A' },
-        { key: 'upi', label: 'UPI', icon: 'phone-portrait-outline', color: '#7C3AED' },
-        { key: 'card', label: 'CARD', icon: 'card-outline', color: '#3B82F6' },
+        { key: 'cash', label: 'Cash' },
+        { key: 'upi', label: 'UPI' },
+        { key: 'card', label: 'Card' },
     ];
 
     // Responsive panel flex ratios — tuned for 1280×800 (xlarge)
-    const leftFlex = r.pick({ small: 1, medium: 2.2, large: 3, xlarge: 3.2 });
-    const rightFlex = r.pick({ small: 0.6, medium: 1.2, large: 1.3, xlarge: 1.4 });
-    const isStacked = r.isSmall;
+    const leftFlex = r.pick({ small: 1.8, medium: 2.2, large: 3, xlarge: 3.2 });
+    const rightFlex = r.pick({ small: 1.0, medium: 1.2, large: 1.3, xlarge: 1.4 });
+    const isStacked = false; // Enforce horizontal layout on all screen sizes as requested
     // Search box height responsive
     const searchBoxH = r.pick({ small: 48, medium: 52, large: 56, xlarge: 52 });
 
     return (
-        <View style={[styles.container, isStacked && { flexDirection: 'column' }]}>
-            {/* ═══════════ LEFT PANEL ═══════════ */}
-            <View style={[styles.leftPanel, { flex: leftFlex }]}>
-
-                {/* ── Customer Selection ── */}
-                <View style={[styles.searchRow, { borderBottomWidth: 0, paddingBottom: 0, zIndex: 200 }]}>
-                    {selectedCustomer ? (
-                        <View style={{ gap: 4 }}>
-                            <View style={[styles.searchBox, { height: searchBoxH, backgroundColor: COLORS.primaryGhost, borderColor: COLORS.primaryLight, justifyContent: 'space-between' }]}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                    <Ionicons name="person" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
-                                    <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: FONT_SIZES.md }} numberOfLines={1}>
-                                        {selectedCustomer.name || selectedCustomer.customer_name}
-                                        <Text style={{ fontWeight: '400', fontSize: FONT_SIZES.sm }}> ({selectedCustomer.phone_no || selectedCustomer.phone_number})</Text>
-                                    </Text>
-                                </View>
-                                <TouchableOpacity onPress={clearCustomer} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                    <Ionicons name="close-circle" size={22} color={COLORS.error} />
+        <View style={{ flex: 1, backgroundColor: COLORS.bgDark }}>
+            <View style={styles.container}>
+                {/* ═══════════ LEFT PANE ═══════════ */}
+                <View style={[styles.leftPane, { flex: leftFlex }]}>
+        
+                {/* ── Combined Input Bar Row ── */}
+                <View style={styles.inputBarRow}>
+                    {/* Customer Field */}
+                    <View style={[styles.inputBarCell, { borderRightWidth: 0.5, borderRightColor: COLORS.border }]}>
+                        {selectedCustomer ? (
+                            <View style={styles.selectedCustomerBar}>
+                                <Ionicons name="person" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+                                <Text style={styles.selectedCustomerText} numberOfLines={1}>
+                                    {selectedCustomer.name || selectedCustomer.customer_name}
+                                </Text>
+                                <Text style={styles.selectedCustomerPhone} numberOfLines={1}>
+                                    {selectedCustomer.phone_no || selectedCustomer.phone_number}
+                                </Text>
+                                <TouchableOpacity onPress={clearCustomer} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ marginLeft: 'auto' }}>
+                                    <Ionicons name="close-circle" size={18} color={COLORS.error} />
                                 </TouchableOpacity>
                             </View>
-                            {/* Credit badge */}
-                            {customerCredit > 0 && (
-                                <View style={styles.creditBadgeStrip}>
-                                    <Ionicons name="alert-circle-outline" size={14} color={COLORS.error} />
-                                    <Text style={styles.creditBadgeText}>Outstanding due: ₹{customerCredit.toFixed(2)}</Text>
+                        ) : (
+                            <View style={styles.searchRelativeWrap}>
+                                <View style={styles.inlineInputBar}>
+                                    <Ionicons name="person-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+                                    <TextInput
+                                        style={styles.inlineInput}
+                                        value={customerQuery}
+                                        onChangeText={handleCustomerSearch}
+                                        placeholder="Customer name or phone..."
+                                        placeholderTextColor={COLORS.textMuted}
+                                    />
+                                    {customerQuery.length > 0 && (
+                                        <TouchableOpacity onPress={() => { setCustomerQuery(''); setCustomerResults([]); setShowCustomerDropdown(false); }}>
+                                            <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+                                        </TouchableOpacity>
+                                    )}
+                                    {customerLoading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginLeft: 4 }} />}
                                 </View>
-                            )}
-                        </View>
-                    ) : (
+
+                                {/* Customer Dropdown */}
+                                {showCustomerDropdown && customerResults.length > 0 && (
+                                    <View style={styles.floatingDropdown}>
+                                        <ScrollView style={{ maxHeight: 220 }} keyboardShouldPersistTaps="handled">
+                                            {customerResults.map((c, idx) => (
+                                                <TouchableOpacity
+                                                    key={c._id || c.id || idx}
+                                                    style={styles.dropdownItem}
+                                                    onPress={() => handleSelectCustomer(c)}
+                                                >
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.dropdownName}>{c.name || c.customer_name}</Text>
+                                                        <Text style={styles.dropdownMeta}>{c.phone_no || c.phone_number}</Text>
+                                                    </View>
+                                                    <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.primary} />
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Product Search Field */}
+                    <View style={[styles.inputBarCell, { flex: 1.6 }]}>
                         <View style={styles.searchRelativeWrap}>
-                            <View style={[styles.searchBox, { height: searchBoxH }]}>
-                                <Ionicons name="person-outline" size={20} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                            <View style={styles.inlineInputBar}>
+                                <Ionicons name="scan-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
                                 <TextInput
-                                    style={styles.searchInput}
-                                    value={customerQuery}
-                                    onChangeText={handleCustomerSearch}
-                                    placeholder="Select Customer (Search by name/phone)..."
+                                    ref={searchInputRef}
+                                    nativeID="product-search-input"
+                                    style={styles.inlineInput}
+                                    value={searchQuery}
+                                    onChangeText={handleSearch}
+                                    onSubmitEditing={handleSubmitSearch}
+                                    placeholder="Scan barcode or type medicine name..."
                                     placeholderTextColor={COLORS.textMuted}
+                                    autoFocus
+                                    returnKeyType="search"
+                                    onBlur={() => {
+                                        setTimeout(() => {
+                                            if (Platform.OS === 'web') {
+                                                const tag = document.activeElement?.tagName?.toLowerCase();
+                                                if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+                                            }
+                                            searchInputRef.current?.focus();
+                                        }, 100);
+                                    }}
                                 />
-                                {customerQuery.length > 0 && (
-                                    <TouchableOpacity onPress={() => { setCustomerQuery(''); setCustomerResults([]); setShowCustomerDropdown(false); }}>
-                                        <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
+                                {searchQuery.length > 0 && (
+                                    <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); setShowDropdown(false); }}>
+                                        <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
                                     </TouchableOpacity>
                                 )}
-                                {customerLoading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginLeft: 8 }} />}
+                                {searchLoading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginLeft: 4 }} />}
                             </View>
 
-                            {/* Customer Dropdown — floats absolutely below the input */}
-                            {showCustomerDropdown && customerResults.length > 0 && (
+                            {/* Product Search Dropdown */}
+                            {showDropdown && searchResults.length > 0 && (
                                 <View style={styles.floatingDropdown}>
-                                    <ScrollView style={{ maxHeight: 220 }} keyboardShouldPersistTaps="handled">
-                                        {customerResults.map((c, idx) => (
-                                            <TouchableOpacity
-                                                key={c._id || c.id || idx}
-                                                style={[styles.dropdownItem, { borderBottomColor: COLORS.borderLight, borderBottomWidth: 1 }]}
-                                                onPress={() => handleSelectCustomer(c)}
-                                            >
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.dropdownName}>{c.name || c.customer_name}</Text>
-                                                    <Text style={styles.dropdownMeta}>{c.phone_no || c.phone_number}</Text>
-                                                </View>
-                                                <Ionicons name="checkmark-circle-outline" size={24} color={COLORS.primary} />
-                                            </TouchableOpacity>
-                                        ))}
+                                    <ScrollView style={{ maxHeight: 240 }} keyboardShouldPersistTaps="handled">
+                                        {searchResults.map((product, idx) => {
+                                            const stock = product.quantity ?? product.stock ?? 0;
+                                            const isOutOfStock = stock <= 0;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={product._id || product.id || idx}
+                                                    style={[styles.dropdownItem, isOutOfStock && { opacity: 0.45, backgroundColor: '#fef2f2' }]}
+                                                    onPress={() => !isOutOfStock && addToCart(product)}
+                                                    activeOpacity={isOutOfStock ? 1 : 0.7}
+                                                >
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.dropdownName} numberOfLines={1}>{getName(product)}</Text>
+                                                        <Text style={styles.dropdownMeta}>
+                                                            {isOutOfStock ? (
+                                                                <Text style={{ color: COLORS.error, fontWeight: '500' }}>OUT OF STOCK</Text>
+                                                            ) : (
+                                                                <>Stock: {stock}</>
+                                                            )}
+                                                        </Text>
+                                                    </View>
+                                                    <Text style={styles.dropdownPrice}>₹{Number(getPrice(product)).toFixed(2)}</Text>
+                                                    {isOutOfStock ? (
+                                                        <View style={{ marginLeft: 8, backgroundColor: COLORS.error, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 }}>
+                                                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500' }}>NO STOCK</Text>
+                                                        </View>
+                                                    ) : (
+                                                        <Ionicons name="add-circle" size={22} color={COLORS.primary} style={{ marginLeft: 8 }} />
+                                                    )}
+                                                </TouchableOpacity>
+                                            );
+                                        })}
                                     </ScrollView>
                                 </View>
                             )}
                         </View>
-                    )}
-                </View>
-
-                {/* Search Bar + Floating Dropdown — wrapped in relative container */}
-                <View style={[styles.searchRow, { zIndex: 100 }]}>
-                    <View style={styles.searchRelativeWrap}>
-                        <View style={[styles.searchBox, { height: searchBoxH }]}>
-                            <Ionicons name="search" size={20} color={COLORS.textMuted} style={{ marginRight: 8 }} />
-                            <TextInput
-                                ref={searchInputRef}
-                                style={styles.searchInput}
-                                value={searchQuery}
-                                onChangeText={handleSearch}
-                                onSubmitEditing={handleSubmitSearch}
-                                placeholder="Scan barcode or type product name..."
-                                placeholderTextColor={COLORS.textMuted}
-                                autoFocus
-                                returnKeyType="search"
-                                onBlur={() => {
-                                    // Auto-refocus unless user clicked another input
-                                    setTimeout(() => {
-                                        if (Platform.OS === 'web') {
-                                            const tag = document.activeElement?.tagName?.toLowerCase();
-                                            if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
-                                        }
-                                        searchInputRef.current?.focus();
-                                    }, 100);
-                                }}
-                            />
-                            {searchQuery.length > 0 && (
-                                <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); setShowDropdown(false); }}>
-                                    <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
-                                </TouchableOpacity>
-                            )}
-                            {searchLoading && <ActivityIndicator size="small" color={COLORS.primary} style={{ marginLeft: 8 }} />}
-                        </View>
-
-                        {/* Product Search Dropdown — floats absolutely below the search box */}
-                        {showDropdown && searchResults.length > 0 && (
-                            <View style={styles.floatingDropdown}>
-                                <ScrollView style={{ maxHeight: 240 }} keyboardShouldPersistTaps="handled">
-                                    {searchResults.map((product, idx) => {
-                                        const stock = product.quantity ?? product.stock ?? 0;
-                                        const isOutOfStock = stock <= 0;
-                                        return (
-                                            <TouchableOpacity
-                                                key={product._id || product.id || idx}
-                                                style={[styles.dropdownItem, isOutOfStock && { opacity: 0.45, backgroundColor: '#fef2f2' }]}
-                                                onPress={() => !isOutOfStock && addToCart(product)}
-                                                activeOpacity={isOutOfStock ? 1 : 0.7}
-                                            >
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.dropdownName} numberOfLines={1}>{getName(product)}</Text>
-                                                    <Text style={styles.dropdownMeta}>
-                                                        {isOutOfStock ? (
-                                                            <Text style={{ color: COLORS.error, fontWeight: '700' }}>OUT OF STOCK</Text>
-                                                        ) : (
-                                                            <>Stock: {stock}</>  
-                                                        )}
-                                                    </Text>
-                                                </View>
-                                                <Text style={styles.dropdownPrice}>₹{Number(getPrice(product)).toFixed(2)}</Text>
-                                                {isOutOfStock ? (
-                                                    <View style={{ marginLeft: 8, backgroundColor: COLORS.error, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>
-                                                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>NO STOCK</Text>
-                                                    </View>
-                                                ) : (
-                                                    <Ionicons name="add-circle" size={26} color={COLORS.primary} style={{ marginLeft: 8 }} />
-                                                )}
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </ScrollView>
-                            </View>
-                        )}
                     </View>
                 </View>
 
-                {/* ── Item Table ── */}
+                {/* Credit badge below input bar */}
+                {selectedCustomer && customerCredit > 0 && (
+                    <View style={styles.creditBadgeStrip}>
+                        <Ionicons name="alert-circle-outline" size={14} color={COLORS.error} />
+                        <Text style={styles.creditBadgeText}>Outstanding due: ₹{customerCredit.toFixed(2)}</Text>
+                    </View>
+                )}
+
+                {/* ── Ruled Table ── */}
                 <View style={styles.tableContainer}>
-                    {/* Table Header */}
-                    {/* Table Header - Hidden on mobile */}
-                    {!r.isSmall && (
-                        <View style={styles.tableHeader}>
-                            <Text style={[styles.th, { width: 36 }]}>#</Text>
-                            <Text style={[styles.th, { flex: 3 }]}>Item Info</Text>
-                            <Text style={[styles.th, { flex: 1.2, textAlign: 'center' }]}>Qty</Text>
-                            <Text style={[styles.th, { flex: 1.0, textAlign: 'center' }]}>Price</Text>
-                            <Text style={[styles.th, { flex: 0.8, textAlign: 'center' }]}>Disc%</Text>
-                            <Text style={[styles.th, { flex: 1.0, textAlign: 'right' }]}>Amount</Text>
-                            <View style={{ width: 40 }} />
-                        </View>
-                    )}
+                    <FlatList
+                        data={cart}
+                        keyExtractor={(item, i) => item._id || item.id || String(i)}
+                        contentContainerStyle={cart.length === 0 ? { flexGrow: 1 } : null}
+                        ListHeaderComponent={!r.isSmall ? () => (
+                            <View style={styles.tableHeader}>
+                                <View style={[styles.thCell, { flex: 2.5 }]}>
+                                    <Text style={styles.th}>Medicine</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 1.1, alignItems: 'center' }]}>
+                                    <Text style={styles.th}>Qty</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 1.1, alignItems: 'center' }]}>
+                                    <Text style={styles.th}>MRP</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 0.9, alignItems: 'center' }]}>
+                                    <Text style={styles.th}>Disc%</Text>
+                                </View>
+                                <View style={[styles.thCell, { flex: 1.2, alignItems: 'flex-end', borderRightWidth: 0 }]}>
+                                    <Text style={styles.th}>Amt</Text>
+                                </View>
+                            </View>
+                        ) : null}
+                        stickyHeaderIndices={!r.isSmall ? [0] : undefined}
+                        ListEmptyComponent={() => (
+                            <View style={styles.emptyTable}>
+                                <Ionicons name="cart-outline" size={44} color={COLORS.border} />
+                                <Text style={styles.emptyText}>No items in cart</Text>
+                                <Text style={styles.emptySubtext}>Scan or search to add products</Text>
+                            </View>
+                        )}
+                        renderItem={({ item, index }) => {
+                            const isLoose = !!item.is_loose_mode;
+                            const price = getPrice(item);
+                            const qty = item.cart_quantity ?? 1;
+                            const disc = item.discount_percent ?? 0;
+                            const tabletCount = item.loose_tablet_count ?? 1;
+                            const lineTotal = isLoose
+                                ? (item.loose_total_price ?? 0)
+                                : price * qty * (1 - disc / 100);
+                            const canLoose = !!(item.tablets_per_strip && item.tablets_per_strip > 0);
 
-                    {/* Table Body */}
-                    {cart.length > 0 ? (
-                        <FlatList
-                            data={cart}
-                            keyExtractor={(item, i) => item._id || item.id || String(i)}
-                            renderItem={({ item, index }) => {
-                                const isLoose = !!item.is_loose_mode;
-                                const price = getPrice(item);
-                                const qty = item.cart_quantity ?? 1;
-                                const disc = item.discount_percent ?? 0;
-                                const tabletCount = item.loose_tablet_count ?? 1;
-                                const lineTotal = isLoose
-                                    ? (item.loose_total_price ?? 0)
-                                    : price * qty * (1 - disc / 100);
-                                const canLoose = !!(item.tablets_per_strip && item.tablets_per_strip > 0);
-
-                                 if (r.isSmall) {
-                                    return (
-                                        <View style={styles.mobileCartRow}>
-                                            <View style={styles.mobileCartTop}>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={styles.mobileCartName}>{getName(item)}</Text>
-                                                    {canLoose && (
-                                                        <TouchableOpacity
-                                                            style={[looseStyles.modePill, isLoose && looseStyles.modePillLoose]}
-                                                            onPress={() => {
-                                                                toggleLooseMode(item);
-                                                                if (!isLoose) setTimeout(() => updateLooseTablets(item, item.loose_tablet_count ?? 1), 0);
-                                                            }}
-                                                        >
-                                                            <Ionicons name={isLoose ? 'tablet-portrait-outline' : 'layers-outline'} size={10} color={isLoose ? '#7C3AED' : COLORS.textMuted} />
-                                                            <Text style={[looseStyles.modePillText, isLoose && looseStyles.modePillTextLoose]}>{isLoose ? 'Loose' : 'Strip'}</Text>
-                                                        </TouchableOpacity>
-                                                    )}
-                                                </View>
-                                                <TouchableOpacity onPress={() => removeFromCart(item)} style={{ padding: 4 }}>
-                                                    <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-                                                </TouchableOpacity>
-                                            </View>
-
-                                            <View style={styles.mobileCartControls}>
-                                                <View style={styles.mobileCartQty}>
-                                                    <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount - 1) : updateQuantity(item, qty - 1)} style={styles.qtyBtn}>
-                                                        <Ionicons name="remove" size={16} color={isLoose ? '#7C3AED' : COLORS.primary} />
-                                                    </TouchableOpacity>
-                                                    <TextInput
-                                                        style={[styles.qtyEditInput, { minWidth: 44, height: 34 }, isLoose && { color: '#7C3AED', borderColor: '#7C3AED' }]}
-                                                        value={String(isLoose ? tabletCount : qty)}
-                                                        onChangeText={(t) => {
-                                                            const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
-                                                            if (isLoose) {
-                                                                if (!isNaN(n) && n >= 1) updateLooseTablets(item, n);
-                                                                else if (t === '') updateLooseTablets(item, 1);
-                                                            } else {
-                                                                const maxStock = item.available_stock ?? item.quantity ?? item.stock ?? 999;
-                                                                if (!isNaN(n) && n >= 1 && n <= maxStock) updateQuantity(item, n);
-                                                                else if (t === '') updateQuantity(item, 1);
-                                                            }
-                                                        }}
-                                                        keyboardType="number-pad"
-                                                        textAlign="center"
-                                                    />
-                                                    <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount + 1) : updateQuantity(item, qty + 1)} style={styles.qtyBtn}>
-                                                        <Ionicons name="add" size={16} color={isLoose ? '#7C3AED' : COLORS.primary} />
-                                                    </TouchableOpacity>
-                                                </View>
-
-                                                {!isLoose && (
-                                                    <View style={[styles.discTap, disc > 0 && styles.discActive, { flexDirection: 'row', height: 34, paddingHorizontal: 6, minWidth: 60 }]}>
-                                                        <TextInput
-                                                            style={[styles.discEditInput, disc > 0 && styles.discActiveText, { minWidth: 30 }]}
-                                                            value={disc > 0 ? String(disc) : ''}
-                                                            onChangeText={(t) => {
-                                                                const cleaned = t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                                                                const n = parseFloat(cleaned);
-                                                                if (cleaned === '' || cleaned === '.') { updateDiscount(item, 0); return; }
-                                                                if (!isNaN(n) && n >= 0 && n <= 100) updateDiscount(item, n);
-                                                            }}
-                                                            placeholder="0"
-                                                            keyboardType="decimal-pad"
-                                                            textAlign="center"
-                                                        />
-                                                        <Text style={{ fontSize: 10, color: disc > 0 ? COLORS.error : COLORS.textMuted }}>% OFF</Text>
-                                                    </View>
-                                                )}
-
-                                                <View style={{ alignItems: 'flex-end' }}>
-                                                    <Text style={{ fontSize: 11, color: COLORS.textMuted }}>
-                                                        {isLoose ? `₹${Number(item.loose_price_per_tablet ?? 0).toFixed(2)}/tab` : `₹${Number(price).toFixed(2)}/unit`}
-                                                    </Text>
-                                                    <Text style={styles.mobileCartAmount}>₹{Number(lineTotal).toFixed(2)}</Text>
-                                                </View>
-                                            </View>
-                                            {isLoose && item.loose_error && (
-                                                <View style={[looseStyles.errorStrip, { borderRadius: 6, marginTop: 4 }]}>
-                                                    <Text style={looseStyles.errorText}>{item.loose_error}</Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                    );
-                                }
-
+                            if (r.isSmall) {
                                 return (
-                                    <View>
-                                        <View style={[styles.tableRow, index % 2 === 0 && styles.tableRowAlt]}>
-                                            <Text style={[styles.td, { width: 36 }]}>{index + 1}</Text>
-                                            <View style={{ flex: 3, justifyContent: 'center' }}>
-                                                <Text style={styles.tdName} numberOfLines={1}>
-                                                    {getName(item)}
-                                                </Text>
-                                                {/* Loose / Strip toggle pill */}
+                                    <View style={styles.mobileCartRow}>
+                                        <View style={styles.mobileCartTop}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.mobileCartName}>{getName(item)}</Text>
                                                 {canLoose && (
                                                     <TouchableOpacity
                                                         style={[looseStyles.modePill, isLoose && looseStyles.modePillLoose]}
                                                         onPress={() => {
                                                             toggleLooseMode(item);
-                                                            if (!isLoose) {
-                                                                // fetch price immediately when switching to loose
-                                                                setTimeout(() => updateLooseTablets(item, item.loose_tablet_count ?? 1), 0);
-                                                            }
+                                                            if (!isLoose) setTimeout(() => updateLooseTablets(item, item.loose_tablet_count ?? 1), 0);
                                                         }}
-                                                        activeOpacity={0.75}
                                                     >
-                                                        <Ionicons
-                                                            name={isLoose ? 'tablet-portrait-outline' : 'layers-outline'}
-                                                            size={11}
-                                                            color={isLoose ? '#7C3AED' : COLORS.textMuted}
-                                                        />
-                                                        <Text style={[looseStyles.modePillText, isLoose && looseStyles.modePillTextLoose]}>
-                                                            {isLoose ? 'Loose' : 'Strip'}
-                                                        </Text>
+                                                        <Ionicons name={isLoose ? 'tablet-portrait-outline' : 'layers-outline'} size={10} color={isLoose ? '#7C3AED' : COLORS.textMuted} />
+                                                        <Text style={[looseStyles.modePillText, isLoose && looseStyles.modePillTextLoose]}>{isLoose ? 'Loose' : 'Strip'}</Text>
                                                     </TouchableOpacity>
                                                 )}
                                             </View>
+                                            <TouchableOpacity onPress={() => removeFromCart(item)} style={styles.deleteBtn}>
+                                                <Ionicons name="close" size={16} color={COLORS.error} />
+                                            </TouchableOpacity>
+                                        </View>
 
-                                            {/* Quantity / Tablet Count */}
+                                        <View style={styles.mobileCartControls}>
+                                            <View style={styles.mobileCartQty}>
+                                                <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount - 1) : updateQuantity(item, qty - 1)} style={styles.qtyBtn}>
+                                                    <Ionicons name="remove" size={14} color={isLoose ? '#7C3AED' : COLORS.primary} />
+                                                </TouchableOpacity>
+                                                <TextInput
+                                                    style={[styles.qtyEditInput, { minWidth: 40, height: 30 }, isLoose && { color: '#7C3AED', borderColor: '#7C3AED' }]}
+                                                    value={String(isLoose ? tabletCount : qty)}
+                                                    onChangeText={(t) => {
+                                                        const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
+                                                        if (isLoose) {
+                                                            if (!isNaN(n) && n >= 1) updateLooseTablets(item, n);
+                                                            else if (t === '') updateLooseTablets(item, 1);
+                                                        } else {
+                                                            const maxStock = item.available_stock ?? item.quantity ?? item.stock ?? 999;
+                                                            if (!isNaN(n) && n >= 1 && n <= maxStock) updateQuantity(item, n);
+                                                            else if (t === '') updateQuantity(item, 1);
+                                                        }
+                                                    }}
+                                                    keyboardType="number-pad"
+                                                    textAlign="center"
+                                                />
+                                                <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount + 1) : updateQuantity(item, qty + 1)} style={styles.qtyBtn}>
+                                                    <Ionicons name="add" size={14} color={isLoose ? '#7C3AED' : COLORS.primary} />
+                                                </TouchableOpacity>
+                                            </View>
+
+                                            {!isLoose && (
+                                                <View style={[styles.discCell, disc > 0 && styles.discActive, { flexDirection: 'row', height: 30, paddingHorizontal: 6, minWidth: 56 }]}>
+                                                    <TextInput
+                                                        style={[styles.discEditInput, disc > 0 && styles.discActiveText, { minWidth: 28 }]}
+                                                        value={disc > 0 ? String(disc) : ''}
+                                                        onChangeText={(t) => {
+                                                            const cleaned = t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                                                            const n = parseFloat(cleaned);
+                                                            if (cleaned === '' || cleaned === '.') { updateDiscount(item, 0); return; }
+                                                            if (!isNaN(n) && n >= 0 && n <= 100) updateDiscount(item, n);
+                                                        }}
+                                                        placeholder="0"
+                                                        keyboardType="decimal-pad"
+                                                        textAlign="center"
+                                                    />
+                                                    <Text style={{ fontSize: 10, color: disc > 0 ? COLORS.error : COLORS.textMuted }}>% OFF</Text>
+                                                </View>
+                                            )}
+
+                                            <View style={{ alignItems: 'flex-end' }}>
+                                                <Text style={{ fontSize: 11, color: COLORS.textMuted }}>
+                                                    {isLoose ? `₹${Number(item.loose_price_per_tablet ?? 0).toFixed(2)}/tab` : `₹${Number(price).toFixed(2)}/unit`}
+                                                </Text>
+                                                <Text style={styles.mobileCartAmount}>₹{Number(lineTotal).toFixed(2)}</Text>
+                                            </View>
+                                        </View>
+                                        {isLoose && item.loose_error && (
+                                            <View style={[looseStyles.errorStrip, { borderRadius: 4, marginTop: 4 }]}>
+                                                <Text style={looseStyles.errorText}>{item.loose_error}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                );
+                            }
+
+                            return (
+                                <View>
+                                    <View style={styles.tableRow}>
+                                        <View style={[styles.tdCell, { flex: 2.5 }]}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={styles.tdName} numberOfLines={1}>
+                                                    {getName(item)}
+                                                </Text>
+                                                <TouchableOpacity onPress={() => removeFromCart(item)} style={styles.deleteBtn}>
+                                                    <Ionicons name="close" size={14} color={COLORS.textMuted} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            <Text style={styles.tdSub} numberOfLines={1}>
+                                                {item.manufacturer || ''}{item.manufacturer && item.expiry_date ? ' • ' : ''}{item.expiry_date ? `Exp: ${item.expiry_date}` : ''}
+                                            </Text>
+                                            {/* Loose / Strip toggle pill */}
+                                            {canLoose && (
+                                                <TouchableOpacity
+                                                    style={[looseStyles.modePill, isLoose && looseStyles.modePillLoose]}
+                                                    onPress={() => {
+                                                        toggleLooseMode(item);
+                                                        if (!isLoose) {
+                                                            setTimeout(() => updateLooseTablets(item, item.loose_tablet_count ?? 1), 0);
+                                                        }
+                                                    }}
+                                                    activeOpacity={0.75}
+                                                >
+                                                    <Ionicons
+                                                        name={isLoose ? 'tablet-portrait-outline' : 'layers-outline'}
+                                                        size={11}
+                                                        color={isLoose ? '#7C3AED' : COLORS.textMuted}
+                                                    />
+                                                    <Text style={[looseStyles.modePillText, isLoose && looseStyles.modePillTextLoose]}>
+                                                        {isLoose ? 'Loose' : 'Strip'}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+
+                                        {/* Quantity / Tablet Count */}
+                                        <View style={[styles.tdCell, { flex: 1.1, alignItems: 'center', justifyContent: 'center' }]}>
                                             {isLoose ? (
-                                                <View style={[styles.qtyCell, { flex: 1.2 }]}>
+                                                <View style={styles.qtyCell}>
                                                     <TouchableOpacity
                                                         onPress={() => updateLooseTablets(item, tabletCount - 1)}
                                                         style={styles.qtyBtn}
                                                     >
-                                                        <Ionicons name="remove" size={16} color='#7C3AED' />
+                                                        <Ionicons name="remove" size={14} color='#7C3AED' />
                                                     </TouchableOpacity>
                                                     <TextInput
+                                                        nativeID={index === 0 ? "qty-input-0" : undefined}
                                                         style={[styles.qtyEditInput, { color: '#7C3AED' }]}
                                                         value={String(tabletCount)}
                                                         onChangeText={(t) => {
@@ -1616,18 +1668,19 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                                         onPress={() => updateLooseTablets(item, tabletCount + 1)}
                                                         style={styles.qtyBtn}
                                                     >
-                                                        <Ionicons name="add" size={16} color='#7C3AED' />
+                                                        <Ionicons name="add" size={14} color='#7C3AED' />
                                                     </TouchableOpacity>
                                                 </View>
                                             ) : (
-                                                <View style={[styles.qtyCell, { flex: 1.2 }]}>
+                                                <View style={styles.qtyCell}>
                                                     <TouchableOpacity
                                                         onPress={() => updateQuantity(item, qty - 1)}
                                                         style={styles.qtyBtn}
                                                     >
-                                                        <Ionicons name="remove" size={16} color={COLORS.primary} />
+                                                        <Ionicons name="remove" size={14} color={COLORS.primary} />
                                                     </TouchableOpacity>
                                                     <TextInput
+                                                        nativeID={index === 0 ? "qty-input-0" : undefined}
                                                         style={styles.qtyEditInput}
                                                         value={String(qty)}
                                                         onChangeText={(t) => {
@@ -1644,89 +1697,94 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                                         onPress={() => updateQuantity(item, qty + 1)}
                                                         style={styles.qtyBtn}
                                                     >
-                                                        <Ionicons name="add" size={16} color={COLORS.primary} />
+                                                        <Ionicons name="add" size={14} color={COLORS.primary} />
                                                     </TouchableOpacity>
                                                 </View>
                                             )}
+                                        </View>
 
-                                            {/* Price per unit (or per tablet in loose mode) */}
-                                            <Text style={[styles.td, { flex: 1.0, textAlign: 'center' }]} numberOfLines={1}>
+                                        {/* Price per unit (or per tablet in loose mode) */}
+                                        <View style={[styles.tdCell, { flex: 1.1, alignItems: 'center', justifyContent: 'center' }]}>
+                                            <Text
+                                                style={[styles.td, { textAlign: 'center' }]}
+                                                numberOfLines={1}
+                                                adjustsFontSizeToFit
+                                                minimumFontScale={0.8}
+                                            >
                                                 {isLoose
                                                     ? (item.loose_loading ? '...' : `₹${Number(item.loose_price_per_tablet ?? 0).toFixed(2)}`)
                                                     : `₹${Number(price).toFixed(2)}`}
                                             </Text>
+                                        </View>
 
-                                            {/* Disc% — disabled in loose mode */}
-                                            <View style={{ flex: 0.8, alignItems: 'center', justifyContent: 'center' }}>
-                                                {isLoose ? (
-                                                    <Text style={{ fontSize: 11, color: COLORS.textMuted }}>—</Text>
-                                                ) : (
-                                                    <View style={[
-                                                        styles.discTap,
-                                                        disc > 0 && styles.discActive,
-                                                        { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 },
-                                                    ]}>
-                                                        <TextInput
-                                                            style={[
-                                                                styles.discEditInput,
-                                                                disc > 0 && styles.discActiveText,
-                                                            ]}
-                                                            value={disc > 0 ? String(disc) : ''}
-                                                            onChangeText={(t) => {
-                                                                const cleaned = t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                                                                const n = parseFloat(cleaned);
-                                                                if (cleaned === '' || cleaned === '.') { updateDiscount(item, 0); return; }
-                                                                if (!isNaN(n) && n >= 0 && n <= 100) updateDiscount(item, n);
-                                                            }}
-                                                            placeholder="%"
-                                                            placeholderTextColor={COLORS.textMuted}
-                                                            keyboardType="decimal-pad"
-                                                            selectTextOnFocus
-                                                            textAlign="center"
-                                                        />
-                                                        <Text style={[styles.discTapText, disc > 0 && styles.discActiveText]}>%</Text>
-                                                    </View>
-                                                )}
-                                            </View>
+                                        {/* Disc% — disabled in loose mode */}
+                                        <View style={[styles.tdCell, { flex: 0.9, alignItems: 'center', justifyContent: 'center' }]}>
+                                            {isLoose ? (
+                                                <Text style={{ fontSize: 11, color: COLORS.textMuted }}>—</Text>
+                                            ) : (
+                                                <View style={[
+                                                    styles.discCell,
+                                                    disc > 0 && styles.discActive,
+                                                ]}>
+                                                    <TextInput
+                                                        style={[
+                                                            styles.discEditInput,
+                                                            disc > 0 && styles.discActiveText,
+                                                        ]}
+                                                        value={disc > 0 ? String(disc) : ''}
+                                                        onChangeText={(t) => {
+                                                            const cleaned = t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                                                            const n = parseFloat(cleaned);
+                                                            if (cleaned === '' || cleaned === '.') { updateDiscount(item, 0); return; }
+                                                            if (!isNaN(n) && n >= 0 && n <= 100) updateDiscount(item, n);
+                                                        }}
+                                                        placeholder="%"
+                                                        placeholderTextColor={COLORS.textMuted}
+                                                        keyboardType="decimal-pad"
+                                                        selectTextOnFocus
+                                                        textAlign="center"
+                                                    />
+                                                    <Text style={{ fontSize: 10, color: disc > 0 ? COLORS.error : COLORS.textMuted }}>%</Text>
+                                                </View>
+                                            )}
+                                        </View>
 
-                                            <Text style={[styles.tdAmount, { flex: 1.0 }]} numberOfLines={1}>
+                                        {/* Amount */}
+                                        <View style={[styles.tdCell, { flex: 1.2, alignItems: 'flex-end', justifyContent: 'center', borderRightWidth: 0 }]}>
+                                            <Text
+                                                style={styles.tdAmount}
+                                                numberOfLines={1}
+                                                adjustsFontSizeToFit
+                                                minimumFontScale={0.8}
+                                            >
                                                 {isLoose && item.loose_loading ? '...' : `₹${Number(lineTotal).toFixed(2)}`}
                                             </Text>
-                                            <TouchableOpacity onPress={() => removeFromCart(item)} style={styles.deleteBtn}>
-                                                <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-                                            </TouchableOpacity>
                                         </View>
-                                        {/* Loose error / info strip */}
-                                        {isLoose && item.loose_error && (
-                                            <View style={looseStyles.errorStrip}>
-                                                <Ionicons name="warning-outline" size={13} color={COLORS.error} />
-                                                <Text style={looseStyles.errorText}>{item.loose_error}</Text>
-                                            </View>
-                                        )}
-                                        {isLoose && !item.loose_error && item.loose_price_per_tablet && (
-                                            <View style={looseStyles.infoStrip}>
-                                                <Text style={looseStyles.infoText}>
-                                                    {tabletCount} tablet{tabletCount !== 1 ? 's' : ''} × ₹{Number(item.loose_price_per_tablet).toFixed(2)}/tab = ₹{Number(lineTotal).toFixed(2)}
-                                                </Text>
-                                            </View>
-                                        )}
                                     </View>
-                                );
-                            }}
-                            showsVerticalScrollIndicator={false}
-                        />
-                    ) : (
-                        <View style={styles.emptyTable}>
-                            <Ionicons name="cart-outline" size={48} color={COLORS.border} />
-                            <Text style={styles.emptyText}>No items in cart</Text>
-                            <Text style={styles.emptySubtext}>Scan or search to add products</Text>
-                        </View>
-                    )}
+                                    {/* Loose error / info strip */}
+                                    {isLoose && item.loose_error && (
+                                        <View style={looseStyles.errorStrip}>
+                                            <Ionicons name="warning-outline" size={13} color={COLORS.error} />
+                                            <Text style={looseStyles.errorText}>{item.loose_error}</Text>
+                                        </View>
+                                    )}
+                                    {isLoose && !item.loose_error && item.loose_price_per_tablet && (
+                                        <View style={looseStyles.infoStrip}>
+                                            <Text style={looseStyles.infoText}>
+                                                {tabletCount} tablet{tabletCount !== 1 ? 's' : ''} × ₹{Number(item.loose_price_per_tablet).toFixed(2)}/tab = ₹{Number(lineTotal).toFixed(2)}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
+                            );
+                        }}
+                        showsVerticalScrollIndicator={true}
+                    />
+                </View>
 
                     {/* ── Free / Manual Entry Row ── */}
                     {showFreeEntry && (
                         <View style={styles.freeEntryRow}>
-                            {/* Medicine Name */}
                             <TextInput
                                 style={[styles.freeEntryInput, { flex: 3 }]}
                                 placeholder="Medicine name *"
@@ -1735,7 +1793,6 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 onChangeText={t => setFreeEntry(p => ({ ...p, name: t }))}
                                 autoFocus
                             />
-                            {/* MRP */}
                             <TextInput
                                 style={[styles.freeEntryInput, { flex: 1.0, textAlign: 'center' }]}
                                 placeholder="MRP *"
@@ -1745,7 +1802,6 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 keyboardType="decimal-pad"
                                 textAlign="center"
                             />
-                            {/* Stock (inventory quantity) */}
                             <TextInput
                                 style={[styles.freeEntryInput, { flex: 1.0, textAlign: 'center' }]}
                                 placeholder="Stock *"
@@ -1755,7 +1811,6 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 keyboardType="number-pad"
                                 textAlign="center"
                             />
-                            {/* Confirm */}
                             <TouchableOpacity
                                 style={styles.freeEntryConfirmBtn}
                                 onPress={handleConfirmFreeEntry}
@@ -1764,15 +1819,14 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             >
                                 {freeEntryLoading
                                     ? <ActivityIndicator size="small" color="#fff" />
-                                    : <Ionicons name="checkmark" size={18} color="#fff" />}
+                                    : <Ionicons name="checkmark" size={16} color="#fff" />}
                             </TouchableOpacity>
-                            {/* Cancel */}
                             <TouchableOpacity
                                 style={styles.freeEntryCancelBtn}
                                 onPress={() => { setShowFreeEntry(false); setFreeEntry({ name: '', mrp: '', stock: '' }); }}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="close" size={18} color={COLORS.error} />
+                                <Ionicons name="close" size={16} color={COLORS.error} />
                             </TouchableOpacity>
                         </View>
                     )}
@@ -1784,29 +1838,26 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             onPress={() => setShowFreeEntry(true)}
                             activeOpacity={0.7}
                         >
-                            <Ionicons name="add-circle-outline" size={16} color={COLORS.primaryDark ?? COLORS.primary} />
+                            <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
                             <Text style={styles.addUnlistedText}>Add Unlisted Item</Text>
                         </TouchableOpacity>
                     )}
                 </View>
 
 
-            </View>
-
-            {/* ═══════════ RIGHT PANEL ═══════════ */}
-            <View style={[styles.rightPanel, { flex: rightFlex }]}>
+            {/* ═══════════ RIGHT PANE ═══════════ */}
+            <View style={[styles.rightPane, { flex: rightFlex }]}>
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[
-                        styles.rightPanelContent,
-                        { padding: r.pick({ small: SPACING.sm, medium: SPACING.md, large: SPACING.md, xlarge: SPACING.md }) },
+                        { flexGrow: 1, padding: r.pick({ small: 6, medium: 8, large: 8, xlarge: 8 }), paddingBottom: 12 },
                     ]}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {/* ── Doctor Fee Input ── */}
+                    {/* ── Doctor Fee ── */}
                     <View style={styles.extraFeeSection}>
                         <View style={styles.extraFeeHeader}>
-                            <Ionicons name="medkit-outline" size={15} color={COLORS.primary} />
+                            <Ionicons name="medkit-outline" size={14} color={COLORS.primary} />
                             <Text style={styles.extraFeeTitle}>Doctor Fee</Text>
                             <Text style={styles.extraFeeNote}>(no discount)</Text>
                         </View>
@@ -1824,10 +1875,10 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                         </View>
                     </View>
 
-                    {/* ── OTC Products Input ── */}
+                    {/* ── OTC Products ── */}
                     <View style={styles.extraFeeSection}>
                         <View style={styles.extraFeeHeader}>
-                            <Ionicons name="bag-handle-outline" size={15} color={COLORS.primary} />
+                            <Ionicons name="bag-handle-outline" size={14} color={COLORS.primary} />
                             <Text style={[styles.extraFeeTitle, { color: COLORS.primary }]}>OTC Products</Text>
                             <Text style={styles.extraFeeNote}>(no discount)</Text>
                         </View>
@@ -1865,7 +1916,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                         style={styles.otcRemoveBtn}
                                         onPress={() => setOtcItems(prev => prev.filter((_, i) => i !== idx))}
                                     >
-                                        <Ionicons name="close-circle" size={18} color={COLORS.error} />
+                                        <Ionicons name="close-circle" size={16} color={COLORS.error} />
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -1875,12 +1926,12 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             onPress={() => setOtcItems(prev => [...prev, { name: '', price: '' }])}
                             activeOpacity={0.7}
                         >
-                            <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
+                            <Ionicons name="add-circle-outline" size={13} color={COLORS.primary} />
                             <Text style={styles.otcAddBtnText}>Add OTC Item</Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Totals Display */}
+                    {/* ── Totals Section ── */}
                     <View style={styles.totalsSection}>
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Subtotal</Text>
@@ -1892,36 +1943,45 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 {cartSummary.totalDiscount > 0 ? `-₹${cartSummary.totalDiscount.toFixed(2)}` : '₹0.00'}
                             </Text>
                         </View>
-                        {cartSummary.doctorFee > 0 && (
-                            <View style={styles.totalRow}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="medkit-outline" size={12} color={COLORS.primary} />
-                                    <Text style={[styles.totalLabel, { color: COLORS.primary }]}>Doctor Fee</Text>
-                                </View>
-                                <Text style={[styles.totalValue, { color: COLORS.primary }]}>+₹{cartSummary.doctorFee.toFixed(2)}</Text>
-                            </View>
-                        )}
+                        <View style={styles.totalRow}>
+                            <Text style={styles.totalLabel}>Doctor Fee</Text>
+                            <Text style={styles.totalValue}>₹{cartSummary.doctorFee.toFixed(2)}</Text>
+                        </View>
                         {cartSummary.otcTotal > 0 && (
                             <View style={styles.totalRow}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                    <Ionicons name="bag-handle-outline" size={12} color={COLORS.primary} />
-                                    <Text style={[styles.totalLabel, { color: COLORS.primary }]}>OTC Products</Text>
-                                </View>
-                                <Text style={[styles.totalValue, { color: COLORS.primary }]}>+₹{cartSummary.otcTotal.toFixed(2)}</Text>
+                                <Text style={styles.totalLabel}>OTC Total</Text>
+                                <Text style={styles.totalValue}>+₹{cartSummary.otcTotal.toFixed(2)}</Text>
                             </View>
                         )}
                         <View style={styles.grandTotalRow}>
                             <Text style={styles.grandTotalLabel}>Grand Total</Text>
-                            <Text style={styles.grandTotalValue}>
-                                ₹{cartSummary.grandTotal.toFixed(2)}
-                            </Text>
+                            <Text style={styles.grandTotalValue}>₹{cartSummary.grandTotal.toFixed(2)}</Text>
                         </View>
-                        <Text style={styles.itemCountText}>
-                            {cartSummary.itemCount} item{cartSummary.itemCount !== 1 ? 's' : ''} in cart
-                        </Text>
                     </View>
 
-                    {/* PAY Button */}
+                    {/* ── Payment Chips ── */}
+                    <View style={styles.payChipsRow}>
+                        {PAYMENT_METHODS.map((m) => (
+                            <TouchableOpacity
+                                key={m.key}
+                                style={[
+                                    styles.payChip,
+                                    paymentMethod === m.key && styles.payChipActive,
+                                ]}
+                                onPress={() => setPaymentMethod(m.key)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[
+                                    styles.payChipText,
+                                    paymentMethod === m.key && styles.payChipTextActive,
+                                ]}>
+                                    {m.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    {/* ── Pay Button ── */}
                     <TouchableOpacity
                         style={[styles.payBtn, cart.length === 0 && styles.payBtnDisabled]}
                         onPress={handleCheckout}
@@ -1929,50 +1989,33 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                         activeOpacity={0.8}
                     >
                         {checkoutLoading ? (
-                            <ActivityIndicator size="large" color="#fff" />
+                            <ActivityIndicator size="small" color={COLORS.textPrimary} />
                         ) : (
-                            <>
-                                <Ionicons name="card-outline" size={26} color="#fff" />
-                                <Text style={styles.payBtnText}>PAY</Text>
-                                <Text style={styles.payBtnAmount}>₹{cartSummary.grandTotal.toFixed(2)}</Text>
-                            </>
+                            <Text style={styles.payBtnText}>Pay ₹{cartSummary.grandTotal.toFixed(2)}</Text>
                         )}
                     </TouchableOpacity>
 
-                    {/* Payment Methods */}
-                    <View style={styles.payMethodSection}>
-                        <Text style={styles.payMethodTitle}>Payment Method</Text>
-                        <View style={styles.payMethodRow}>
-                            {PAYMENT_METHODS.map((m) => (
-                                <TouchableOpacity
-                                    key={m.key}
-                                    style={[
-                                        styles.payMethodBtn,
-                                        paymentMethod === m.key && { borderColor: m.color, backgroundColor: m.color + '15' },
-                                    ]}
-                                    onPress={() => setPaymentMethod(m.key)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons
-                                        name={m.icon}
-                                        size={24}
-                                        color={paymentMethod === m.key ? m.color : COLORS.textMuted}
-                                    />
-                                    <Text
-                                        style={[
-                                            styles.payMethodLabel,
-                                            paymentMethod === m.key && { color: m.color, fontWeight: '700' },
-                                        ]}
-                                    >
-                                        {m.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-
-
                 </ScrollView>
+            </View>
+
+            </View>
+
+            {/* Bottom Keyboard Hints Bar */}
+            <View style={styles.keyboardHintsBar}>
+                <View style={styles.hintItem}>
+                    <Text style={styles.hintKey}>F2</Text>
+                    <Text style={styles.hintText}>Search</Text>
+                </View>
+                <View style={styles.hintSeparator} />
+                <View style={styles.hintItem}>
+                    <Text style={styles.hintKey}>F4</Text>
+                    <Text style={styles.hintText}>Qty</Text>
+                </View>
+                <View style={styles.hintSeparator} />
+                <View style={styles.hintItem}>
+                    <Text style={styles.hintKey}>F9</Text>
+                    <Text style={styles.hintText}>Pay</Text>
+                </View>
             </View>
 
             {/* ═══════════ PAYMENT MODAL (Credit System) ═══════════ */}
@@ -1994,9 +2037,8 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             >
                 <View style={printStyles.overlay}>
                     <View style={printStyles.card}>
-                        {/* Icon header */}
                         <View style={printStyles.iconCircle}>
-                            <Ionicons name="checkmark-circle" size={52} color={COLORS.success} />
+                            <Ionicons name="checkmark-circle" size={48} color={COLORS.success} />
                         </View>
 
                         <Text style={printStyles.heading}>Sale Saved!</Text>
@@ -2004,32 +2046,28 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             The sale has been recorded successfully.{`\n`}What would you like to do next?
                         </Text>
 
-                        {/* Divider */}
                         <View style={printStyles.divider} />
 
-                        {/* Option buttons */}
                         <View style={printStyles.optionRow}>
-                            {/* Print Bill */}
                             <TouchableOpacity
                                 style={[printStyles.optionBtn, printStyles.optionPrint]}
                                 onPress={handlePrintAndSave}
                                 activeOpacity={0.8}
                             >
                                 <View style={printStyles.optionIconWrap}>
-                                    <Ionicons name="print-outline" size={32} color={COLORS.white} />
+                                    <Ionicons name="print-outline" size={28} color={COLORS.white} />
                                 </View>
                                 <Text style={printStyles.optionLabel}>Print Bill</Text>
                                 <Text style={printStyles.optionSub}>Opens print dialog</Text>
                             </TouchableOpacity>
 
-                            {/* Save Only */}
                             <TouchableOpacity
                                 style={[printStyles.optionBtn, printStyles.optionSave]}
                                 onPress={handleSaveOnly}
                                 activeOpacity={0.8}
                             >
                                 <View style={[printStyles.optionIconWrap, printStyles.optionIconSave]}>
-                                    <Ionicons name="save-outline" size={32} color={COLORS.primary} />
+                                    <Ionicons name="save-outline" size={28} color={COLORS.primary} />
                                 </View>
                                 <Text style={[printStyles.optionLabel, printStyles.optionLabelSave]}>Save Only</Text>
                                 <Text style={[printStyles.optionSub, { color: COLORS.textMuted }]}>No print</Text>
@@ -2043,18 +2081,16 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             <Modal visible={lastPurchaseModalVisible} transparent animationType="fade" onRequestClose={() => setLastPurchaseModalVisible(false)}>
                 <View style={pmStyles.overlay}>
                     <View style={[pmStyles.container, { maxWidth: 440 }]}>
-                        {/* Header */}
                         <View style={pmStyles.header}>
                             <View style={{ flex: 1 }}>
                                 <Text style={pmStyles.headerTitle}>Last Purchase Found</Text>
                                 <Text style={pmStyles.headerSub}>Auto-fill cart with previous order?</Text>
                             </View>
                             <TouchableOpacity onPress={() => { setLastPurchaseModalVisible(false); setPendingLastItems(null); }} style={pmStyles.closeBtn}>
-                                <Ionicons name="close" size={22} color={COLORS.textMuted} />
+                                <Ionicons name="close" size={20} color={COLORS.textMuted} />
                             </TouchableOpacity>
                         </View>
 
-                        {/* Items List */}
                         <ScrollView style={{ maxHeight: 320 }} contentContainerStyle={{ paddingVertical: SPACING.sm }} showsVerticalScrollIndicator={false}>
                             {(pendingLastItems || []).map((item, idx) => {
                                 const prod = item.product_id || {};
@@ -2068,27 +2104,25 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                     <View key={idx} style={{
                                         flexDirection: 'row', alignItems: 'center',
                                         paddingHorizontal: SPACING.md, paddingVertical: 10,
-                                        borderBottomWidth: 1, borderBottomColor: COLORS.borderLight,
+                                        borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight,
                                         backgroundColor: isOut ? '#fef2f2' : '#fff',
                                         opacity: isOut ? 0.7 : 1,
                                     }}>
-                                        {/* Status icon */}
                                         <View style={{
-                                            width: 28, height: 28, borderRadius: 14,
+                                            width: 26, height: 26, borderRadius: 4,
                                             backgroundColor: isOut ? COLORS.errorLight : '#dcfce7',
                                             alignItems: 'center', justifyContent: 'center', marginRight: 10,
                                         }}>
                                             <Ionicons
                                                 name={isOut ? 'close-circle' : 'checkmark-circle'}
-                                                size={18}
+                                                size={16}
                                                 color={isOut ? COLORS.error : '#16A34A'}
                                             />
                                         </View>
 
-                                        {/* Item info */}
                                         <View style={{ flex: 1 }}>
                                             <Text style={{
-                                                fontSize: FONT_SIZES.sm, fontWeight: '700',
+                                                fontSize: FONT_SIZES.sm, fontWeight: '500',
                                                 color: isOut ? COLORS.textMuted : COLORS.textPrimary,
                                                 textDecorationLine: isOut ? 'line-through' : 'none',
                                             }} numberOfLines={1}>{name}</Text>
@@ -2097,20 +2131,19 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                             </Text>
                                         </View>
 
-                                        {/* Stock badge */}
                                         {isOut ? (
                                             <View style={{
                                                 backgroundColor: COLORS.error, paddingHorizontal: 8,
-                                                paddingVertical: 3, borderRadius: 12,
+                                                paddingVertical: 3, borderRadius: 4,
                                             }}>
-                                                <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 }}>OUT OF STOCK</Text>
+                                                <Text style={{ color: '#fff', fontSize: 9, fontWeight: '500', letterSpacing: 0.5 }}>OUT OF STOCK</Text>
                                             </View>
                                         ) : (
                                             <View style={{
                                                 backgroundColor: '#dcfce7', paddingHorizontal: 8,
-                                                paddingVertical: 3, borderRadius: 12,
+                                                paddingVertical: 3, borderRadius: 4,
                                             }}>
-                                                <Text style={{ color: '#16A34A', fontSize: 9, fontWeight: '800' }}>IN STOCK ({stock})</Text>
+                                                <Text style={{ color: '#16A34A', fontSize: 9, fontWeight: '500' }}>IN STOCK ({stock})</Text>
                                             </View>
                                         )}
                                     </View>
@@ -2132,13 +2165,13 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 <View style={{
                                     flexDirection: 'row', justifyContent: 'center', gap: 12,
                                     paddingVertical: 8, backgroundColor: COLORS.bgSurface,
-                                    borderTopWidth: 1, borderTopColor: COLORS.borderLight,
+                                    borderTopWidth: 0.5, borderTopColor: COLORS.borderLight,
                                 }}>
-                                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#16A34A' }}>
+                                    <Text style={{ fontSize: 11, fontWeight: '500', color: '#16A34A' }}>
                                         <Ionicons name="checkmark-circle" size={12} color="#16A34A" /> {inStockCount} available
                                     </Text>
                                     {outCount > 0 && (
-                                        <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.error }}>
+                                        <Text style={{ fontSize: 11, fontWeight: '500', color: COLORS.error }}>
                                             <Ionicons name="close-circle" size={12} color={COLORS.error} /> {outCount} out of stock
                                         </Text>
                                     )}
@@ -2146,7 +2179,6 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             );
                         })()}
 
-                        {/* Actions */}
                         <View style={pmStyles.actions}>
                             <TouchableOpacity
                                 style={pmStyles.cancelBtn}
@@ -2214,7 +2246,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 }}
                                 activeOpacity={0.7}
                             >
-                                <Ionicons name="cart" size={20} color="#fff" />
+                                <Ionicons name="cart" size={18} color="#fff" />
                                 <Text style={pmStyles.confirmText}>
                                     {(() => {
                                         const items = pendingLastItems || [];
@@ -2241,88 +2273,90 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: COLORS.bgDark,
     },
-
-    // ═══ LEFT PANEL ═══
-    leftPanel: {
-        flex: 3,
+    leftPane: {
+        flex: 1,
         backgroundColor: COLORS.white,
-        borderRightWidth: 1,
+        borderRightWidth: 0.5,
         borderRightColor: COLORS.border,
         minWidth: 0,
     },
 
-    // Search
-    searchRow: {
-        padding: SPACING.md,
+    inputBarRow: {
+        flexDirection: 'row',
         backgroundColor: COLORS.bgSurface,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
+        height: 34,
+        alignItems: 'center',
+        position: 'relative',
+        zIndex: 1000,
     },
-    searchBox: {
+    inputBarCell: {
+        flex: 1,
+        height: '100%',
+        justifyContent: 'center',
+    },
+    selectedCustomerBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.white,
-        borderRadius: RADIUS.md,
-        borderWidth: 1.5,
-        borderColor: COLORS.border,
-        paddingHorizontal: SPACING.lg,
-        height: 56,
+        paddingHorizontal: SPACING.md,
+        height: '100%',
     },
-    searchInput: {
+    selectedCustomerText: {
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '500',
+        color: COLORS.primary,
+        marginRight: 4,
+    },
+    selectedCustomerPhone: {
+        fontSize: FONT_SIZES.xs,
+        fontWeight: '500',
+        color: COLORS.textMuted,
+    },
+    inlineInputBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: SPACING.md,
+        height: '100%',
+    },
+    inlineInput: {
         flex: 1,
-        fontSize: FONT_SIZES.lg,
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '400',
         color: COLORS.textPrimary,
         height: '100%',
         ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
-
-    // Relative wrapper for search fields — anchors the absolute dropdown
     searchRelativeWrap: {
         position: 'relative',
         zIndex: 100,
+        flex: 1,
+        height: '100%',
     },
-
-    // Floating dropdown — absolutely positioned so it overlays content below
     floatingDropdown: {
         position: 'absolute',
-        top: 56,          // sits just below the 52-56px tall input
+        top: 42,
         left: 0,
         right: 0,
         backgroundColor: COLORS.white,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         borderRadius: RADIUS.md,
         zIndex: 9999,
-        elevation: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.18,
-        shadowRadius: 12,
         overflow: 'hidden',
-    },
-
-    // Legacy dropdown (kept for any other uses)
-    dropdown: {
-        marginHorizontal: SPACING.md,
-        backgroundColor: COLORS.white,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        borderRadius: RADIUS.md,
-        ...SHADOWS.md,
-        zIndex: 100,
     },
     dropdownItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: SPACING.sm,
+        paddingVertical: 6,
         paddingHorizontal: SPACING.lg,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.borderLight,
-        minHeight: 52,
+        minHeight: 42,
     },
     dropdownName: {
         fontSize: FONT_SIZES.md,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     dropdownMeta: {
@@ -2332,58 +2366,66 @@ const styles = StyleSheet.create({
     },
     dropdownPrice: {
         fontSize: FONT_SIZES.md,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.primary,
     },
-
-    // Table
     tableContainer: {
         flex: 1,
     },
     tableHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.bgSidebar,
-        paddingVertical: SPACING.sm,
-        paddingHorizontal: SPACING.md,
-        minHeight: 42,
+        backgroundColor: COLORS.borderLight,
+        height: 28,
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
     },
     th: {
-        fontSize: FONT_SIZES.xs,
+        fontSize: 11,
         fontWeight: '700',
-        color: 'rgba(255,255,255,0.9)',
+        color: COLORS.textSecondary,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
+    thCell: {
+        justifyContent: 'center',
+        paddingHorizontal: 8,
+        height: '100%',
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
+    },
     tableRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: SPACING.sm,
-        paddingHorizontal: SPACING.md,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.borderLight,
-        minHeight: 56,
-    },
-    tableRowAlt: {
-        backgroundColor: COLORS.bgInput,
+        alignItems: 'stretch',
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
+        height: 46,
     },
     td: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 12,
         color: COLORS.textSecondary,
     },
+    tdCell: {
+        justifyContent: 'center',
+        paddingHorizontal: 8,
+        borderRightWidth: 0.5,
+        borderRightColor: COLORS.border,
+    },
     tdName: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '600',
+        fontSize: 13,
+        fontWeight: '500',
         color: COLORS.textPrimary,
+    },
+    tdSub: {
+        fontSize: 10,
+        color: COLORS.textMuted,
+        marginTop: 1,
     },
     tdAmount: {
-        fontSize: FONT_SIZES.md,
+        fontSize: 12,
         fontWeight: '700',
         color: COLORS.textPrimary,
-        textAlign: 'right',
     },
-
-    // Qty cell — compact for 1280×800
     qtyCell: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2391,124 +2433,117 @@ const styles = StyleSheet.create({
         columnGap: 4,
     },
     qtyBtn: {
-        width: 30,
-        height: 30,
-        borderRadius: RADIUS.full,
+        width: 24,
+        height: 24,
+        borderRadius: RADIUS.sm,
         backgroundColor: COLORS.primaryGhost,
-        borderWidth: 1.5,
+        borderWidth: 0.5,
         borderColor: COLORS.primary,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    qtyValueTouch: {
-        minWidth: 30,
-        height: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    qtyText: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '800',
-        color: COLORS.primary,
-        textAlign: 'center',
     },
     qtyEditInput: {
-        minWidth: 36,
-        height: 30,
-        fontSize: FONT_SIZES.md,
-        fontWeight: '800',
+        width: 32,
+        height: 24,
+        fontSize: 12,
+        fontWeight: '500',
         color: COLORS.primary,
         textAlign: 'center',
-        borderWidth: 1.5,
+        borderWidth: 0.5,
         borderColor: COLORS.primary,
         borderRadius: RADIUS.sm,
         backgroundColor: COLORS.primaryGhost,
-        paddingHorizontal: 4,
-        outlineStyle: 'none',
+        padding: 0,
+        margin: 0,
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
-
-    // Discount tap target
-    discTap: {
-        paddingVertical: 5,
-        paddingHorizontal: 8,
+    discCell: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
         borderRadius: RADIUS.sm,
-        borderWidth: 1.5,
+        backgroundColor: COLORS.white,
+        paddingHorizontal: 4,
+        height: 24,
+        minWidth: 44,
+    },
+    discTap: {
+        paddingVertical: 4,
+        paddingHorizontal: 6,
+        borderRadius: RADIUS.sm,
+        borderWidth: 0.5,
         borderStyle: 'dashed',
         borderColor: COLORS.border,
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 30,
+        minHeight: 28,
     },
     discTapText: {
         fontSize: FONT_SIZES.xs,
         color: COLORS.textMuted,
-        fontWeight: '600',
+        fontWeight: '500',
     },
     discActive: {
         borderColor: COLORS.error,
-        borderStyle: 'solid',
         backgroundColor: COLORS.errorLight,
     },
     discActiveText: {
         color: COLORS.error,
-        fontWeight: '700',
+        fontWeight: '500',
     },
     discEditInput: {
         width: 32,
         fontSize: FONT_SIZES.xs,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textMuted,
         textAlign: 'center',
         paddingVertical: 0,
-        outlineStyle: 'none',
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
         backgroundColor: 'transparent',
     },
     deleteBtn: {
-        width: 40,
-        height: 40,
+        width: 28,
+        height: 28,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: RADIUS.sm,
     },
-
-    // Empty
     emptyTable: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
         gap: SPACING.xs,
+        opacity: 0.25,
     },
     emptyText: {
         fontSize: FONT_SIZES.lg,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textMuted,
     },
     emptySubtext: {
         fontSize: FONT_SIZES.sm,
         color: COLORS.textMuted,
     },
-
-
-
-    // ═══ RIGHT PANEL ═══
-    rightPanel: {
-        flex: 1.3,
-        backgroundColor: COLORS.white,
-        minWidth: 0,
-    },
+    rightPane: {
+    width: 200,
+    backgroundColor: COLORS.bgSurface,
+    padding: 10,
+    borderLeftWidth: 1,
+    borderLeftColor: COLORS.border,
+},
     rightPanelContent: {
         flexGrow: 1,
         paddingBottom: 16,
     },
-
-    // Doctor Fee & OTC extra charges
     extraFeeSection: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.md,
-        padding: SPACING.sm,
-        marginBottom: SPACING.sm,
-        borderWidth: 1,
-        borderColor: COLORS.borderLight,
+        borderRadius: 2,
+        padding: 6,
+        marginBottom: 6,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
     },
     extraFeeHeader: {
         flexDirection: 'row',
@@ -2518,7 +2553,7 @@ const styles = StyleSheet.create({
     },
     extraFeeTitle: {
         fontSize: FONT_SIZES.xs,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.primary,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
@@ -2532,26 +2567,28 @@ const styles = StyleSheet.create({
     extraFeeInputWrap: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1.5,
-        borderColor: COLORS.borderLight,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
         borderRadius: RADIUS.sm,
         paddingHorizontal: SPACING.xs,
         backgroundColor: COLORS.bgSurface,
         flex: 1,
+        height: 28,
     },
     extraFeeCurrency: {
         fontSize: FONT_SIZES.md,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textSecondary,
         paddingRight: 3,
     },
     extraFeeInput: {
         flex: 1,
-        fontSize: FONT_SIZES.md,
-        fontWeight: '700',
+        fontSize: FONT_SIZES.xs,
+        fontWeight: '500',
         color: COLORS.textPrimary,
-        paddingVertical: 7,
-        outlineStyle: 'none',
+        paddingVertical: 0,
+        height: '100%',
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
     otcItemRow: {
         flexDirection: 'row',
@@ -2561,12 +2598,13 @@ const styles = StyleSheet.create({
     },
     otcNameInput: {
         flex: 1.5,
-        borderWidth: 1.5,
-        borderColor: COLORS.borderLight,
-        borderRadius: RADIUS.sm,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        borderRadius: 2,
         paddingHorizontal: SPACING.xs,
         backgroundColor: COLORS.bgSurface,
-        paddingVertical: 7,
+        paddingVertical: 0,
+        height: 28,
     },
     otcRemoveBtn: {
         padding: 2,
@@ -2580,49 +2618,49 @@ const styles = StyleSheet.create({
     },
     otcAddBtnText: {
         fontSize: FONT_SIZES.xs,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.primary,
     },
-
-    // Totals
     totalsSection: {
         backgroundColor: COLORS.bgSurface,
-        borderRadius: RADIUS.lg,
-        padding: SPACING.md,
-        marginBottom: SPACING.md,
-        borderWidth: 1,
+        borderRadius: 2,
+        padding: 6,
+        marginBottom: 6,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
     },
     totalRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: SPACING.xs,
+        marginBottom: 4,
     },
     totalLabel: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 12,
+        fontWeight: '500',
         color: COLORS.textSecondary,
     },
     totalValue: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '600',
+        fontSize: 12,
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     grandTotalRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: SPACING.xs,
-        paddingTop: SPACING.sm,
-        borderTopWidth: 2,
-        borderTopColor: COLORS.primary,
+        marginTop: 4,
+        paddingTop: 6,
+        borderTopWidth: 0.5,
+        borderTopColor: COLORS.border,
     },
     grandTotalLabel: {
-        fontSize: FONT_SIZES.md,
+        fontSize: 16,
         fontWeight: '700',
         color: COLORS.textPrimary,
+        textTransform: 'uppercase',
     },
     grandTotalValue: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: '900',
+        fontSize: 24,
+        fontWeight: '700',
         color: COLORS.primary,
     },
     itemCountText: {
@@ -2631,67 +2669,53 @@ const styles = StyleSheet.create({
         marginTop: SPACING.xs,
         textAlign: 'right',
     },
-
-    // PAY
-    payBtn: {
-        backgroundColor: COLORS.primary,
-        borderRadius: RADIUS.lg,
-        paddingVertical: SPACING.md,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: SPACING.md,
-        ...SHADOWS.md,
-        gap: 3,
-    },
-    payBtnDisabled: {
-        backgroundColor: COLORS.border,
-    },
-    payBtnText: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: '900',
-        color: '#fff',
-        letterSpacing: 2,
-    },
-    payBtnAmount: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '600',
-        color: 'rgba(255,255,255,0.8)',
-    },
-
-    // Payment Methods
-    payMethodSection: {
-        marginBottom: SPACING.md,
-    },
-    payMethodTitle: {
-        fontSize: FONT_SIZES.xs,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        color: COLORS.textMuted,
-        letterSpacing: 1,
-        marginBottom: SPACING.xs,
-    },
-    payMethodRow: {
+    payChipsRow: {
         flexDirection: 'row',
-        gap: SPACING.sm,
+        gap: 6,
+        marginBottom: 8,
     },
-    payMethodBtn: {
+    payChip: {
         flex: 1,
+        height: 32,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: SPACING.sm,
-        borderRadius: RADIUS.md,
-        borderWidth: 1.5,
+        borderRadius: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         backgroundColor: COLORS.white,
-        gap: 3,
     },
-    payMethodLabel: {
-        fontSize: FONT_SIZES.xs,
-        fontWeight: '600',
+    payChipActive: {
+        borderColor: COLORS.primary,
+        backgroundColor: COLORS.primaryGhost,
+    },
+    payChipText: {
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '500',
         color: COLORS.textMuted,
     },
-
-    // Quick Actions
+    payChipTextActive: {
+        color: COLORS.primary,
+    },
+    payBtn: {
+        backgroundColor: COLORS.primary,
+        borderRadius: 2,
+        paddingVertical: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 10,
+        borderWidth: 0.5,
+        borderColor: COLORS.primary,
+    },
+    payBtnDisabled: {
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.white,
+        opacity: 0.5,
+    },
+    payBtnText: {
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '700',
+        color: COLORS.white,
+    },
     quickActions: {
         flexDirection: 'row',
         gap: SPACING.sm,
@@ -2704,37 +2728,35 @@ const styles = StyleSheet.create({
         gap: 5,
         paddingVertical: SPACING.xs,
         borderRadius: RADIUS.md,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         backgroundColor: COLORS.bgSurface,
     },
     quickBtnText: {
         fontSize: FONT_SIZES.xs,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textSecondary,
     },
-    // Customer credit badge
     creditBadgeStrip: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 5,
         backgroundColor: COLORS.errorLight,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.error,
         borderRadius: RADIUS.sm,
         paddingHorizontal: SPACING.sm,
         paddingVertical: 4,
+        marginBottom: 8,
     },
     creditBadgeText: {
         fontSize: FONT_SIZES.xs,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.error,
     },
-
-    // ── Mobile Cart Item ──
     mobileCartRow: {
         backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.borderLight,
         padding: 12,
         gap: 10,
@@ -2746,7 +2768,7 @@ const styles = StyleSheet.create({
     },
     mobileCartName: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textPrimary,
         marginBottom: 2,
     },
@@ -2766,11 +2788,9 @@ const styles = StyleSheet.create({
     },
     mobileCartAmount: {
         fontSize: 18,
-        fontWeight: '800',
+        fontWeight: '500',
         color: COLORS.primary,
     },
-
-    // ── Free / Manual Entry Row ──────────────────────────────────
     freeEntryRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2778,22 +2798,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: SPACING.md,
         paddingVertical: SPACING.sm,
         backgroundColor: '#fffbeb',
-        borderTopWidth: 1,
+        borderTopWidth: 0.5,
         borderTopColor: '#fde68a',
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: '#fde68a',
     },
     freeEntryInput: {
         height: 36,
-        borderWidth: 1.5,
+        borderWidth: 0.5,
         borderColor: '#f59e0b',
         borderRadius: RADIUS.sm,
         paddingHorizontal: 8,
         fontSize: FONT_SIZES.sm,
-        fontWeight: '600',
+        fontWeight: '500',
         color: COLORS.textPrimary,
         backgroundColor: COLORS.white,
-        outlineStyle: 'none',
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
     freeEntryConfirmBtn: {
         width: 36,
@@ -2808,7 +2828,7 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: RADIUS.sm,
         backgroundColor: COLORS.errorLight,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderColor: COLORS.error,
         alignItems: 'center',
         justifyContent: 'center',
@@ -2823,15 +2843,50 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
         paddingHorizontal: SPACING.sm,
         borderRadius: RADIUS.sm,
-        borderWidth: 1,
+        borderWidth: 0.5,
         borderStyle: 'dashed',
         borderColor: COLORS.primary,
         backgroundColor: COLORS.primaryGhost,
     },
     addUnlistedText: {
         fontSize: FONT_SIZES.xs,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.primary,
+    },
+    keyboardHintsBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#24312E',
+        height: 24,
+        borderTopWidth: 0.5,
+        borderTopColor: COLORS.border,
+        gap: 16,
+    },
+    hintItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    hintKey: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#1C5C4A',
+        backgroundColor: '#EFF2F1',
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 2,
+    },
+    hintText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#EFF2F1',
+        textTransform: 'uppercase',
+    },
+    hintSeparator: {
+        width: 1,
+        height: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
     },
 });
 
@@ -2839,7 +2894,6 @@ const styles = StyleSheet.create({
 // LOOSE TABLET STYLES
 // ═══════════════════════════════════════════════
 const looseStyles = StyleSheet.create({
-    // Pill toggle button below medicine name
     modePill: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2848,8 +2902,8 @@ const looseStyles = StyleSheet.create({
         marginTop: 2,
         paddingHorizontal: 6,
         paddingVertical: 2,
-        borderRadius: 10,
-        borderWidth: 1,
+        borderRadius: RADIUS.lg,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
         backgroundColor: COLORS.bgSurface,
     },
@@ -2859,26 +2913,24 @@ const looseStyles = StyleSheet.create({
     },
     modePillText: {
         fontSize: 10,
-        fontWeight: '700',
+        fontWeight: '500',
         color: COLORS.textMuted,
     },
     modePillTextLoose: {
         color: '#7C3AED',
     },
-    // Info strip below loose row
     infoStrip: {
         paddingHorizontal: SPACING.md,
         paddingVertical: 3,
         backgroundColor: '#F5F3FF',
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: '#DDD6FE',
     },
     infoText: {
         fontSize: 11,
         color: '#7C3AED',
-        fontWeight: '600',
+        fontWeight: '500',
     },
-    // Error strip below loose row when API fails
     errorStrip: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2886,13 +2938,13 @@ const looseStyles = StyleSheet.create({
         paddingHorizontal: SPACING.md,
         paddingVertical: 3,
         backgroundColor: COLORS.errorLight,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.error,
     },
     errorText: {
         fontSize: 11,
         color: COLORS.error,
-        fontWeight: '600',
+        fontWeight: '500',
         flex: 1,
     },
 });
@@ -2911,15 +2963,14 @@ const printStyles = StyleSheet.create({
         width: '88%',
         maxWidth: Math.min(420, Dimensions.get('window').width * 0.88),
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
+        borderRadius: RADIUS.lg,
         padding: SPACING.xl,
         alignItems: 'center',
-        ...SHADOWS.lg,
     },
     iconCircle: {
         width: 80,
         height: 80,
-        borderRadius: 40,
+        borderRadius: RADIUS.lg,
         backgroundColor: COLORS.successLight,
         alignItems: 'center',
         justifyContent: 'center',
@@ -2927,7 +2978,7 @@ const printStyles = StyleSheet.create({
     },
     heading: {
         fontSize: FONT_SIZES.xxl,
-        fontWeight: '800',
+        fontWeight: '500',
         color: COLORS.textPrimary,
         marginBottom: SPACING.xs,
     },
@@ -2939,7 +2990,7 @@ const printStyles = StyleSheet.create({
         marginBottom: SPACING.lg,
     },
     divider: {
-        height: 1,
+        height: 0.5,
         backgroundColor: COLORS.borderLight,
         alignSelf: 'stretch',
         marginBottom: SPACING.xl,
@@ -2951,7 +3002,7 @@ const printStyles = StyleSheet.create({
     },
     optionBtn: {
         flex: 1,
-        borderRadius: RADIUS.xl,
+        borderRadius: RADIUS.lg,
         paddingVertical: SPACING.xl,
         paddingHorizontal: SPACING.md,
         alignItems: 'center',
@@ -2962,7 +3013,7 @@ const printStyles = StyleSheet.create({
     },
     optionSave: {
         backgroundColor: COLORS.white,
-        borderWidth: 2,
+        borderWidth: 0.5,
         borderColor: COLORS.border,
     },
     optionIconWrap: {
@@ -2979,7 +3030,7 @@ const printStyles = StyleSheet.create({
     },
     optionLabel: {
         fontSize: FONT_SIZES.lg,
-        fontWeight: '800',
+        fontWeight: '500',
         color: COLORS.white,
     },
     optionLabelSave: {
@@ -2991,4 +3042,3 @@ const printStyles = StyleSheet.create({
         fontWeight: '500',
     },
 });
-

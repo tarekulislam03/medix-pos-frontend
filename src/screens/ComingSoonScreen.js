@@ -1,18 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
+import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 
-// ── Feature cards shown in each Coming Soon screen ──
+// ── Feature configs for each unavailable screen ──
 const SCREEN_CONFIG = {
     Returns: {
-        title: 'Returns & Refunds',
-        subtitle: 'Manage product returns and process refunds seamlessly',
+        title: 'Sales Returns',
+        subtitle: 'Manage product returns and process refunds',
         icon: 'return-down-back',
-        iconColor: '#7C3AED',
-        iconBg: 'rgba(124,58,237,0.12)',
-        accentColor: '#7C3AED',
         features: [
             { icon: 'swap-horizontal-outline', label: 'Easy Returns', desc: 'Process single or bulk item returns against invoices' },
             { icon: 'cash-outline', label: 'Refund Modes', desc: 'Cash refund, store credit, or exchange options' },
@@ -22,36 +19,56 @@ const SCREEN_CONFIG = {
             { icon: 'alert-circle-outline', label: 'Damage Tracking', desc: 'Flag and track damaged or expired returned goods' },
         ],
     },
-    Customers: {
-        title: 'Customer Management',
-        subtitle: 'Build lasting relationships and track every customer interaction',
-        icon: 'people',
-        iconColor: '#0284C7',
-        iconBg: 'rgba(2,132,199,0.12)',
-        accentColor: '#0284C7',
+    Purchase: {
+        title: 'Purchase Orders',
+        subtitle: 'Manage purchases and track supplier stock orders',
+        icon: 'cart-outline',
         features: [
-            { icon: 'person-add-outline', label: 'Customer Profiles', desc: 'Store contact info, allergies, and purchase history' },
-            { icon: 'heart-outline', label: 'Loyalty Points', desc: 'Reward repeat customers with a built-in points system' },
-            { icon: 'time-outline', label: 'Purchase History', desc: 'View complete transaction history per customer' },
-            { icon: 'notifications-outline', label: 'Prescription Reminders', desc: 'Auto-remind customers when medicine refills are due' },
-            { icon: 'pricetag-outline', label: 'Custom Pricing', desc: 'Set special discount tiers for VIP customers' },
-            { icon: 'phone-portrait-outline', label: 'SMS / WhatsApp', desc: 'Send bills and reminders directly to customers' },
+            { icon: 'create-outline', label: 'Create Orders', desc: 'Build and send purchase orders directly to suppliers' },
+            { icon: 'time-outline', label: 'Purchase History', desc: 'Track past orders, pending items, and total spend' },
+            { icon: 'cube-outline', label: 'Receive Stock', desc: 'Instantly update inventory counts on receiving purchases' },
+            { icon: 'pricetag-outline', label: 'Cost Tracking', desc: 'Maintain buying price history to calculate gross margins' },
+            { icon: 'document-text-outline', label: 'Billing Bills', desc: 'Upload purchase bills and match with order logs' },
+            { icon: 'notifications-outline', label: 'Low Stock Alerts', desc: 'Auto-draft POs when items drop below safety stock' },
         ],
     },
-    SalesAnalytics: {
-        title: 'Sales Analytics',
-        subtitle: 'Data-driven insights to grow your pharmacy business',
-        icon: 'bar-chart',
-        iconColor: '#16A34A',
-        iconBg: 'rgba(22,163,74,0.12)',
-        accentColor: '#16A34A',
+    Suppliers: {
+        title: 'Supplier Directory',
+        subtitle: 'Manage medicine manufacturers and distributors',
+        icon: 'business-outline',
         features: [
-            { icon: 'trending-up-outline', label: 'Revenue Trends', desc: 'Daily, weekly, and monthly revenue breakdowns' },
-            { icon: 'cube-outline', label: 'Top Products', desc: 'See your best-selling medicines and slowest movers' },
-            { icon: 'pie-chart-outline', label: 'Payment Mix', desc: 'Cash vs UPI vs card revenue distribution' },
-            { icon: 'calendar-outline', label: 'Period Comparison', desc: 'Compare performance across custom date ranges' },
-            { icon: 'people-outline', label: 'Customer Insights', desc: 'Repeat customer rate, basket size, and LTV' },
-            { icon: 'download-outline', label: 'Export Reports', desc: 'Download PDF or Excel reports for any period' },
+            { icon: 'person-add-outline', label: 'Supplier Profiles', desc: 'Save contact details, payment terms, and GST details' },
+            { icon: 'wallet-outline', label: 'Ledger History', desc: 'Track payables, pending dues, and past transactions' },
+            { icon: 'link-outline', label: 'Purchase Links', desc: 'Associate purchase orders to specific suppliers' },
+            { icon: 'star-outline', label: 'Supplier Ratings', desc: 'Monitor supplier fulfillment speed and order accuracy' },
+            { icon: 'copy-outline', label: 'Bulk Imports', desc: 'Upload Excel/CSV directories of manufacturers' },
+            { icon: 'calendar-outline', label: 'Payment Reminders', desc: 'Schedule reminders for outstanding distributor invoices' },
+        ],
+    },
+    Expenses: {
+        title: 'Expense Tracking',
+        subtitle: 'Record shop utilities, rent, salaries, and petty cash',
+        icon: 'cash-outline',
+        features: [
+            { icon: 'add-circle-outline', label: 'Log Expenses', desc: 'Quick record categories like Utilities, Salaries, Rent' },
+            { icon: 'receipt-outline', label: 'Expense Receipts', desc: 'Attach digital bills/receipts for audit trials' },
+            { icon: 'bar-chart-outline', label: 'Cost Reports', desc: 'Daily, weekly, and monthly expense analysis charts' },
+            { icon: 'trending-down-outline', label: 'Profit & Loss Link', desc: 'Deduct expenses from gross profit to get net income' },
+            { icon: 'people-outline', label: 'Staff Salaries', desc: 'Track payouts and advance payments to employees' },
+            { icon: 'shield-outline', label: 'Tax Deductions', desc: 'Categorize tax-deductible items for easy returns filing' },
+        ],
+    },
+    Invoices: {
+        title: 'Invoice Registry',
+        subtitle: 'Search, audit, and re-print sales bills',
+        icon: 'receipt-outline',
+        features: [
+            { icon: 'search-outline', label: 'Search & Filter', desc: 'Search invoices by customer, date, or amount' },
+            { icon: 'print-outline', label: 'Re-print Bills', desc: 'Direct PDF export or thermal re-print of invoices' },
+            { icon: 'calculator-outline', label: 'Tax Records', desc: 'Consolidated view of CGST, SGST, and IGST collections' },
+            { icon: 'close-circle-outline', label: 'Void Invoice', desc: 'Process cancellations and auto-restore stock levels' },
+            { icon: 'stats-chart-outline', label: 'Sales Summary', desc: 'Filter sales reports by staff counter or shifts' },
+            { icon: 'cloud-download-outline', label: 'GSTR Data Export', desc: 'Download CSV reports tailored for tax accountants' },
         ],
     },
 };
@@ -67,44 +84,41 @@ export default function ComingSoonScreen({ screenKey = 'Returns' }) {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <View style={[styles.headerIconBox, { backgroundColor: config.iconBg }]}>
-                        <Ionicons name={config.icon} size={26} color={config.accentColor} />
-                    </View>
                     <View>
                         <Text style={styles.headerTitle}>{config.title}</Text>
                         <Text style={styles.headerSub}>{config.subtitle}</Text>
                     </View>
                 </View>
                 <View style={styles.badge}>
-                    <Ionicons name="time-outline" size={14} color="#F59E0B" />
-                    <Text style={styles.badgeText}>Coming Soon</Text>
+                    <Ionicons name="warning-outline" size={12} color={COLORS.warning} />
+                    <Text style={styles.badgeText}>Work Under Process</Text>
                 </View>
             </View>
 
             <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-                {/* Hero Banner */}
-                <View style={[styles.heroBanner, { borderColor: config.accentColor + '30' }]}>
-                    <View style={[styles.heroBigIcon, { backgroundColor: config.iconBg }]}>
-                        <Ionicons name={config.icon} size={64} color={config.accentColor} />
+                {/* Work Under Process Disclaimer Banner */}
+                <View style={styles.disclaimerBanner}>
+                    <View style={styles.disclaimerIconBox}>
+                        <Ionicons name="construct-outline" size={16} color={COLORS.primary} />
                     </View>
-                    <Text style={styles.heroTitle}>Under Development</Text>
-                    <Text style={styles.heroSub}>
-                        We're building something great! This feature will be available in the next update.
-                        Here's a preview of what's coming:
-                    </Text>
-                    <View style={[styles.progressBar, { borderColor: config.accentColor + '40' }]}>
-                        <View style={[styles.progressFill, { backgroundColor: config.accentColor, width: '65%' }]} />
-                        <Text style={[styles.progressLabel, { color: config.accentColor }]}>65% Complete</Text>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.disclaimerTitle}>Module Under Development</Text>
+                        <Text style={styles.disclaimerText}>
+                            This feature is currently under active development. The planned capabilities listed below will be fully integrated and ready to use in the upcoming software update.
+                        </Text>
                     </View>
                 </View>
 
                 {/* Feature grid */}
-                <Text style={styles.featuresHeading}>Planned Features</Text>
+                <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.featuresHeading}>Planned Features</Text>
+                </View>
+
                 <View style={styles.grid}>
                     {config.features.map((feat, idx) => (
                         <View key={idx} style={[styles.featureCard, { width: cardWidth }]}>
-                            <View style={[styles.featureIconBox, { backgroundColor: config.iconBg }]}>
-                                <Ionicons name={feat.icon} size={22} color={config.accentColor} />
+                            <View style={styles.featureIconBox}>
+                                <Ionicons name={feat.icon} size={16} color={COLORS.primary} />
                             </View>
                             <Text style={styles.featureLabel}>{feat.label}</Text>
                             <Text style={styles.featureDesc}>{feat.desc}</Text>
@@ -114,9 +128,9 @@ export default function ComingSoonScreen({ screenKey = 'Returns' }) {
 
                 {/* Footer note */}
                 <View style={styles.footerNote}>
-                    <Ionicons name="information-circle-outline" size={18} color={COLORS.textMuted} />
+                    <Ionicons name="information-circle-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
                     <Text style={styles.footerNoteText}>
-                        Features are being developed based on your feedback. Contact support to suggest priorities.
+                        Features are being developed based on user feedback. Contact system administration to suggest prioritization.
                     </Text>
                 </View>
             </ScrollView>
@@ -128,6 +142,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.bgDark,
+        padding: 12,
     },
 
     // Header
@@ -135,169 +150,140 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: SPACING.xxl,
-        paddingVertical: SPACING.lg,
-        backgroundColor: COLORS.white,
-        borderBottomWidth: 1,
+        paddingBottom: 10,
+        borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
+        marginBottom: 10,
     },
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: SPACING.md,
         flex: 1,
     },
-    headerIconBox: {
-        width: 48,
-        height: 48,
-        borderRadius: RADIUS.lg,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     headerTitle: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: '800',
+        fontSize: 16,
+        fontWeight: '500',
         color: COLORS.textPrimary,
     },
     headerSub: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 11,
         color: COLORS.textMuted,
         marginTop: 2,
-        maxWidth: 400,
     },
     badge: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
-        backgroundColor: 'rgba(245,158,11,0.12)',
-        borderWidth: 1,
-        borderColor: 'rgba(245,158,11,0.35)',
-        paddingHorizontal: SPACING.md,
-        paddingVertical: 7,
-        borderRadius: RADIUS.full,
+        gap: 4,
+        backgroundColor: COLORS.warningLight,
+        borderWidth: 0.5,
+        borderColor: COLORS.warning,
+        paddingHorizontal: 8,
+        height: 22,
+        borderRadius: 2,
     },
     badgeText: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
-        color: '#F59E0B',
+        fontSize: 11,
+        fontWeight: '600',
+        color: COLORS.warning,
     },
 
     // Body
     body: {
-        padding: SPACING.xxl,
-        gap: SPACING.xl,
-        paddingBottom: SPACING.xxxl,
+        gap: 12,
+        paddingBottom: 40,
     },
 
-    // Hero banner
-    heroBanner: {
-        backgroundColor: COLORS.white,
-        borderRadius: RADIUS.xl,
-        padding: SPACING.xxl,
-        alignItems: 'center',
-        borderWidth: 1.5,
-        ...SHADOWS.md,
-        gap: SPACING.md,
+    // Disclaimer banner
+    disclaimerBanner: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        backgroundColor: COLORS.primaryGhost,
+        borderRadius: 2,
+        padding: 12,
+        borderWidth: 0.5,
+        borderColor: COLORS.primarySoft,
     },
-    heroBigIcon: {
-        width: 110,
-        height: 110,
-        borderRadius: RADIUS.xl,
+    disclaimerIconBox: {
+        width: 28,
+        height: 28,
+        borderRadius: 2,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: SPACING.sm,
+        backgroundColor: COLORS.primarySoft,
+        marginTop: 2,
     },
-    heroTitle: {
-        fontSize: FONT_SIZES.xxl,
-        fontWeight: '900',
-        color: COLORS.textPrimary,
+    disclaimerTitle: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.primary,
+        marginBottom: 2,
+        textTransform: 'uppercase',
     },
-    heroSub: {
-        fontSize: FONT_SIZES.md,
-        color: COLORS.textMuted,
-        textAlign: 'center',
-        lineHeight: 22,
-        maxWidth: 480,
-    },
-    progressBar: {
-        alignSelf: 'stretch',
-        height: 36,
-        borderRadius: RADIUS.full,
-        borderWidth: 1.5,
-        backgroundColor: COLORS.bgSurface,
-        overflow: 'hidden',
-        position: 'relative',
-        marginTop: SPACING.sm,
-        justifyContent: 'center',
-    },
-    progressFill: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        borderRadius: RADIUS.full,
-        opacity: 0.2,
-    },
-    progressLabel: {
-        fontSize: FONT_SIZES.sm,
-        fontWeight: '700',
-        textAlign: 'center',
+    disclaimerText: {
+        fontSize: 11,
+        color: COLORS.primary,
+        lineHeight: 16,
     },
 
     // Features section
+    sectionHeaderRow: {
+        marginTop: 4,
+    },
     featuresHeading: {
-        fontSize: FONT_SIZES.lg,
-        fontWeight: '800',
+        fontSize: 12,
+        fontWeight: '600',
         color: COLORS.textPrimary,
+        textTransform: 'uppercase',
     },
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: SPACING.md,
+        gap: 12,
     },
     featureCard: {
         backgroundColor: COLORS.white,
-        borderRadius: RADIUS.lg,
-        padding: SPACING.lg,
-        gap: SPACING.xs,
-        borderWidth: 1,
-        borderColor: COLORS.borderLight,
-        ...SHADOWS.sm,
+        borderRadius: 2,
+        padding: 12,
+        gap: 4,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
     },
     featureIconBox: {
-        width: 42,
-        height: 42,
-        borderRadius: RADIUS.md,
+        width: 32,
+        height: 32,
+        borderRadius: 2,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: SPACING.xs,
+        backgroundColor: COLORS.primaryGhost,
+        marginBottom: 4,
     },
     featureLabel: {
-        fontSize: FONT_SIZES.md,
-        fontWeight: '700',
+        fontSize: 12,
+        fontWeight: '600',
         color: COLORS.textPrimary,
     },
     featureDesc: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 11,
         color: COLORS.textMuted,
-        lineHeight: 18,
+        lineHeight: 15,
     },
 
     // Footer note
     footerNote: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: SPACING.sm,
-        backgroundColor: COLORS.bgSurface,
-        borderRadius: RADIUS.md,
-        padding: SPACING.md,
-        borderWidth: 1,
-        borderColor: COLORS.borderLight,
+        backgroundColor: '#F8FAF9',
+        borderRadius: 2,
+        padding: 10,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        marginTop: 4,
     },
     footerNoteText: {
         flex: 1,
-        fontSize: FONT_SIZES.sm,
+        fontSize: 11,
         color: COLORS.textMuted,
-        lineHeight: 18,
+        lineHeight: 16,
     },
 });
