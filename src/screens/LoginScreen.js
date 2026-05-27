@@ -78,7 +78,8 @@ export default function LoginScreen({ navigation }) {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const passwordRef = useRef(null);
 
-    const isWide = Platform.OS === 'web';
+    const r = useResponsive();
+    const isWide = !r.isSmall;
 
     useEffect(() => {
         if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -205,6 +206,14 @@ export default function LoginScreen({ navigation }) {
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
+                {!isWide && (
+                    <View style={{ alignItems: 'center', marginBottom: 24, marginTop: 12 }}>
+                        <Image source={require('../../assets/icon.png')} style={{ width: 48, height: 48, marginBottom: 8 }} resizeMode="contain" />
+                        <Text style={{ fontSize: 24, fontWeight: '700', color: T.heading }}>Medi<Text style={{ color: T.panelAccent }}>X</Text></Text>
+                        <Text style={{ fontSize: 10, color: T.muted, letterSpacing: 2 }}>POS & ERP</Text>
+                    </View>
+                )}
+
                 {/* Form title */}
                 <View style={s.formHeader}>
                     <Text style={s.formTitle}>▸ User Login</Text>
@@ -499,6 +508,7 @@ const s = StyleSheet.create({
     right: {
         flex: 1,
         backgroundColor: T.formBg,
+        justifyContent: 'center',
     },
     formArea: {
         paddingLeft: 24,
@@ -507,6 +517,7 @@ const s = StyleSheet.create({
         paddingBottom: 12,
         maxWidth: 360,
         width: '100%',
+        alignSelf: 'center',
     },
     formHeader: {
         marginBottom: 8,

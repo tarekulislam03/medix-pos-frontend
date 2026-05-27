@@ -102,6 +102,20 @@ export default function DashboardScreen({ navigation }) {
         ? { width: '48%', marginBottom: SPACING.md }
         : { flex: 1 };
 
+    if (r.isSmall) {
+        return (
+            <View style={{ flex: 1, backgroundColor: COLORS.bgDark, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                <Ionicons name="desktop-outline" size={64} color={COLORS.border} />
+                <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginTop: 16, textAlign: 'center' }}>
+                    Not Available on Mobile
+                </Text>
+                <Text style={{ fontSize: 14, color: COLORS.textMuted, marginTop: 8, textAlign: 'center', lineHeight: 20 }}>
+                    This page is optimized for larger screens.{'\n'}Please use a tablet or desktop to access this feature.
+                </Text>
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
             {/* Page Header */}

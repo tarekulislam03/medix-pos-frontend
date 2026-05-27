@@ -617,6 +617,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     const [searchResults, setSearchResults] = useState([]);
     const [searchLoading, setSearchLoading] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [fefoWarning, setFefoWarning] = useState(null);
 
     // ─── PRELOADED PRODUCT LIST (for instant local search) ───
     const [allProducts, setAllProducts] = useState([]);
@@ -891,7 +892,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     }, [productsLoaded, allProducts]);
 
     // ─── CART ───────────────────────────────────────
-    const addToCart = useCallback((product) => {
+    const addToCart = useCallback((product, force = false) => {
         const maxStock = product.quantity ?? product.stock ?? 0;
 
         // Block out-of-stock products completely
@@ -902,7 +903,44 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
         const pid = product._id || product.id || product.product_id;
 
-        // Optimistic local stock deduction — keeps search results accurate
+        // FEFO Check: Warn if selling a newer batch when older is available
+        let isFefoViolation = false;
+        if (!force) {
+            const name = (product.medicine_name || product.name || '').trim().toLowerCase();
+            const inStockSiblings = allProducts.filter(p => 
+                (p.medicine_name || p.name || '').trim().toLowerCase() === name && 
+                (p.quantity ?? p.stock ?? 0) > 0
+            );
+
+            // Sort siblings by expiry_date (nulls at the bottom)
+            inStockSiblings.sort((a, b) => {
+                const dateA = a.expiry_date || a.expiry;
+                const dateB = b.expiry_date || b.expiry;
+                
+                let diff = 0;
+                if (!dateA && !dateB) diff = 0;
+                else if (!dateA) diff = 1;
+                else if (!dateB) diff = -1;
+                else diff = new Date(dateA) - new Date(dateB);
+
+                // Fallback to insertion order (older _id comes first) if dates match
+                if (diff === 0) {
+                    const idA = (a._id || a.id || '').toString();
+                    const idB = (b._id || b.id || '').toString();
+                    return idA.localeCompare(idB);
+                }
+                return diff;
+            });
+            
+            if (inStockSiblings.length > 1) {
+                const oldestPid = (inStockSiblings[0]._id || inStockSiblings[0].id || '').toString();
+                if (oldestPid !== pid.toString()) {
+                    isFefoViolation = true;
+                }
+            }
+        }
+
+        // Optimistic local stock deduction - keeps search results accurate
         setAllProducts(prev => prev.map(p =>
             (p._id || p.id) === pid ? { ...p, quantity: Math.max(0, (p.quantity ?? 0) - 1) } : p
         ));
@@ -928,7 +966,13 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
         setShowDropdown(false);
         // Re-focus search input so barcode scanner / keyboard stays active
         setTimeout(() => searchInputRef.current?.focus(), 50);
-    }, []);
+
+        if (isFefoViolation) {
+            setTimeout(() => {
+                setFefoWarning(pid);
+            }, 50);
+        }
+    }, [allProducts]);
 
     // Submit (Enter key / barcode scanner)
     const handleSubmitSearch = useCallback(async () => {
@@ -984,6 +1028,52 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
         }
         const maxStock = item.available_stock ?? item.quantity ?? item.stock ?? 999;
         if (newQty > maxStock) {
+            const remaining = newQty - maxStock;
+            const name = (item.medicine_name || item.name || '').toLowerCase();
+            // Find other batches of the same medicine
+            const otherBatches = allProducts.filter(p => 
+                (p.medicine_name || p.name || '').toLowerCase() === name && 
+                (p._id || p.id) !== pid &&
+                (p.quantity ?? p.stock ?? 0) > 0
+            );
+
+            if (otherBatches.length > 0) {
+                Alert.alert(
+                    'Stock Limit Reached', 
+                    `This batch only has ${maxStock} units.\n\nAuto-add ${remaining} units from the next available batches?`,
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Yes, Split Stock', onPress: () => {
+                            setCart(prev => {
+                                let newCart = [...prev];
+                                newCart = newCart.map((i) => (i._id || i.id || i.product_id) === pid ? { ...i, cart_quantity: maxStock } : i);
+                                
+                                let stillNeeded = remaining;
+                                for (const b of otherBatches) {
+                                    if (stillNeeded <= 0) break;
+                                    const bStock = b.quantity ?? b.stock ?? 0;
+                                    const take = Math.min(bStock, stillNeeded);
+                                    const bPid = b._id || b.id;
+                                    const existingIdx = newCart.findIndex(i => (i._id || i.id || i.product_id) === bPid);
+                                    if (existingIdx >= 0) {
+                                        newCart[existingIdx] = { ...newCart[existingIdx], cart_quantity: newCart[existingIdx].cart_quantity + take };
+                                    } else {
+                                        const pPrice = b.mrp ?? b.price ?? 0;
+                                        newCart.push({ ...b, cart_quantity: take, cart_price: pPrice, discount_percent: item.discount_percent || 0 });
+                                    }
+                                    stillNeeded -= take;
+                                }
+                                if (stillNeeded > 0) {
+                                     setTimeout(() => Alert.alert('Notice', `Added all available stock. Still short by ${stillNeeded} units.`), 500);
+                                }
+                                return newCart;
+                            });
+                        }}
+                    ]
+                );
+                return;
+            }
+
             Alert.alert('Stock Limit', `Only ${maxStock} units available.`);
             return;
         }
@@ -992,7 +1082,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                 (i._id || i.id || i.product_id) === pid ? { ...i, cart_quantity: newQty } : i
             )
         );
-    }, []);
+    }, [allProducts]);
 
     const updateDiscount = useCallback((item, discount) => {
         const pid = item._id || item.id || item.product_id;
@@ -1368,11 +1458,25 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     // Search box height responsive
     const searchBoxH = r.pick({ small: 48, medium: 52, large: 56, xlarge: 52 });
 
+    if (r.isSmall) {
+        return (
+            <View style={{ flex: 1, backgroundColor: COLORS.bgDark, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                <Ionicons name="desktop-outline" size={64} color={COLORS.border} />
+                <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginTop: 16, textAlign: 'center' }}>
+                    Not Available on Mobile
+                </Text>
+                <Text style={{ fontSize: 14, color: COLORS.textMuted, marginTop: 8, textAlign: 'center', lineHeight: 20 }}>
+                    The Billing & POS interface is optimized for larger screens.{'\n'}Please use a tablet or desktop to access this feature.
+                </Text>
+            </View>
+        );
+    }
+
     return (
         <View style={{ flex: 1, backgroundColor: COLORS.bgDark }}>
-            <View style={styles.container}>
+            <View style={[styles.container, r.isSmall && { flexDirection: 'column' }]}>
                 {/* ═══════════ LEFT PANE ═══════════ */}
-                <View style={[styles.leftPane, { flex: leftFlex }]}>
+                <View style={[styles.leftPane, { flex: r.isSmall ? 1.5 : leftFlex }]}>
         
                 {/* ── Invoice Metadata Bar ── */}
                 <View style={erpStyles.metaBar}>
@@ -1523,6 +1627,11 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                             const batch = product.batch_number || product.batch || 'N/A';
                                             const expiry = formatExpiryDate(product.expiry_date || product.expiry || 'N/A');
                                             const price = Number(getPrice(product)).toFixed(2);
+                                            
+                                            // Identify if this is the FEFO priority batch (first in-stock occurrence)
+                                            const inStockSiblings = searchResults.filter(p => (p.medicine_name || p.name) === (product.medicine_name || product.name) && (p.quantity ?? p.stock ?? 0) > 0);
+                                            const isFefoPriority = inStockSiblings.length > 1 && inStockSiblings[0]._id === (product._id || product.id) && !isOutOfStock;
+
                                             return (
                                                 <TouchableOpacity
                                                     key={product._id || product.id || idx}
@@ -1542,7 +1651,12 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                                     ]} numberOfLines={1}>
                                                         {getName(product)}
                                                     </Text>
-                                                    <Text style={[erpStyles.dropdownColText, { flex: 1 }]} numberOfLines={1}>{batch}</Text>
+                                                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                                        <Text style={erpStyles.dropdownColText} numberOfLines={1}>{batch}</Text>
+                                                        {isFefoPriority && (
+                                                            <Text style={{ backgroundColor: '#FEF08A', color: '#854D0E', fontSize: 7, fontWeight: '700', paddingHorizontal: 3, paddingVertical: 1, borderRadius: 2, overflow: 'hidden' }}>FEFO</Text>
+                                                        )}
+                                                    </View>
                                                     <Text style={[erpStyles.dropdownColText, { flex: 1 }]} numberOfLines={1}>{expiry}</Text>
                                                     <Text style={[
                                                         erpStyles.dropdownColTextBold, 
@@ -1961,7 +2075,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
             </View>
             {/* ═══════════ RIGHT PANE ═══════════ */}
-            <View style={[styles.rightPane, { flex: rightFlex }]}>
+            <View style={[styles.rightPane, { flex: r.isSmall ? 1 : rightFlex }]}>
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[
@@ -2388,6 +2502,58 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                         return inStockCount > 0 ? `Add ${inStockCount} Item${inStockCount > 1 ? 's' : ''} to Cart` : 'All Out of Stock';
                                     })()}
                                 </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* FEFO Warning Modal */}
+            <Modal visible={!!fefoWarning} transparent animationType="fade" onRequestClose={() => {
+                if (fefoWarning) {
+                    setCart(prev => prev.filter(i => (i._id || i.id || i.product_id) !== fefoWarning));
+                    setAllProducts(prev => prev.map(p =>
+                        (p._id || p.id) === fefoWarning ? { ...p, quantity: (p.quantity ?? 0) + 1 } : p
+                    ));
+                }
+                setFefoWarning(null);
+            }}>
+                <View style={pmStyles.overlay}>
+                    <View style={[pmStyles.container, { maxWidth: 440 }]}>
+                        {/* Header */}
+                        <View style={[pmStyles.header, { backgroundColor: '#FEF2F2', borderBottomColor: '#FEE2E2', paddingVertical: 14 }]}>
+                            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="warning" size={22} color="#DC2626" style={{ marginRight: 10 }} />
+                                <View>
+                                    <Text style={[pmStyles.headerTitle, { color: '#991B1B' }]}>FEFO Policy Violation</Text>
+                                    <Text style={[pmStyles.headerSub, { color: '#DC2626', fontSize: 11 }]}>Strict Batch Clearance Required</Text>
+                                </View>
+                            </View>
+                        </View>
+                        
+                        {/* Body */}
+                        <View style={{ padding: 24, alignItems: 'center' }}>
+                            <Ionicons name="time-outline" size={56} color="#DC2626" style={{ marginBottom: 16, opacity: 0.9 }} />
+                            <Text style={{ fontSize: 16, color: COLORS.textPrimary, textAlign: 'center', marginBottom: 8, fontWeight: '600' }}>
+                                An older batch is available for sale.
+                            </Text>
+                            <Text style={{ fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 24, paddingHorizontal: 10 }}>
+                                To prevent stock expiration and maintain accurate inventory tracking, you must clear the older batch before selling this newer one.
+                            </Text>
+                            
+                            <TouchableOpacity
+                                style={[pmStyles.confirmBtn, { width: '100%', backgroundColor: '#DC2626' }]}
+                                onPress={() => {
+                                    if (fefoWarning) {
+                                        setCart(prev => prev.filter(i => (i._id || i.id || i.product_id) !== fefoWarning));
+                                        setAllProducts(prev => prev.map(p =>
+                                            (p._id || p.id) === fefoWarning ? { ...p, quantity: (p.quantity ?? 0) + 1 } : p
+                                        ));
+                                    }
+                                    setFefoWarning(null);
+                                }}
+                            >
+                                <Text style={pmStyles.confirmBtnText}>Acknowledge & Remove</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

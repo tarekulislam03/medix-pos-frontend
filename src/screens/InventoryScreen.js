@@ -535,7 +535,7 @@ export default function InventoryScreen({ navigation }) {
                     item.hsn_code || item.hsn || item.hsn_no || ''
                 ),
                 gst: String(
-                    item.gst || item.gst_rate || item.cgst || item.sgst || ''
+                    item.gst ?? item.gst_rate ?? ''
                 ),
             }));
             setAutoImportItems(normalised);
@@ -1681,13 +1681,13 @@ export default function InventoryScreen({ navigation }) {
                     <View style={[styles.autoImportModalCard, { width: r.pick({ small: '97%', medium: '95%', large: '90%', xlarge: 920 }) }]}>
                         {/* Header */}
                         <View style={styles.modalHeader}>
-                            <View style={styles.modalHeaderLeft}>
+                            <View style={[styles.modalHeaderLeft, { flex: 1 }]}>
                                 <View style={[styles.modalIcon, { backgroundColor: COLORS.primaryGhost }]}>
                                     <Ionicons name="sparkles-outline" size={22} color={COLORS.primary} />
                                 </View>
-                                <View>
-                                    <Text style={styles.modalTitle}>Review Extracted Medicines</Text>
-                                    <View style={{ flexDirection: 'row', gap: 12, marginTop: 4 }}>
+                                <View style={{ flex: 1, paddingRight: 8 }}>
+                                    <Text style={[styles.modalTitle, { flexWrap: 'wrap' }]}>Review Extracted Medicines</Text>
+                                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: r.isSmall ? 4 : 12, marginTop: 4 }}>
                                         {autoImportBillNo ? (
                                             <Text style={styles.autoImportSubtitle}>Invoice: {autoImportBillNo}</Text>
                                         ) : null}
@@ -1715,7 +1715,7 @@ export default function InventoryScreen({ navigation }) {
 
                         {/* Column Headers + Body wrapped in a table box */}
                         {!autoImportError && (
-                            <View style={styles.aiTableContainer}>
+                            <View style={[styles.aiTableContainer, r.isSmall && { marginHorizontal: SPACING.sm, borderWidth: 0, backgroundColor: 'transparent' }]}>
                                 {/* Header */}
                                 {!r.isSmall && (
                                     <View style={styles.aiTableHeader}>
@@ -2016,8 +2016,8 @@ export default function InventoryScreen({ navigation }) {
                         )}
 
                         {/* Footer */}
-                        <View style={styles.modalFooter}>
-                            <TouchableOpacity style={styles.aiCancelBtn} onPress={closeAutoImportReview}>
+                        <View style={[styles.modalFooter, r.isSmall && { flexDirection: 'column-reverse', alignItems: 'stretch' }]}>
+                            <TouchableOpacity style={[styles.aiCancelBtn, r.isSmall && { height: 44, marginTop: 8 }]} onPress={closeAutoImportReview}>
                                 <Text style={styles.aiCancelBtnText}>Cancel</Text>
                             </TouchableOpacity>
                             <GradientButton
@@ -2026,7 +2026,7 @@ export default function InventoryScreen({ navigation }) {
                                 loading={autoImportConfirming}
                                 disabled={autoImportItems.length === 0 || autoImportConfirming}
                                 icon={<Ionicons name="checkmark-circle-outline" size={20} color={COLORS.white} />}
-                                style={{ flex: 2 }}
+                                style={r.isSmall ? { height: 44 } : { flex: 2 }}
                             />
                         </View>
                     </View>
@@ -2386,9 +2386,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     modalTitle: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: '500',
+        fontSize: 16,
+        fontWeight: '600',
         color: COLORS.textPrimary,
+        textTransform: 'uppercase',
     },
     modalCloseBtn: {
         width: 32,
@@ -2464,24 +2465,28 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.sm,
     },
     fieldLabel: {
-        fontSize: FONT_SIZES.sm,
+        fontSize: 11,
         fontWeight: '500',
         color: COLORS.textSecondary,
-        marginBottom: SPACING.xs,
+        textTransform: 'uppercase',
+        marginBottom: 4,
     },
     fieldInput: {
         backgroundColor: COLORS.bgInput,
         borderWidth: 0.5,
         borderColor: COLORS.border,
-        borderRadius: 5,
-        paddingHorizontal: SPACING.md,
-        paddingVertical: SPACING.md,
-        fontSize: FONT_SIZES.md,
+        borderRadius: 2,
+        paddingHorizontal: 8,
+        paddingVertical: 0,
+        fontSize: 12,
         color: COLORS.textPrimary,
-        minHeight: 48,
+        height: 34,
+        justifyContent: 'center',
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
     fieldInputMultiline: {
-        minHeight: 80,
+        minHeight: 60,
+        paddingVertical: 6,
         textAlignVertical: 'top',
     },
     fieldInputDisabled: {
@@ -2562,13 +2567,16 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
         paddingHorizontal: SPACING.lg,
-        height: 50,
+        height: 38,
         gap: SPACING.sm,
     },
     labelSearchInput: {
         flex: 1,
-        fontSize: FONT_SIZES.sm,
+        fontSize: 12,
+        height: '100%',
+        paddingVertical: 0,
         color: COLORS.textPrimary,
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
     labelList: {
         maxHeight: 400,
@@ -2730,12 +2738,13 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.white,
         borderWidth: 0.5,
         borderColor: COLORS.border,
-        borderRadius: 4,
-        paddingHorizontal: SPACING.sm,
-        paddingVertical: 8,
-        fontSize: FONT_SIZES.sm,
+        borderRadius: 2,
+        paddingHorizontal: 6,
+        paddingVertical: 0,
+        fontSize: 12,
         color: COLORS.textPrimary,
-        height: 40,
+        height: 32,
+        ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
     },
     aiRemoveBtn: {
         width: 24,
