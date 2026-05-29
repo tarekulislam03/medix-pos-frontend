@@ -5,7 +5,7 @@ import { getStoreSettings } from './storeSettings';
  * Builds a professional, highly readable 58mm thermal receipt HTML document.
  * Designed for clarity: bold headers, generous spacing, clear item lines,
  * rupee symbol (₹), and a crisp total section.
- */
+ * rupee symbol (₹), and a crisp total section.
 export function buildReceiptHTML(invoice) {
   const store = getStoreSettings();
 
@@ -97,12 +97,8 @@ export function buildReceiptHTML(invoice) {
        </div>`
     : '';
 
-  const taxLine = (invoice?.tax != null && invoice.tax > 0)
-    ? `<div class="summary-row">
-        <span>GST / Tax</span>
-        <span>₹${Number(invoice.tax).toFixed(2)}</span>
-       </div>`
-    : '';
+  const totalCgst = invoice?.total_cgst || 0;
+  const totalSgst = invoice?.total_sgst || 0;
 
   const paidLine = (amountPaid != null)
     ? `<div class="summary-row">
@@ -286,6 +282,7 @@ export function buildReceiptHTML(invoice) {
   .due-row      { color: #000; font-weight: 900; }
   .doctor-row   { color: #000; font-weight: 900; }
   .otc-row      { color: #000; font-weight: 700; }
+  .tax-detail-row { color: #000; font-weight: 700; font-size: 11px; line-height: 1.1; }
 
   /* ── Grand Total ── */
   .total-section {
@@ -429,7 +426,6 @@ export function buildReceiptHTML(invoice) {
     ${discLine}
     ${doctorFeeLine}
     ${otcLinesHTML}
-    ${taxLine}
   </div>
 
   <div class="thick"></div>
@@ -497,8 +493,21 @@ export function printReceipt58mm(invoice) {
   };
 
   // Attach onload before writing, and ensure a fallback timeout guarantees printing
-  iframe.onload = doPrint;
-  setTimeout(doPrint, 1500);
+  iframe.onload = () => {
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    const qrImg = doc.querySelector('.qr-img');
+    if (qrImg) {
+      if (qrImg.complete) {
+        doPrint();
+      } else {
+        qrImg.onload = doPrint;
+        qrImg.onerror = doPrint; // Print anyway if image fails
+      }
+    } else {
+      doPrint();
+    }
+  };
+  setTimeout(doPrint, 3000); // Increased fallback timeout to 3s for slow networks
 
   const doc = iframe.contentDocument || iframe.contentWindow.document;
   doc.open();

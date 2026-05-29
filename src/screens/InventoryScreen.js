@@ -25,6 +25,7 @@ import {
     confirmAutoImport,
     normalizeImage,
 } from '../services/inventoryService';
+import { finalizePurchase } from '../services/purchaseService';
 import { printLabels58mm } from '../utils/printLabel';
 import { useResponsive } from '../utils/responsive';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -198,6 +199,7 @@ export default function InventoryScreen({ navigation }) {
     const [autoImportError, setAutoImportError] = useState('');
     const [autoImportBillNo, setAutoImportBillNo] = useState('');
     const [autoImportBillDate, setAutoImportBillDate] = useState(''); // in-app error (web-safe)
+    const [autoImportPurchaseId, setAutoImportPurchaseId] = useState(null); // purchase record id from Cloudinary upload
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
 
@@ -488,6 +490,9 @@ export default function InventoryScreen({ navigation }) {
             setAutoImportBillNo(result?.bill_no ?? result?.invoice_no ?? result?.data?.bill_no ?? '');
             setAutoImportBillDate(result?.bill_date ?? result?.date ?? result?.data?.date ?? '');
 
+            // Store the purchase record ID so we can finalize it after confirm
+            setAutoImportPurchaseId(result?.purchase_id ?? null);
+
             // Try every common envelope shape the backend might use
             let extracted =
                 result?.products ??
@@ -621,6 +626,31 @@ export default function InventoryScreen({ navigation }) {
             setAutoImportItems([]);
             setAutoImportError('');
 
+            // ── Finalize the linked Purchase record (best-effort, non-blocking) ──
+            if (autoImportPurchaseId) {
+                try {
+                    // Derive aggregate metadata from confirmed items
+                    const confirmedItems = autoImportItems;
+                    const supplierName = confirmedItems.find(i => i.supplier_name?.trim())?.supplier_name?.trim() || '';
+                    const totalAmount  = confirmedItems.reduce((sum, i) => {
+                        const qty = Number(i.quantity) || 0;
+                        const cp  = Number(i.cost_price) || Number(i.mrp) || 0;
+                        return sum + qty * cp;
+                    }, 0);
+
+                    await finalizePurchase(autoImportPurchaseId, {
+                        supplier_name: supplierName,
+                        total_amount:  Math.round(totalAmount * 100) / 100,
+                        items_count:   confirmedItems.length,
+                    });
+                } catch (finalizeErr) {
+                    // Non-fatal — never block the UI for this
+                    console.warn('[AutoImport] finalizePurchase failed (non-fatal):', finalizeErr?.message);
+                } finally {
+                    setAutoImportPurchaseId(null);
+                }
+            }
+
             if (failed.length > 0) {
                 showToast(`⚠ ${success.length} imported, ${failed.length} failed`);
             } else {
@@ -640,6 +670,7 @@ export default function InventoryScreen({ navigation }) {
         setAutoImportReviewVisible(false);
         setAutoImportItems([]);
         setAutoImportError('');
+        setAutoImportPurchaseId(null);
     };
 
     // ─── LABEL MODAL HANDLERS ────────────────────────

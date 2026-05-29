@@ -10,6 +10,8 @@ const AnalyticsScreen = lazy(() => import('../screens/AnalyticsScreen'));
 const CustomersScreen = lazy(() => import('../screens/CustomersScreen'));
 const ComingSoonScreen = lazy(() => import('../screens/ComingSoonScreen'));
 const SettingsScreen = lazy(() => import('../screens/SettingsScreen'));
+const PurchaseScreen = lazy(() => import('../screens/purchaseScreen'));
+const GstFilingScreen = lazy(() => import('../screens/GstFilingScreen'));
 
 import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
@@ -22,6 +24,7 @@ const SCREEN_TITLES = {
     Customers: 'Customer Records',
     Inventory: 'Inventory Management',
     Purchase: 'Purchase Orders',
+    GstFiling: 'GST Filing',
     SalesAnalytics: 'Reports & Analytics',
     Returns: 'Sales Returns',
     Suppliers: 'Supplier Directory',
@@ -155,7 +158,10 @@ export default function MainLayout({ navigation }) {
                 CurrentScreen = <AnalyticsScreen navigation={proxyNavigation} />;
                 break;
             case 'Purchase':
-                CurrentScreen = <ComingSoonScreen screenKey="Purchase" />;
+                CurrentScreen = <PurchaseScreen />;
+                break;
+            case 'GstFiling':
+                CurrentScreen = <GstFilingScreen />;
                 break;
             case 'Suppliers':
                 CurrentScreen = <ComingSoonScreen screenKey="Suppliers" />;

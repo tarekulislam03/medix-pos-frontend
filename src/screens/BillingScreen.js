@@ -12,6 +12,7 @@ import {
     Platform,
     Modal,
     Dimensions,
+    Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
