@@ -6,6 +6,7 @@ import { getStoreSettings } from './storeSettings';
  * Designed for clarity: bold headers, generous spacing, clear item lines,
  * rupee symbol (₹), and a crisp total section.
  * rupee symbol (₹), and a crisp total section.
+ */
 export function buildReceiptHTML(invoice) {
   const store = getStoreSettings();
 
@@ -152,8 +153,9 @@ export function buildReceiptHTML(invoice) {
 <head>
 <meta charset="utf-8">
 <title>Receipt #${invoiceNo}</title>
+
 <style>
-  /* ── Page setup for 58mm thermal printer ── */
+
   @page {
     size: 58mm auto;
     margin: 0;
