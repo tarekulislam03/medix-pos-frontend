@@ -7,7 +7,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build:web": "expo export --platform web"
+    "build:web": "expo export --platform web",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -36,5 +37,8 @@
     "react-webcam": "^7.2.0",
     "xlsx": "^0.18.5"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "react-doctor": "^0.2.11"
+  }
 }

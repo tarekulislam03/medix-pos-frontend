@@ -39,9 +39,7 @@ const formatExpiryDate = (dateStr) => {
     }
 };
 
-// ═══════════════════════════════════════════════
-// INPUT MODAL COMPONENT  (keyboard / mouse friendly)
-// ═══════════════════════════════════════════════
+// Numpad Modal
 const NumpadModal = React.memo(function NumpadModal({ visible, onClose, onConfirm, title, subtitle, unit, allowDecimal = false, maxValue = 9999 }) {
     const [value, setValue] = useState('');
     const inputRef = useRef(null);
@@ -50,9 +48,11 @@ const NumpadModal = React.memo(function NumpadModal({ visible, onClose, onConfir
     React.useEffect(() => {
         if (visible) {
             setValue('');
-            setTimeout(() => inputRef.current?.focus(), 100);
+            const timeOut = setTimeout(() => inputRef.current?.focus(), 100);
+            return () => clearTimeout(timeOut);
         }
     }, [visible]);
+
 
     const handleChangeText = (text) => {
         // Allow only valid numeric input
@@ -269,7 +269,8 @@ const PaymentModal = React.memo(function PaymentModal({ visible, onClose, onConf
         if (visible) {
             setReceivedStr('');
             setAddedDueStr('');
-            setTimeout(() => receivedRef.current?.focus(), 150);
+            const timeout = setTimeout(() => receivedRef.current?.focus(), 150);
+            return () => clearTimeout(timeout);
         }
     }, [visible]);
 
