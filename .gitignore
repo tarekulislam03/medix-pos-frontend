@@ -1,2 +1,7 @@
 node_modules
 .env
+
+.agents/
+.claude/
+.rovodev/
+.trae/
