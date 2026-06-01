@@ -236,10 +236,7 @@ const styles = StyleSheet.create({
         color: COLORS.textMuted,
         marginBottom: 2,
     },
-    headerTitle: {
-        fontWeight: '800',
-        color: COLORS.textPrimary,
-    },
+    headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
     dateText: {
         fontSize: FONT_SIZES.sm,
         color: COLORS.textSecondary,
@@ -270,17 +267,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginBottom: SPACING.md,
     },
-    statValue: {
-        fontSize: FONT_SIZES.xxl,
-        fontWeight: '800',
-        color: COLORS.textPrimary,
-    },
-    statLabel: {
-        fontSize: FONT_SIZES.sm,
-        color: COLORS.textMuted,
-        fontWeight: '500',
-        marginTop: 4,
-    },
+    statValue: { fontSize: 22, color: COLORS.textPrimary },
+    statLabel: { fontSize: 11, color: COLORS.textSecondary, textTransform: 'uppercase' },
 
     // Actions
     sectionTitle: {

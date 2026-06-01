@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
         borderBottomColor: COLORS.border,
         marginBottom: 10,
     },
-    headerTitle: { fontSize: 16, fontWeight: '500', color: COLORS.textPrimary },
+    headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
     headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 

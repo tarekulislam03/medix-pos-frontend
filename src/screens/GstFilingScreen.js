@@ -323,8 +323,8 @@ export default function GstFilingScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.bgDark, padding: SPACING.xl },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xl },
-    headerTitle: { fontSize: FONT_SIZES.lg, fontFamily: FONTS.bold, color: COLORS.textPrimary },
-    headerSub: { fontSize: FONT_SIZES.xs, color: COLORS.textMuted, marginTop: 4, fontFamily: FONTS.regular },
+    headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
+    headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
     headerActions: { flexDirection: 'row', gap: SPACING.sm },
     nativeSelect: {
         height: 32,

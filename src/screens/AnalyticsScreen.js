@@ -54,6 +54,7 @@ export default function AnalyticsScreen({ navigation }) {
     const [monthlyData, setMonthlyData] = useState([]);
     const [dailySearch, setDailySearch] = useState('');
     const [monthlySearch, setMonthlySearch] = useState('');
+    const [dailyProfitData, setDailyProfitData] = useState([]);
     const [monthlyProfitData, setMonthlyProfitData] = useState([]);
     const [showMoreModal, setShowMoreModal] = useState(false);
 
@@ -119,6 +120,7 @@ export default function AnalyticsScreen({ navigation }) {
             const dMap = {};
             const mMap = {};
             const pMap = {};
+            const dProfitMap = {};
             fullList.forEach(sale => {
                 const d = new Date(sale.created_at || sale.createdAt || sale.date || new Date());
                 const dStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
@@ -129,9 +131,11 @@ export default function AnalyticsScreen({ navigation }) {
                 dMap[dStr] = (dMap[dStr] || 0) + val;
                 mMap[mStr] = (mMap[mStr] || 0) + val;
                 pMap[mStr] = (pMap[mStr] || 0) + profit;
+                dProfitMap[dStr] = (dProfitMap[dStr] || 0) + profit;
             });
 
             setDailyData(Object.entries(dMap).map(([k, v]) => ({ date: k, total: v })).sort((a, b) => b.date.localeCompare(a.date)));
+            setDailyProfitData(Object.entries(dProfitMap).map(([k, v]) => ({ date: k, profit: v })).sort((a, b) => b.date.localeCompare(a.date)));
             
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             
@@ -259,7 +263,7 @@ export default function AnalyticsScreen({ navigation }) {
                                     <View style={[styles.iconBox, { backgroundColor: COLORS.primaryGhost }]}>
                                         <Ionicons name="today" size={16} color={COLORS.primary} />
                                     </View>
-                                    <Text style={styles.statLabel}>Today's Sale</Text>
+                                    <Text style={styles.statLabel}>TODAY'S SALE</Text>
                                 </View>
                                 <Text style={styles.statValue}>
                                     ₹{Number(todaySales).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -269,10 +273,10 @@ export default function AnalyticsScreen({ navigation }) {
                             {/* Monthly Sale */}
                             <View style={[styles.statCard, { flex: 1 }]}>
                                 <View style={styles.statHeader}>
-                                    <View style={[styles.iconBox, { backgroundColor: COLORS.successLight }]}>
+                                    <View style={[styles.iconBox, { backgroundColor: COLORS.primaryGhost }]}>
                                         <Ionicons name="calendar-outline" size={16} color={COLORS.primary} />
                                     </View>
-                                    <Text style={styles.statLabel}>Monthly Sale</Text>
+                                    <Text style={styles.statLabel}>MONTHLY SALE</Text>
                                 </View>
                                 <Text style={styles.statValue}>
                                     ₹{Number(monthlySales).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -470,40 +474,79 @@ export default function AnalyticsScreen({ navigation }) {
                                 </View>
                             </View>
 
-                            {/* Monthly Profit Table */}
-                            <View style={[styles.reportCol, { marginTop: 16 }]}>
-                                <View style={styles.reportHeaderWrap}>
-                                    <Text style={styles.reportTitle}>Monthly Net Profit</Text>
-                                    <View style={styles.searchBox}>
-                                        <Ionicons name="trending-up" size={14} color={COLORS.textMuted} />
-                                        {renderNativePicker('month', monthlySearch, setMonthlySearch)}
-                                        {monthlySearch.length > 0 && (
-                                            <TouchableOpacity onPress={() => setMonthlySearch('')}>
-                                                <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
-                                            </TouchableOpacity>
-                                        )}
+                            <View style={[styles.reportFlexRow, r.isSmall && { flexDirection: 'column' }, { marginTop: 16 }]}>
+                                {/* Daily Profit Table */}
+                                <View style={[styles.reportCol, { flex: 1 }]}>
+                                    <View style={styles.reportHeaderWrap}>
+                                        <Text style={styles.reportTitle}>Daily Net Profit</Text>
+                                        <View style={styles.searchBox}>
+                                            <Ionicons name="trending-up" size={14} color={COLORS.textMuted} />
+                                            {renderNativePicker('date', dailySearch, setDailySearch)}
+                                            {dailySearch.length > 0 && (
+                                                <TouchableOpacity onPress={() => setDailySearch('')}>
+                                                    <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    </View>
+    
+                                    <View style={[styles.tableContainer, { minHeight: 200, maxHeight: 300 }]}>
+                                        <View style={styles.tableHeader}>
+                                            <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.th}>Date</Text></View>
+                                            <View style={[styles.thCell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={styles.th}>Net Profit</Text></View>
+                                        </View>
+                                        <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
+                                            {dailyProfitData.filter(d => d.date.includes(dailySearch)).slice(0, 30).map((d, idx) => {
+                                                const isPositive = d.profit >= 0;
+                                                return (
+                                                    <View key={d.date} style={[styles.tableRow, { height: 36 }, idx % 2 === 1 && styles.tableRowAlt]}>
+                                                        <View style={[styles.cell, { flex: 1 }]}><Text style={styles.cellText}>{d.date}</Text></View>
+                                                        <View style={[styles.cell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={[styles.cellText, { fontWeight: '600', color: isPositive ? COLORS.primary : COLORS.error }]}>₹{Number(d.profit).toFixed(2)}</Text></View>
+                                                    </View>
+                                                );
+                                            })}
+                                            {dailyProfitData.filter(d => d.date.includes(dailySearch)).length === 0 && (
+                                                <View style={styles.centerBox}><Text style={styles.emptyText}>No profit data found</Text></View>
+                                            )}
+                                        </ScrollView>
                                     </View>
                                 </View>
 
-                                <View style={[styles.tableContainer, { minHeight: 200, maxHeight: 300 }]}>
-                                    <View style={styles.tableHeader}>
-                                        <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.th}>Month</Text></View>
-                                        <View style={[styles.thCell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={styles.th}>Net Profit</Text></View>
+                                {/* Monthly Profit Table */}
+                                <View style={[styles.reportCol, { flex: 1 }]}>
+                                    <View style={styles.reportHeaderWrap}>
+                                        <Text style={styles.reportTitle}>Monthly Net Profit</Text>
+                                        <View style={styles.searchBox}>
+                                            <Ionicons name="trending-up" size={14} color={COLORS.textMuted} />
+                                            {renderNativePicker('month', monthlySearch, setMonthlySearch)}
+                                            {monthlySearch.length > 0 && (
+                                                <TouchableOpacity onPress={() => setMonthlySearch('')}>
+                                                    <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
                                     </View>
-                                    <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
-                                        {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).slice(0, 15).map((d, idx) => {
-                                            const isPositive = d.profit >= 0;
-                                            return (
-                                                <View key={d.monthId} style={[styles.tableRow, { height: 36 }, idx % 2 === 1 && styles.tableRowAlt]}>
-                                                    <View style={[styles.cell, { flex: 1 }]}><Text style={styles.cellText}>{d.month}</Text></View>
-                                                    <View style={[styles.cell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={[styles.cellText, { fontWeight: '600', color: isPositive ? COLORS.primary : COLORS.error }]}>₹{Number(d.profit).toFixed(2)}</Text></View>
-                                                </View>
-                                            );
-                                        })}
-                                        {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).length === 0 && (
-                                            <View style={styles.centerBox}><Text style={styles.emptyText}>No profit data found</Text></View>
-                                        )}
-                                    </ScrollView>
+    
+                                    <View style={[styles.tableContainer, { minHeight: 200, maxHeight: 300 }]}>
+                                        <View style={styles.tableHeader}>
+                                            <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.th}>Month</Text></View>
+                                            <View style={[styles.thCell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={styles.th}>Net Profit</Text></View>
+                                        </View>
+                                        <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
+                                            {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).slice(0, 15).map((d, idx) => {
+                                                const isPositive = d.profit >= 0;
+                                                return (
+                                                    <View key={d.monthId} style={[styles.tableRow, { height: 36 }, idx % 2 === 1 && styles.tableRowAlt]}>
+                                                        <View style={[styles.cell, { flex: 1 }]}><Text style={styles.cellText}>{d.month}</Text></View>
+                                                        <View style={[styles.cell, { flex: 1, alignItems: 'flex-end', borderRightWidth: 0 }]}><Text style={[styles.cellText, { fontWeight: '600', color: isPositive ? COLORS.primary : COLORS.error }]}>₹{Number(d.profit).toFixed(2)}</Text></View>
+                                                    </View>
+                                                );
+                                            })}
+                                            {monthlyProfitData.filter(d => d.month.toLowerCase().includes(monthlySearch.toLowerCase()) || d.monthId.includes(monthlySearch)).length === 0 && (
+                                                <View style={styles.centerBox}><Text style={styles.emptyText}>No profit data found</Text></View>
+                                            )}
+                                        </ScrollView>
+                                    </View>
                                 </View>
                             </View>
                         </ScrollView>
@@ -742,16 +785,8 @@ const styles = StyleSheet.create({
         borderBottomColor: COLORS.border,
         marginBottom: 10,
     },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: COLORS.textPrimary,
-    },
-    headerSub: {
-        fontSize: 11,
-        color: COLORS.textMuted,
-        marginTop: 2,
-    },
+    headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
+    headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
     scroll: {
         paddingBottom: 24,
     },
@@ -780,17 +815,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    statLabel: {
-        fontSize: 11,
-        fontWeight: '500',
-        color: COLORS.textSecondary,
-        textTransform: 'uppercase',
-    },
-    statValue: {
-        fontSize: 22,
-        fontWeight: '600',
-        color: COLORS.textPrimary,
-    },
+    statLabel: { fontSize: 11, color: COLORS.textSecondary, textTransform: 'uppercase' },
+    statValue: { fontSize: 22, color: COLORS.textPrimary },
     historySection: {
         marginTop: 12,
     },

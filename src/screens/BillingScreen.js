@@ -493,8 +493,8 @@ const pmStyles = StyleSheet.create({
         paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
         borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight,
     },
-    headerTitle: { fontSize: FONT_SIZES.md, fontWeight: '500', color: COLORS.textPrimary },
-    headerSub: { fontSize: FONT_SIZES.xs, color: COLORS.textMuted, marginTop: 1 },
+    headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
+    headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
     closeBtn: {
         width: 30, height: 30, borderRadius: RADIUS.lg,
         backgroundColor: COLORS.bgSurface, alignItems: 'center', justifyContent: 'center',

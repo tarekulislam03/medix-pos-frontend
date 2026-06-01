@@ -2099,17 +2099,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0.5,
         borderBottomColor: COLORS.border,
     },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-    },
-    headerSub: {
-        fontSize: 11,
-        color: COLORS.textMuted,
-        marginTop: 2,
-        fontWeight: '500',
-    },
+    headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
+    headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
     headerActions: {
         flexDirection: 'row',
         alignItems: 'center',

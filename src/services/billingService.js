@@ -108,3 +108,29 @@ export const loginUser = async (credentials) => {
         throw error;
     }
 };
+
+/**
+ * Search sales by invoice number
+ * @param {string} query - partial or full invoice number
+ */
+export const searchSaleByInvoice = async (query) => {
+    try {
+        const response = await api.get(`/sales/search?q=${encodeURIComponent(query)}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
+ * Get sale by ID (full details)
+ * @param {string} saleId - MongoDB ObjectId
+ */
+export const getSaleById = async (saleId) => {
+    try {
+        const response = await api.get(`/sales/history/${saleId}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

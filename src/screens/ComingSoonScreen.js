@@ -174,16 +174,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
     },
-    headerTitle: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: COLORS.textPrimary,
-    },
-    headerSub: {
-        fontSize: 11,
-        color: COLORS.textMuted,
-        marginTop: 2,
-    },
+    headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
+    headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
     badge: {
         flexDirection: 'row',
         alignItems: 'center',

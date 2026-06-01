@@ -9,9 +9,11 @@ const InventoryScreen = lazy(() => import('../screens/InventoryScreen'));
 const AnalyticsScreen = lazy(() => import('../screens/AnalyticsScreen'));
 const CustomersScreen = lazy(() => import('../screens/CustomersScreen'));
 const ComingSoonScreen = lazy(() => import('../screens/ComingSoonScreen'));
+const ReturnScreen = lazy(() => import('../screens/ReturnScreen'));
 const SettingsScreen = lazy(() => import('../screens/SettingsScreen'));
 const PurchaseScreen = lazy(() => import('../screens/purchaseScreen'));
 const GstFilingScreen = lazy(() => import('../screens/GstFilingScreen'));
+const ExpensesScreen = lazy(() => import('../screens/ExpensesScreen'));
 
 import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
@@ -149,7 +151,7 @@ export default function MainLayout({ navigation }) {
                 CurrentScreen = <ComingSoonScreen screenKey="Invoices" />;
                 break;
             case 'Returns':
-                CurrentScreen = <ComingSoonScreen screenKey="Returns" />;
+                CurrentScreen = <ReturnScreen navigation={proxyNavigation} />;
                 break;
             case 'Customers':
                 CurrentScreen = <CustomersScreen />;
@@ -167,7 +169,7 @@ export default function MainLayout({ navigation }) {
                 CurrentScreen = <ComingSoonScreen screenKey="Suppliers" />;
                 break;
             case 'Expenses':
-                CurrentScreen = <ComingSoonScreen screenKey="Expenses" />;
+                CurrentScreen = <ExpensesScreen />;
                 break;
             case 'Settings':
                 CurrentScreen = <SettingsScreen />;
