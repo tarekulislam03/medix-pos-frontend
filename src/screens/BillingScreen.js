@@ -22,6 +22,7 @@ import { getProducts, getProductById, createProduct, getLoosePrice } from '../se
 import MemoryCache from '../services/cacheService';
 import { printReceipt58mm } from '../utils/printReceipt';
 import { useResponsive } from '../utils/responsive';
+import api from '../services/api';
 
 // Helper to format expiry date safely and compactly
 const formatExpiryDate = (dateStr) => {
@@ -662,6 +663,8 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     const [recentSales, setRecentSales] = useState([]);
     const [recentSalesLoading, setRecentSalesLoading] = useState(false);
 
+
+
     const fetchRecentSalesList = async () => {
         try {
             setRecentSalesLoading(true);
@@ -732,6 +735,8 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
         })();
         return () => { cancelled = true; };
     }, []);
+
+
 
     // ─── KEEP FOCUS ON SEARCH INPUT ──────────────────────
     // Always re-focus the barcode/product search input unless an

@@ -1,7 +1,7 @@
-import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
+import { AuthContext } from './src/context/AuthContext';
+import { setAuthToken, loadStoredToken, setStoreData } from './src/services/api';
 import AppNavigator from './src/navigation/AppNavigator';
 
 // Inject Inter font stack globally for web
@@ -17,10 +17,49 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // On mount, check for a stored token
+  useEffect(() => {
+    (async () => {
+      try {
+        const token = await loadStoredToken();
+        if (token) {
+          setIsAuthenticated(true);
+        }
+      } catch (e) {
+        console.warn('Failed to load stored token:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
+
+  const signIn = useCallback(async (token, storeId) => {
+    await setAuthToken(token);
+    if (storeId) {
+      await setStoreData(storeId);
+    }
+    setIsAuthenticated(true);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await setAuthToken(null);
+    await setStoreData(null);
+    setIsAuthenticated(false);
+  }, []);
+
+  const authContext = useMemo(() => ({
+    isAuthenticated,
+    isLoading,
+    signIn,
+    signOut,
+  }), [isAuthenticated, isLoading, signIn, signOut]);
+
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
+    <AuthContext.Provider value={authContext}>
       <AppNavigator />
-    </SafeAreaProvider>
+    </AuthContext.Provider>
   );
 }

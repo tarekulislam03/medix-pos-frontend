@@ -178,6 +178,7 @@ export default function PurchaseScreen() {
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterDate, setFilterDate] = useState('');
 
     // Upload state
     const [uploading, setUploading] = useState(false);
@@ -211,16 +212,28 @@ export default function PurchaseScreen() {
     useEffect(() => { fetchPurchases(); }, [fetchPurchases]);
 
     useEffect(() => {
-        if (!searchQuery.trim()) {
-            setFilteredPurchases(purchases);
-            return;
+        let filtered = purchases;
+
+        // Text filter
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter(p =>
+                (p.supplier_name || '').toLowerCase().includes(q)
+            );
         }
-        const q = searchQuery.toLowerCase();
-        const filtered = purchases.filter(p =>
-            (p.supplier_name || '').toLowerCase().includes(q)
-        );
+
+        // Date filter — single day
+        if (filterDate) {
+            const dayStart = new Date(filterDate + 'T00:00:00');
+            const dayEnd = new Date(filterDate + 'T23:59:59');
+            filtered = filtered.filter(p => {
+                const d = new Date(p.bill_date || p.createdAt);
+                return d >= dayStart && d <= dayEnd;
+            });
+        }
+
         setFilteredPurchases(filtered);
-    }, [searchQuery, purchases]);
+    }, [searchQuery, filterDate, purchases]);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -397,6 +410,39 @@ export default function PurchaseScreen() {
                 </View>
 
                 <View style={styles.headerActions}>
+                    {/* Date Filter */}
+                    <View style={styles.dateFilterRow}>
+                        <Ionicons name="calendar-outline" size={13} color={COLORS.textMuted} />
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            style={{
+                                height: 28,
+                                fontSize: 11,
+                                fontFamily: 'Inter, sans-serif',
+                                color: '#4A5C58',
+                                backgroundColor: '#FFFFFF',
+                                border: '0.5px solid #CDD5D1',
+                                borderRadius: 2,
+                                paddingLeft: 6,
+                                paddingRight: 4,
+                                outline: 'none',
+                                cursor: 'pointer',
+                            }}
+                        />
+                        {filterDate ? (
+                            <TouchableOpacity
+                                onPress={() => setFilterDate('')}
+                                style={styles.dateClearBtn}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        ) : null}
+                    </View>
+
+                    {/* Supplier Search */}
                     <View style={styles.searchBox}>
                         <Ionicons name="search-outline" size={14} color={COLORS.textMuted} />
                         <TextInput
@@ -546,7 +592,22 @@ const styles = StyleSheet.create({
     },
     headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
     headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
-    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+
+    // Date Filter
+    dateFilterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+    },
+    dateFilterLabel: {
+        fontSize: 11,
+        fontWeight: '500',
+        color: COLORS.textMuted,
+    },
+    dateClearBtn: {
+        marginLeft: 2,
+    },
 
     // Search Box
     searchBox: {

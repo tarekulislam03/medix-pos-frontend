@@ -1,57 +1,13 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { View, TouchableOpacity, Pressable, StyleSheet, Text, Dimensions, Image, ActivityIndicator, Platform, Modal } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Text, Image } from 'react-native';
+import { useNavigation, useNavigationState } from '@react-navigation/native';
 import Sidebar from '../components/Sidebar';
-import GradientButton from '../components/GradientButton';
+import MainNavigator from '../navigation/MainNavigator';
 
-const BillingScreen = lazy(() => import('../screens/BillingScreen'));
-const InventoryScreen = lazy(() => import('../screens/InventoryScreen'));
-const AnalyticsScreen = lazy(() => import('../screens/AnalyticsScreen'));
-const CustomersScreen = lazy(() => import('../screens/CustomersScreen'));
-const ComingSoonScreen = lazy(() => import('../screens/ComingSoonScreen'));
-const ReturnScreen = lazy(() => import('../screens/ReturnScreen'));
-const SettingsScreen = lazy(() => import('../screens/SettingsScreen'));
-const PurchaseScreen = lazy(() => import('../screens/purchaseScreen'));
-const GstFilingScreen = lazy(() => import('../screens/GstFilingScreen'));
-const ExpensesScreen = lazy(() => import('../screens/ExpensesScreen'));
-
-import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../constants/theme';
+import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 import { logoutUser } from '../services/authService';
 import { AuthContext } from '../context/AuthContext';
-
-// Screen label for the top bar & browser tab title
-const SCREEN_TITLES = {
-    Billing: 'Billing & POS',
-    Customers: 'Customer Records',
-    Inventory: 'Inventory Management',
-    Purchase: 'Purchase Orders',
-    GstFiling: 'GST Filing',
-    SalesAnalytics: 'Reports & Analytics',
-    Returns: 'Sales Returns',
-    Suppliers: 'Supplier Directory',
-    Expenses: 'Expense Tracking',
-    Settings: 'System Settings',
-};
-
-const getFormattedDate = () => {
-    const d = new Date();
-    const day = d.getDate();
-    const month = d.toLocaleString('en-US', { month: 'long' });
-    const year = d.getFullYear();
-
-    const getOrdinalSuffix = (n) => {
-        if (n > 3 && n < 21) return 'th';
-        switch (n % 10) {
-            case 1: return "st";
-            case 2: return "nd";
-            case 3: return "rd";
-            default: return "th";
-        }
-    };
-
-    return `${day}${getOrdinalSuffix(day)} ${month}, ${year}`;
-};
 
 const getOperationalDateStr = (d) => {
     const day = String(d.getDate()).padStart(2, '0');
@@ -71,14 +27,12 @@ const getOperationalTimeStr = (d) => {
     return `${hoursStr}:${minutes} ${ampm}`;
 };
 
-export default function MainLayout({ navigation }) {
-    const { signOut, storeData } = React.useContext(AuthContext);
-    const [activeScreen, setActiveScreen] = useState('Billing');
-    const [invoiceData, setInvoiceData] = useState(null);
+export default function MainLayout() {
+    const authContext = React.useContext(AuthContext) || {};
+    const { signOut } = authContext;
+    const navigation = useNavigation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    
 
-    
     const r = useResponsive();
 
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -90,41 +44,19 @@ export default function MainLayout({ navigation }) {
         return () => clearInterval(timer);
     }, []);
 
-
-
-    // Update browser tab title when active screen changes
-    useEffect(() => {
-        if (Platform.OS === 'web' && typeof document !== 'undefined') {
-            const label = SCREEN_TITLES[activeScreen] || activeScreen;
-            document.title = `${label} — MediX POS`;
+    // Derive active route from the child navigator's state
+    const activeRoute = useNavigationState((state) => {
+        // state is the parent (AppNavigator) state
+        // Find the "Main" route in it
+        const mainRoute = state?.routes?.find((r) => r.name === 'Main');
+        // The child navigator's state lives under mainRoute.state
+        const childState = mainRoute?.state;
+        if (childState) {
+            const activeIndex = childState.index ?? 0;
+            return childState.routes?.[activeIndex]?.name ?? 'Billing';
         }
-    }, [activeScreen]);
-
-    // ─── GLOBAL KEYBOARD SHORTCUTS ────────────────────────
-    useEffect(() => {
-        if (Platform.OS !== 'web') return;
-
-        const handleGlobalKeyDown = (e) => {
-            if (e.key === 'F4') {
-                e.preventDefault();
-                setActiveScreen('Inventory');
-            } else if (e.key === 'F5') {
-                e.preventDefault();
-                setActiveScreen('SalesAnalytics');
-            }
-        };
-
-        window.addEventListener('keydown', handleGlobalKeyDown);
-        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-    }, []);
-
-    const navigateTo = (screen, params) => {
-        if (params?.invoice) {
-            setInvoiceData(params.invoice);
-        }
-        setActiveScreen(screen);
-        setSidebarOpen(false); // close drawer on navigate
-    };
+        return 'Billing';
+    });
 
     const handleLogout = async () => {
         try {
@@ -132,74 +64,9 @@ export default function MainLayout({ navigation }) {
         } catch (error) {
             console.log('Logout API failed, clearing local session anyway');
         } finally {
-            await signOut();
+            if (signOut) await signOut();
         }
     };
-
-    const renderScreen = () => {
-        const proxyNavigation = {
-            navigate: (screen, params) => navigateTo(screen, params),
-            goBack: () => setActiveScreen('Billing'),
-        };
-
-        let CurrentScreen = null;
-        switch (activeScreen) {
-            case 'Inventory':
-                CurrentScreen = <InventoryScreen navigation={proxyNavigation} />;
-                break;
-            case 'Invoices':
-                CurrentScreen = <ComingSoonScreen screenKey="Invoices" />;
-                break;
-            case 'Returns':
-                CurrentScreen = <ReturnScreen navigation={proxyNavigation} />;
-                break;
-            case 'Customers':
-                CurrentScreen = <CustomersScreen />;
-                break;
-            case 'SalesAnalytics':
-                CurrentScreen = <AnalyticsScreen navigation={proxyNavigation} />;
-                break;
-            case 'Purchase':
-                CurrentScreen = <PurchaseScreen />;
-                break;
-            case 'GstFiling':
-                CurrentScreen = <GstFilingScreen />;
-                break;
-            case 'Suppliers':
-                CurrentScreen = <ComingSoonScreen screenKey="Suppliers" />;
-                break;
-            case 'Expenses':
-                CurrentScreen = <ExpensesScreen />;
-                break;
-            case 'Settings':
-                CurrentScreen = <SettingsScreen />;
-                break;
-            case 'Billing':
-            default:
-                CurrentScreen = <BillingScreen navigation={proxyNavigation} editInvoice={invoiceData} clearEditInvoice={() => setInvoiceData(null)} />;
-                break;
-        }
-
-        return (
-            <Suspense fallback={
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgDark }}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                </View>
-            }>
-                {CurrentScreen}
-            </Suspense>
-        );
-    };
-
-
-    // Responsive drawer width
-    const drawerWidth = r.pick({
-        small: r.width * 0.92,
-        medium: r.width * 0.75,
-        large: 680,
-        xlarge: 720,
-    });
-
 
     return (
         <View style={styles.container}>
@@ -222,7 +89,7 @@ export default function MainLayout({ navigation }) {
                 {/* Top Bar Right: Operational Info */}
                 <View style={styles.topBarRight}>
                     <Text style={[styles.topBarOperationalInfo, { fontSize: r.isSmall ? 10 : 12 }]}>
-                    {getOperationalDateStr(currentTime)} | {getOperationalTimeStr(currentTime)}
+                        {getOperationalDateStr(currentTime)} | {getOperationalTimeStr(currentTime)}
                     </Text>
                 </View>
             </View>
@@ -230,12 +97,12 @@ export default function MainLayout({ navigation }) {
             {/* Main Area: Sidebar + Content */}
             <View style={styles.mainArea}>
                 <Sidebar
-                    activeScreen={activeScreen}
-                    onNavigate={navigateTo}
+                    activeScreen={activeRoute}
+                    onNavigate={(screen) => navigation.navigate('Main', { screen })}
                     onLogout={handleLogout}
                 />
                 <View style={styles.content}>
-                    {renderScreen()}
+                    <MainNavigator />
                 </View>
             </View>
 
