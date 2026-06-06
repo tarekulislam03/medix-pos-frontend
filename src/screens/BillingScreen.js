@@ -638,6 +638,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     const [cart, setCart] = useState([]);
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [advancedOptionsVisible, setAdvancedOptionsVisible] = useState(false);
 
     // Doctor Fee & OTC Items
     const [doctorFee, setDoctorFee] = useState('');
@@ -1465,29 +1466,16 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     // Search box height responsive
     const searchBoxH = r.pick({ small: 48, medium: 52, large: 56, xlarge: 52 });
 
-    if (r.isSmall) {
-        return (
-            <View style={{ flex: 1, backgroundColor: COLORS.bgDark, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                <Ionicons name="desktop-outline" size={64} color={COLORS.border} />
-                <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginTop: 16, textAlign: 'center' }}>
-                    Not Available on Mobile
-                </Text>
-                <Text style={{ fontSize: 14, color: COLORS.textMuted, marginTop: 8, textAlign: 'center', lineHeight: 20 }}>
-                    The Billing & POS interface is optimized for larger screens.{'\n'}Please use a tablet or desktop to access this feature.
-                </Text>
-            </View>
-        );
-    }
-
     return (
         <View style={{ flex: 1, backgroundColor: COLORS.bgDark }}>
             <View style={[styles.container, r.isSmall && { flexDirection: 'column' }]}>
                 {/* ═══════════ LEFT PANE ═══════════ */}
-                <View style={[styles.leftPane, { flex: r.isSmall ? 1.5 : leftFlex }]}>
+                <View style={[styles.leftPane, { flex: r.isSmall ? 1 : leftFlex }]}>
         
                 {/* ── Invoice Metadata Bar ── */}
-                <View style={erpStyles.metaBar}>
-                    <View style={erpStyles.metaItem}>
+                {!r.isSmall && (
+                    <View style={erpStyles.metaBar}>
+                        <View style={erpStyles.metaItem}>
                         <Text style={erpStyles.metaLabel}>BILL NO:</Text>
                         <Text style={erpStyles.metaValue}>{editInvoice ? (editInvoice.invoice_number || 'EDIT') : 'AUTO-GEN'}</Text>
                     </View>
@@ -1506,12 +1494,13 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                         <Ionicons name="wifi" size={10} color="#16A34A" style={{marginRight: 4}} />
                         <Text style={[erpStyles.metaValue, { color: '#16A34A' }]}>SYNCED</Text>
                     </View>
-                </View>
+                    </View>
+                )}
 
                 {/* ── Combined Input Bar Row ── */}
-                <View style={styles.inputBarRow}>
+                <View style={[styles.inputBarRow, r.isSmall && { flexDirection: 'column-reverse', height: 'auto', backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, zIndex: 10 }]}>
                     {/* Customer Field */}
-                    <View style={[styles.inputBarCell, { borderRightWidth: 0.5, borderRightColor: COLORS.border }]}>
+                    <View style={[styles.inputBarCell, { flex: r.isSmall ? undefined : 1, borderRightWidth: r.isSmall ? 0 : 0.5, borderRightColor: COLORS.border }, r.isSmall && { height: 56, width: '100%' }]}>
                         {selectedCustomer ? (
                             <View style={styles.selectedCustomerBar}>
                                 <Ionicons name="person" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
@@ -1530,7 +1519,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 <View style={styles.inlineInputBar}>
                                     <Ionicons name="person-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
                                     <TextInput
-                                        style={styles.inlineInput}
+                                        style={[styles.inlineInput, r.isSmall && { fontSize: 16 }]}
                                         value={customerQuery}
                                         onChangeText={handleCustomerSearch}
                                         placeholder="Customer name or phone..."
@@ -1584,14 +1573,14 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                     </View>
 
                     {/* Product Search Field */}
-                    <View style={[styles.inputBarCell, { flex: 1.6 }]}>
+                    <View style={[styles.inputBarCell, { flex: r.isSmall ? undefined : 1.6 }, r.isSmall && { height: 64, width: '100%', borderBottomWidth: 1, borderBottomColor: COLORS.border, backgroundColor: '#F8FAFC' }]}>
                         <View style={styles.searchRelativeWrap}>
-                            <View style={styles.inlineInputBar}>
+                            <View style={[styles.inlineInputBar, r.isSmall && { paddingHorizontal: 12 }]}>
                                 <Ionicons name="scan-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
                                 <TextInput
                                     ref={searchInputRef}
                                     nativeID="product-search-input"
-                                    style={styles.inlineInput}
+                                    style={[styles.inlineInput, r.isSmall && { fontSize: 16 }]}
                                     value={searchQuery}
                                     onChangeText={handleSearch}
                                     onSubmitEditing={handleSubmitSearch}
@@ -1737,35 +1726,34 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
 
                             if (r.isSmall) {
                                 return (
-                                    <View style={styles.mobileCartRow}>
-                                        <View style={styles.mobileCartTop}>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.mobileCartName}>{getName(item)}</Text>
+                                    <View style={[styles.mobileCartRow, { padding: 8, paddingVertical: 10 }]}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={[styles.mobileCartName, { fontSize: 14, fontWeight: '700', flexShrink: 1 }]} numberOfLines={1}>{getName(item)}</Text>
                                                 {canLoose && (
                                                     <TouchableOpacity
-                                                        style={[looseStyles.modePill, isLoose && looseStyles.modePillLoose]}
+                                                        style={[looseStyles.modePill, isLoose && looseStyles.modePillLoose, { marginLeft: 8 }]}
                                                         onPress={() => {
                                                             toggleLooseMode(item);
                                                             if (!isLoose) setTimeout(() => updateLooseTablets(item, item.loose_tablet_count ?? 1), 0);
                                                         }}
                                                     >
-                                                        <Ionicons name={isLoose ? 'tablet-portrait-outline' : 'layers-outline'} size={10} color={isLoose ? '#7C3AED' : COLORS.textMuted} />
                                                         <Text style={[looseStyles.modePillText, isLoose && looseStyles.modePillTextLoose]}>{isLoose ? 'Loose' : 'Strip'}</Text>
                                                     </TouchableOpacity>
                                                 )}
                                             </View>
-                                            <TouchableOpacity onPress={() => removeFromCart(item)} style={styles.deleteBtn}>
-                                                <Ionicons name="close" size={16} color={COLORS.error} />
+                                            <TouchableOpacity onPress={() => removeFromCart(item)} style={{ paddingLeft: 12 }}>
+                                                <Ionicons name="trash-outline" size={20} color={COLORS.error} />
                                             </TouchableOpacity>
                                         </View>
 
-                                        <View style={styles.mobileCartControls}>
-                                            <View style={styles.mobileCartQty}>
-                                                <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount - 1) : updateQuantity(item, qty - 1)} style={styles.qtyBtn}>
-                                                    <Ionicons name="remove" size={14} color={isLoose ? '#7C3AED' : COLORS.primary} />
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 0 }}>
+                                                <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount - 1) : updateQuantity(item, qty - 1)} style={[styles.qtyBtn, { width: 44, height: 44, borderRadius: 2, backgroundColor: '#F3F5F4', borderWidth: 1, borderColor: '#C4CCCA' }]}>
+                                                    <Ionicons name="remove" size={20} color={isLoose ? '#7C3AED' : '#1A2B28'} />
                                                 </TouchableOpacity>
                                                 <TextInput
-                                                    style={[styles.qtyEditInput, { minWidth: 40, height: 30 }, isLoose && { color: '#7C3AED', borderColor: '#7C3AED' }]}
+                                                    style={[styles.qtyEditInput, { minWidth: 48, height: 44, fontSize: 16, fontWeight: '700', borderRadius: 0, borderWidth: 1, borderColor: '#C4CCCA', borderLeftWidth: 0, borderRightWidth: 0 }, isLoose && { color: '#7C3AED', borderColor: '#7C3AED' }]}
                                                     value={String(isLoose ? tabletCount : qty)}
                                                     onChangeText={(t) => {
                                                         const n = parseInt(t.replace(/[^0-9]/g, ''), 10);
@@ -1780,38 +1768,23 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                                     }}
                                                     keyboardType="number-pad"
                                                     textAlign="center"
+                                                    selectTextOnFocus
                                                 />
-                                                <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount + 1) : updateQuantity(item, qty + 1)} style={styles.qtyBtn}>
-                                                    <Ionicons name="add" size={14} color={isLoose ? '#7C3AED' : COLORS.primary} />
+                                                <TouchableOpacity onPress={() => isLoose ? updateLooseTablets(item, tabletCount + 1) : updateQuantity(item, qty + 1)} style={[styles.qtyBtn, { width: 44, height: 44, borderRadius: 2, backgroundColor: '#F3F5F4', borderWidth: 1, borderColor: '#C4CCCA' }]}>
+                                                    <Ionicons name="add" size={20} color={isLoose ? '#7C3AED' : '#1A2B28'} />
                                                 </TouchableOpacity>
                                             </View>
 
-                                            {!isLoose && (
-                                                <View style={[styles.discCell, disc > 0 && styles.discActive, { flexDirection: 'row', height: 30, paddingHorizontal: 6, minWidth: 56 }]}>
-                                                    <TextInput
-                                                        style={[styles.discEditInput, disc > 0 && styles.discActiveText, { minWidth: 28 }]}
-                                                        value={disc > 0 ? String(disc) : ''}
-                                                        onChangeText={(t) => {
-                                                            const cleaned = t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                                                            const n = parseFloat(cleaned);
-                                                            if (cleaned === '' || cleaned === '.') { updateDiscount(item, 0); return; }
-                                                            if (!isNaN(n) && n >= 0 && n <= 100) updateDiscount(item, n);
-                                                        }}
-                                                        placeholder="0"
-                                                        keyboardType="decimal-pad"
-                                                        textAlign="center"
-                                                    />
-                                                    <Text style={{ fontSize: 10, color: disc > 0 ? COLORS.error : COLORS.textMuted }}>% OFF</Text>
-                                                </View>
-                                            )}
-
-                                            <View style={{ alignItems: 'flex-end' }}>
-                                                <Text style={{ fontSize: 11, color: COLORS.textMuted }}>
-                                                    {isLoose ? `₹${Number(item.loose_price_per_tablet ?? 0).toFixed(2)}/tab` : `₹${Number(price).toFixed(2)}/unit`}
-                                                </Text>
-                                                <Text style={styles.mobileCartAmount}>₹{Number(lineTotal).toFixed(2)}</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                {!isLoose && disc > 0 && (
+                                                    <View style={[styles.discActive, { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 2, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' }]}>
+                                                        <Text style={{ fontSize: 10, fontWeight: '700', color: COLORS.error }}>{disc}% OFF</Text>
+                                                    </View>
+                                                )}
+                                                <Text style={[styles.mobileCartAmount, { fontSize: 16, fontWeight: '700', color: '#1A2B28' }]}>₹{Number(lineTotal).toFixed(2)}</Text>
                                             </View>
                                         </View>
+                                        
                                         {isLoose && item.loose_error && (
                                             <View style={[looseStyles.errorStrip, { borderRadius: 4, marginTop: 4 }]}>
                                                 <Text style={looseStyles.errorText}>{item.loose_error}</Text>
@@ -2053,7 +2026,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                     {/* ── Add Unlisted Item Button ── */}
                     {!showFreeEntry && (
                         <TouchableOpacity
-                            style={styles.addUnlistedBtn}
+                            style={[styles.addUnlistedBtn, r.isSmall && { alignSelf: 'center', marginVertical: 8 }]}
                             onPress={() => setShowFreeEntry(true)}
                             activeOpacity={0.7}
                         >
@@ -2081,9 +2054,41 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                 </View>
 
             </View>
-            {/* ═══════════ RIGHT PANE ═══════════ */}
-            <View style={[styles.rightPane, { flex: r.isSmall ? 1 : rightFlex }]}>
+            {/* ═══════════ MOBILE CHECKOUT & RIGHT PANE ═══════════ */}
+            {r.isSmall ? (
+                <View style={{ backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: COLORS.border, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 4, zIndex: 20 }}>
+                    <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight, backgroundColor: '#EBEBEB' }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <View>
+                                <Text style={{ color: '#6B807A', fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>ITEMS: {cart.length} | QTY: {cart.reduce((sum, item) => sum + (item.cart_quantity || item.loose_tablet_count || 1), 0)}</Text>
+                                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }} onPress={() => setAdvancedOptionsVisible(true)}>
+                                    <Text style={{ color: '#164A3B', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>OPTIONS & DETAILS</Text>
+                                    <Ionicons name="chevron-down" size={12} color="#164A3B" style={{ marginLeft: 2 }} />
+                                </TouchableOpacity>
+                            </View>
+                            <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={{ color: '#6B807A', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>NET PAYABLE</Text>
+                                <Text style={{ fontSize: 20, fontWeight: '800', color: '#1A2B28' }}>₹{cartSummary.grandTotal.toFixed(2)}</Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={{ padding: 12, paddingBottom: Platform.OS === 'ios' ? 24 : 12, backgroundColor: '#F3F5F4' }}>
+                        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 12 }}>
+                            {PAYMENT_METHODS.map((m) => (
+                                <TouchableOpacity key={m.key} onPress={() => setPaymentMethod(m.key)} style={[{ flex: 1, height: 32, borderRadius: 2, borderWidth: 1, borderColor: '#C4CCCA', backgroundColor: '#F3F5F4', justifyContent: 'center', alignItems: 'center' }, paymentMethod === m.key && { backgroundColor: '#164A3B', borderColor: '#164A3B' }]}>
+                                    <Text style={[{ fontSize: 11, fontWeight: '700', color: '#6B807A' }, paymentMethod === m.key && { color: '#FFFFFF' }]}>{m.label.toUpperCase()}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                        <TouchableOpacity style={{ width: '100%', height: 44, backgroundColor: cart.length === 0 ? '#C4CCCA' : '#059669', borderRadius: 2, justifyContent: 'center', alignItems: 'center' }} onPress={handleCheckout} disabled={cart.length === 0 || checkoutLoading}>
+                            {checkoutLoading ? <ActivityIndicator color="#FFF" /> : <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>PAY ₹{cartSummary.grandTotal.toFixed(2)}</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            ) : (
+            <View style={[styles.rightPane, { flex: rightFlex }]}>
                 <ScrollView
+                    style={{ flex: 1 }}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[
                         { flexGrow: 1, padding: r.pick({ small: 6, medium: 8, large: 8, xlarge: 8 }), paddingBottom: 12 },
@@ -2244,26 +2249,60 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                         <View style={erpStyles.erpRecentHeader}>
                             <Text style={erpStyles.erpRecentHeaderText}>RECENT ACTIVITY</Text>
                         </View>
-                        {recentSalesLoading ? (
-                            <ActivityIndicator size="small" color="#059669" style={{ marginVertical: 12 }} />
-                        ) : recentSales.length > 0 ? (
-                            recentSales.slice(0, 5).map((sale, idx) => {
-                                const invNo = sale.invoice_number ? `#${sale.invoice_number}` : (sale._id ? `#${sale._id.slice(-6).toUpperCase()}` : `INV-${idx}`);
-                                const amount = Number(sale.grand_total || sale.total || 0).toFixed(2);
-                                return (
-                                    <View key={sale._id || idx} style={erpStyles.erpRecentItem}>
-                                        <Text style={erpStyles.erpTotalLabel}>{invNo}</Text>
-                                        <Text style={[erpStyles.erpTotalValue, { color: '#059669' }]}>₹{amount}</Text>
-                                    </View>
-                                );
-                            })
-                        ) : (
-                            <Text style={{ fontSize: 10, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 12 }}>No recent activity</Text>
-                        )}
-                    </View>
+                            {recentSalesLoading ? (
+                                <ActivityIndicator size="small" color="#059669" style={{ marginVertical: 12 }} />
+                            ) : recentSales.length > 0 ? (
+                                recentSales.slice(0, 5).map((sale, idx) => {
+                                    const invNo = sale.invoice_number ? `#${sale.invoice_number}` : (sale._id ? `#${sale._id.slice(-6).toUpperCase()}` : `INV-${idx}`);
+                                    const amount = Number(sale.grand_total || sale.total || 0).toFixed(2);
+                                    return (
+                                        <View key={sale._id || idx} style={erpStyles.erpRecentItem}>
+                                            <Text style={erpStyles.erpTotalLabel}>{invNo}</Text>
+                                            <Text style={[erpStyles.erpTotalValue, { color: '#059669' }]}>₹{amount}</Text>
+                                        </View>
+                                    );
+                                })
+                            ) : (
+                                <Text style={{ fontSize: 10, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 12 }}>No recent activity</Text>
+                            )}
+                        </View>
+                    )}
 
                 </ScrollView>
             </View>
+            )}
+
+            {/* Advanced Options Modal */}
+            <Modal visible={advancedOptionsVisible} animationType="slide" transparent={true} onRequestClose={() => setAdvancedOptionsVisible(false)}>
+                 <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                      <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '85%' }}>
+                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
+                               <Text style={{ fontSize: 18, fontWeight: '700' }}>Options & Fees</Text>
+                               <TouchableOpacity onPress={() => setAdvancedOptionsVisible(false)} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+                                   <Ionicons name="close-circle" size={24} color={COLORS.textMuted} />
+                               </TouchableOpacity>
+                           </View>
+                           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+                               <View style={styles.extraFeeSection}>
+                                   <View style={styles.extraFeeHeader}>
+                                       <Ionicons name="medkit-outline" size={14} color={COLORS.primary} />
+                                       <Text style={styles.extraFeeTitle}>Doctor Fee</Text>
+                                       <Text style={styles.extraFeeNote}>(no discount)</Text>
+                                   </View>
+                                   <View style={styles.extraFeeInputWrap}>
+                                       <Text style={styles.extraFeeCurrency}>₹</Text>
+                                       <TextInput style={styles.extraFeeInput} value={doctorFee} onChangeText={t => setDoctorFee(t.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))} placeholder="0.00" placeholderTextColor={COLORS.textMuted} keyboardType="decimal-pad" />
+                                   </View>
+                               </View>
+                               <View style={[erpStyles.erpTotalsBox, { marginTop: 16 }]}>
+                                   <View style={erpStyles.erpTotalRow}><Text style={erpStyles.erpTotalLabel}>SUBTOTAL</Text><Text style={erpStyles.erpTotalValue}>₹{cartSummary.subtotal.toFixed(2)}</Text></View>
+                                   <View style={erpStyles.erpTotalRow}><Text style={erpStyles.erpTotalLabel}>DISCOUNT</Text><Text style={[erpStyles.erpTotalValue, cartSummary.totalDiscount > 0 && { color: COLORS.error }]}>{cartSummary.totalDiscount > 0 ? `-₹${cartSummary.totalDiscount.toFixed(2)}` : '₹0.00'}</Text></View>
+                                   <View style={erpStyles.erpTotalRow}><Text style={erpStyles.erpTotalLabel}>OTC TOTAL</Text><Text style={erpStyles.erpTotalValue}>₹{cartSummary.otcTotal.toFixed(2)}</Text></View>
+                               </View>
+                           </ScrollView>
+                      </View>
+                 </View>
+            </Modal>
 
             </View>
 

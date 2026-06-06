@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Image } from 'react-native';
+import { View, StyleSheet, Text, Image, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import Sidebar from '../components/Sidebar';
 import MainNavigator from '../navigation/MainNavigator';
@@ -73,6 +74,14 @@ export default function MainLayout() {
             {/* Top Bar */}
             <View style={styles.topBar}>
                 <View style={styles.topBarLeft}>
+                    {r.isSmall && (
+                        <TouchableOpacity 
+                            style={styles.hamburgerBtn} 
+                            onPress={() => setSidebarOpen(true)}
+                        >
+                            <Ionicons name="menu" size={20} color={COLORS.white} />
+                        </TouchableOpacity>
+                    )}
                     <View style={styles.topBarBrand}>
                         <Image
                             source={require('../../assets/icon.png')}
@@ -96,16 +105,36 @@ export default function MainLayout() {
 
             {/* Main Area: Sidebar + Content */}
             <View style={styles.mainArea}>
-                <Sidebar
-                    activeScreen={activeRoute}
-                    onNavigate={(screen) => navigation.navigate('Main', { screen })}
-                    onLogout={handleLogout}
-                />
+                {!r.isSmall && (
+                    <Sidebar
+                        activeScreen={activeRoute}
+                        onNavigate={(screen) => navigation.navigate('Main', { screen })}
+                        onLogout={handleLogout}
+                    />
+                )}
                 <View style={styles.content}>
                     <MainNavigator />
                 </View>
             </View>
 
+            {/* Mobile Sidebar Overlay */}
+            {r.isSmall && sidebarOpen && (
+                <Modal visible={sidebarOpen} transparent={true} animationType="fade" onRequestClose={() => setSidebarOpen(false)}>
+                    <View style={styles.modalOverlay}>
+                        <Pressable style={styles.modalBackdrop} onPress={() => setSidebarOpen(false)} />
+                        <View style={styles.mobileSidebarContainer}>
+                            <Sidebar
+                                activeScreen={activeRoute}
+                                onNavigate={(screen) => {
+                                    setSidebarOpen(false);
+                                    navigation.navigate('Main', { screen });
+                                }}
+                                onLogout={handleLogout}
+                            />
+                        </View>
+                    </View>
+                </Modal>
+            )}
 
         </View>
     );
@@ -179,6 +208,24 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+    },
+    modalOverlay: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    modalBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    mobileSidebarContainer: {
+        width: 125,
+        height: '100%',
+        backgroundColor: '#1E2624',
+        shadowColor: '#000',
+        shadowOffset: { width: 5, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 5,
     },
 
 });
