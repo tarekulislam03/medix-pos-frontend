@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook'
 import {
     View,
     Text,
@@ -743,7 +744,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     // Always re-focus the barcode/product search input unless an
     // explicit interactive element (input, textarea, select) was clicked,
     // OR a modal is currently open (focus-stealing breaks modal button clicks).
-    const anyModalOpen = paymentModalVisible || printModalVisible || lastPurchaseModalVisible || showFreeEntry;
+    const anyModalOpen = paymentModalVisible || printModalVisible || lastPurchaseModalVisible || showFreeEntry || advancedOptionsVisible || !!fefoWarning;
     const anyModalOpenRef = useRef(anyModalOpen);
     anyModalOpenRef.current = anyModalOpen;
 
@@ -1216,66 +1217,53 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     }, [cart, doctorFee, otcItems]);
 
     // ─── CHECKOUT ──────────────────────────────────────
-    // Step 1: PAY button → open payment modal
+    // Step 1: PAY button → open payment modal (customer) or pay exact (walk-in)
     const handleCheckout = useCallback(async () => {
         if (cart.length === 0) {
             Alert.alert('Empty Cart', 'Add items before checkout.');
             return;
         }
 
-        // Always refresh credit before opening payment
-        if (selectedCustomer) {
-            try {
-                const cid =
-                    selectedCustomer._id ||
-                    selectedCustomer.id ||
-                    selectedCustomer.customer_id;
+        // Walk-in customer (no customer selected) → skip payment modal,
+        // pay exact grand total with no due, and go straight to print/save
+        if (!selectedCustomer) {
+            processPaymentRef.current({
+                amount_paid: cartSummary.grandTotal,
+                previous_due_payment: 0,
+                due_amount: 0,
+                change_amount: 0,
+            });
+            return;
+        }
 
-                const creditRes = await getCustomerCredit(cid);
+        // Customer selected → refresh credit and open payment modal
+        try {
+            const cid =
+                selectedCustomer._id ||
+                selectedCustomer.id ||
+                selectedCustomer.customer_id;
 
-                const balance =
-                    creditRes?.customer_credit_balance ??
-                    creditRes?.credit_balance ??
-                    creditRes?.due_amount ??
-                    0;
+            const creditRes = await getCustomerCredit(cid);
 
-                console.log("Fresh credit fetched:", balance);
+            const balance =
+                creditRes?.customer_credit_balance ??
+                creditRes?.credit_balance ??
+                creditRes?.due_amount ??
+                0;
 
-                setCustomerCredit(Number(balance) || 0);
-            } catch (err) {
-                console.warn("Credit fetch failed:", err.message);
-                setCustomerCredit(0);
-            }
+            console.log("Fresh credit fetched:", balance);
+
+            setCustomerCredit(Number(balance) || 0);
+        } catch (err) {
+            console.warn("Credit fetch failed:", err.message);
+            setCustomerCredit(0);
         }
 
         setPaymentModalVisible(true);
-    }, [cart, selectedCustomer]);
+    }, [cart, selectedCustomer, cartSummary.grandTotal]);
 
     // ─── KEYBOARD HOTKEYS FOR ERP OPERATION ───
-    useEffect(() => {
-        if (Platform.OS !== 'web') return;
-
-        const handleKeyDown = (e) => {
-            if (e.key === 'F2') {
-                e.preventDefault();
-                searchInputRef.current?.focus();
-            } else if (e.key === 'F9') {
-                e.preventDefault();
-                if (cart.length > 0) {
-                    handleCheckout();
-                }
-            } else if (e.key === 'F10') {
-                e.preventDefault();
-                if (printModalVisible) {
-                    handlePrintAndSave();
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [cart, handleCheckout, printModalVisible]);
-
+    // Hotkeys are now handled via a Centralized Keyboard Manager defined below (to avoid stale closures).
 
     // Step 2: Payment modal confirms → call API
     const processPayment = async ({
@@ -1285,6 +1273,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
         due_amount,
         change_amount,
     }) => {
+
         setPaymentModalVisible(false);
         const cartSnapshot = [...cart];
         setCheckoutLoading(true);
@@ -1384,6 +1373,9 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             setCheckoutLoading(false);
         }
     };
+    // Keep a ref to the latest processPayment so handleCheckout (memoized) never uses a stale version
+    const processPaymentRef = useRef(processPayment);
+    processPaymentRef.current = processPayment;
 
     // ─── PRINT HANDLERS ─────────────────────────────
     const handlePrintAndSave = () => {
@@ -1395,6 +1387,65 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
     const handleSaveOnly = () => {
         setPrintModalVisible(false);
     };
+
+    // ─── CENTRALIZED KEYBOARD MANAGER ───
+    const latestStateRef = useRef({
+        cartLength: cart.length,
+        anyModalOpen: anyModalOpen,
+        printModalVisible: printModalVisible,
+        handleCheckout,
+        handlePrintAndSave,
+        handleSaveOnly
+    });
+    // Update ref every render to avoid stale closures
+    latestStateRef.current = {
+        cartLength: cart.length,
+        anyModalOpen: anyModalOpen,
+        printModalVisible,
+        handleCheckout,
+        handlePrintAndSave,
+        handleSaveOnly
+    };
+
+    useEffect(() => {
+        if (Platform.OS !== 'web') return;
+
+        const globalKeyHandler = (e) => {
+            const state = latestStateRef.current;
+
+            // When Print/Save modal is open: P = Print, S = Save only
+            if (state.printModalVisible) {
+                if (e.key === 'p' || e.key === 'P') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    state.handlePrintAndSave();
+                    return;
+                }
+                if (e.key === 's' || e.key === 'S') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    state.handleSaveOnly();
+                    return;
+                }
+                // Block other shortcuts while print modal is open
+                return;
+            }
+
+            // F9 → Pay (Global, works anywhere, avoids stale closures)
+            if (e.key === 'F9') {
+                e.preventDefault();
+                e.stopPropagation();
+                // Only process if cart has items and NO modals are open
+                if (state.cartLength > 0 && !state.anyModalOpen) {
+                    state.handleCheckout();
+                }
+                return;
+            }
+        };
+
+        window.addEventListener('keydown', globalKeyHandler, true);
+        return () => window.removeEventListener('keydown', globalKeyHandler, true);
+    }, []);
 
     // ─── HELPERS ────────────────────────────────────
     const getName = (item) => item.medicine_name || item.product_name || item.name || 'Item';
@@ -1584,12 +1635,23 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                     value={searchQuery}
                                     onChangeText={handleSearch}
                                     onSubmitEditing={handleSubmitSearch}
+                                    onKeyPress={(e) => {
+    console.log('INPUT KEY:', e.nativeEvent.key);
+}}
                                     placeholder="Scan barcode or type medicine name..."
                                     placeholderTextColor={COLORS.textMuted}
+                                    onKeyDown={(e) => {
+  console.log(
+    'keydown',
+    e.nativeEvent.key,
+    e.nativeEvent.ctrlKey
+  );
+}}
                                     autoFocus
                                     returnKeyType="search"
                                     onBlur={() => {
                                         setTimeout(() => {
+                                            if (anyModalOpenRef.current) return;
                                             if (Platform.OS === 'web') {
                                                 const tag = document.activeElement?.tagName?.toLowerCase();
                                                 if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
@@ -2081,7 +2143,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             ))}
                         </View>
                         <TouchableOpacity style={{ width: '100%', height: 44, backgroundColor: cart.length === 0 ? '#C4CCCA' : '#059669', borderRadius: 2, justifyContent: 'center', alignItems: 'center' }} onPress={handleCheckout} disabled={cart.length === 0 || checkoutLoading}>
-                            {checkoutLoading ? <ActivityIndicator color="#FFF" /> : <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>PAY ₹{cartSummary.grandTotal.toFixed(2)}</Text>}
+                            {checkoutLoading ? <ActivityIndicator color="#FFF" /> : <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>PAY ₹{cartSummary.grandTotal.toFixed(2)}  <Text style={{ fontSize: 10, fontWeight: '500', opacity: 0.7 }}>Ctrl+↵</Text></Text>}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -2239,7 +2301,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                             <ActivityIndicator size="small" color="#FFFFFF" />
                         ) : (
                             <Text style={[styles.payBtnText, { fontSize: 13, fontWeight: '700', letterSpacing: 0.5 }]}>
-                                PAY ₹{cartSummary.grandTotal.toFixed(2)}
+                                PAY ₹{cartSummary.grandTotal.toFixed(2)}  <Text style={{ fontSize: 10, fontWeight: '500', opacity: 0.7 }}>F9</Text>
                             </Text>
                         )}
                     </TouchableOpacity>
@@ -2266,7 +2328,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                 <Text style={{ fontSize: 10, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 12 }}>No recent activity</Text>
                             )}
                         </View>
-                    )}
+
 
                 </ScrollView>
             </View>
@@ -2348,7 +2410,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                     <Ionicons name="print-outline" size={28} color={COLORS.white} />
                                 </View>
                                 <Text style={printStyles.optionLabel}>Print Bill</Text>
-                                <Text style={printStyles.optionSub}>Opens print dialog</Text>
+                                <Text style={printStyles.optionSub}>Opens print dialog  •  Press <Text style={{ fontWeight: '700' }}>P</Text></Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -2360,7 +2422,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
                                     <Ionicons name="save-outline" size={28} color={COLORS.primary} />
                                 </View>
                                 <Text style={[printStyles.optionLabel, printStyles.optionLabelSave]}>Save Only</Text>
-                                <Text style={[printStyles.optionSub, { color: COLORS.textMuted }]}>No print</Text>
+                                <Text style={[printStyles.optionSub, { color: COLORS.textMuted }]}>No print  •  Press <Text style={{ fontWeight: '700' }}>S</Text></Text>
                             </TouchableOpacity>
                         </View>
                     </View>

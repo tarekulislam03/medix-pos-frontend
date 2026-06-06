@@ -401,8 +401,19 @@ export default function InventoryScreen({ navigation }) {
     const openBlobInNewTab = (blob, type) => {
         if (Platform.OS === 'web') {
             const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+            iframe.onload = () => {
+                iframe.contentWindow.print();
+            };
+            setTimeout(() => {
+                if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                }
+                URL.revokeObjectURL(url);
+            }, 60000);
         } else {
             Alert.alert('Info', 'Printing is supported on the web version.');
         }

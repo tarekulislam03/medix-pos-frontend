@@ -67,17 +67,6 @@ const ImagePreviewModal = ({ visible, imageUrl, onClose }) => (
                     )}
                 </View>
                 <View style={previewStyles.footer}>
-                    <TouchableOpacity
-                        style={previewStyles.openBtn}
-                        onPress={() => {
-                            if (Platform.OS === 'web' && imageUrl) {
-                                window.open(imageUrl, '_blank');
-                            }
-                        }}
-                    >
-                        <Ionicons name="open-outline" size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
-                        <Text style={previewStyles.openBtnText}>Open Full Size</Text>
-                    </TouchableOpacity>
                     <TouchableOpacity style={previewStyles.closeBtnFull} onPress={onClose}>
                         <Text style={previewStyles.closeBtnText}>Close</Text>
                     </TouchableOpacity>
