@@ -1274,6 +1274,7 @@ export default function BillingScreen({ navigation, route }) {
         due_amount,
         change_amount,
     }) => {
+        console.time('Payment Processing Time');
 
         setPaymentModalVisible(false);
         const cartSnapshot = [...cart];
@@ -1372,6 +1373,7 @@ export default function BillingScreen({ navigation, route }) {
             Alert.alert('Checkout Failed', errMsg);
         } finally {
             setCheckoutLoading(false);
+            console.timeEnd('Payment Processing Time');
         }
     };
     // Keep a ref to the latest processPayment so handleCheckout (memoized) never uses a stale version

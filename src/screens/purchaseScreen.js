@@ -399,6 +399,15 @@ export default function PurchaseScreen() {
                 </View>
 
                 <View style={styles.headerActions}>
+                    {/* Upload Bill */}
+                    <TouchableOpacity
+                        style={styles.btnPrimary}
+                        onPress={handleUploadBill}
+                        disabled={uploading}
+                    >
+                        <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                        <Text style={styles.btnPrimaryText}>{uploading ? 'Uploading...' : 'Upload Bill'}</Text>
+                    </TouchableOpacity>
                     {/* Date Filter */}
                     <View style={styles.dateFilterRow}>
                         <Ionicons name="calendar-outline" size={13} color={COLORS.textMuted} />

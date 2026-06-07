@@ -174,6 +174,7 @@ export default function InventoryScreen({ navigation }) {
     const [searchQuery, setSearchQuery] = useState('');
 
     // Modal
+    const [devModalVisible, setDevModalVisible] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit' | 'view'
     const [formData, setFormData] = useState(EMPTY_FORM);
@@ -461,19 +462,7 @@ export default function InventoryScreen({ navigation }) {
     };
 
     const handleAutoImportPress = () => {
-        if (Platform.OS === 'web') {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*,.heic,.HEIC';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                await processAutoImportFile(file);
-            };
-            input.click();
-        } else {
-            Alert.alert('Unsupported', 'Auto Import is currently supported on the web version.');
-        }
+        setDevModalVisible(true);
     };
 
     const processAutoImportFile = async (file) => {
@@ -2076,6 +2065,49 @@ export default function InventoryScreen({ navigation }) {
             </Modal>
 
 
+
+            {/* ─── UNDER DEV MODAL ─── */}
+            <Modal visible={devModalVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.labelModalCard, { width: r.pick({ small: '95%', medium: 450, large: 450, xlarge: 450 }) }]}>
+                        {/* Header */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <View style={[styles.modalIcon, { backgroundColor: COLORS.warningLight }]}>
+                                    <Ionicons name="construct-outline" size={22} color={COLORS.warning} />
+                                </View>
+                                <View>
+                                    <Text style={styles.modalTitle}>Under Development</Text>
+                                    <Text style={styles.labelModalSub}>
+                                        Feature unavailable
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={() => setDevModalVisible(false)} style={styles.modalCloseBtn}>
+                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Body */}
+                        <View style={{ padding: 40, alignItems: 'center' }}>
+                            <Ionicons name="time-outline" size={48} color={COLORS.border} style={{ marginBottom: 16 }} />
+                            <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 22 }}>
+                                This feature is currently under development and will be available in a future update!
+                            </Text>
+                        </View>
+
+                        {/* Footer */}
+                        <View style={{ flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: COLORS.border }}>
+                            <GradientButton
+                                title="Close"
+                                variant="secondary"
+                                onPress={() => setDevModalVisible(false)}
+                                style={{ flex: 1 }}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             {/* ─── SUCCESS TOAST ─── */}
             {toastVisible && (
