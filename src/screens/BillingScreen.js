@@ -1326,12 +1326,12 @@ export default function BillingScreen({ navigation, route }) {
             setOtcItems([{ name: '', price: '' }]);
 
             // Re-fetch product list to get accurate stock after checkout
-            try {
-                const freshProducts = await getProducts();
-                setAllProducts(freshProducts?.data ?? []);
-            } catch (e) {
-                console.warn('Product refresh after checkout failed:', e.message);
-            }
+            // try {
+            //     const freshProducts = await getProducts();
+            //     setAllProducts(freshProducts?.data ?? []);
+            // } catch (e) {
+            //     console.warn('Product refresh after checkout failed:', e.message);
+            // }
 
             customerCacheRef.current.clear(); //cache cleared
 
