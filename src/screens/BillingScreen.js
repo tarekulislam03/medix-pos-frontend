@@ -1217,16 +1217,15 @@ export default function BillingScreen({ navigation, route }) {
         };
     }, [cart, doctorFee, otcItems]);
 
-    // ─── CHECKOUT ──────────────────────────────────────
-    // Step 1: PAY button → open payment modal (customer) or pay exact (walk-in)
+    
+    // -- checkout handler -- 
     const handleCheckout = useCallback(async () => {
         if (cart.length === 0) {
             Alert.alert('Empty Cart', 'Add items before checkout.');
             return;
         }
 
-        // Walk-in customer (no customer selected) → skip payment modal,
-        // pay exact grand total with no due, and go straight to print/save
+        // direct checkout for walkin customers
         if (!selectedCustomer) {
             processPaymentRef.current({
                 amount_paid: cartSummary.grandTotal,
@@ -1237,24 +1236,15 @@ export default function BillingScreen({ navigation, route }) {
             return;
         }
 
-        // Customer selected → refresh credit and open payment modal
+        // for customer selected, fetching dues
         try {
-            const cid =
-                selectedCustomer._id ||
-                selectedCustomer.id ||
-                selectedCustomer.customer_id;
+            
+            const creditRes = await getCustomerCredit(selectedCustomer._id);
 
-            const creditRes = await getCustomerCredit(cid);
-
-            const balance =
-                creditRes?.customer_credit_balance ??
-                creditRes?.credit_balance ??
-                creditRes?.due_amount ??
-                0;
-
-            console.log("Fresh credit fetched:", balance);
+            const balance = creditRes?.credit_balance ?? 0;
 
             setCustomerCredit(Number(balance) || 0);
+
         } catch (err) {
             console.warn("Credit fetch failed:", err.message);
             setCustomerCredit(0);
@@ -1263,10 +1253,7 @@ export default function BillingScreen({ navigation, route }) {
         setPaymentModalVisible(true);
     }, [cart, selectedCustomer, cartSummary.grandTotal]);
 
-    // ─── KEYBOARD HOTKEYS FOR ERP OPERATION ───
-    // Hotkeys are now handled via a Centralized Keyboard Manager defined below (to avoid stale closures).
-
-    // Step 2: Payment modal confirms → call API
+    // process checkout 
     const processPayment = async ({
         amount_paid,
         cash_received,
@@ -1286,7 +1273,6 @@ export default function BillingScreen({ navigation, route }) {
                     product_id: item._id || item.id || item.product_id,
                     quantity: item.is_loose_mode ? 1 : item.cart_quantity,
                     discount_percent: item.is_loose_mode ? 0 : (item.discount_percent ?? 0),
-                    // Loose sale extra fields (backend may ignore if not supported yet)
                     ...(item.is_loose_mode ? {
                         is_loose_sale: true,
                         loose_tablet_count: item.loose_tablet_count ?? 1,
@@ -1305,9 +1291,8 @@ export default function BillingScreen({ navigation, route }) {
 
             if (selectedCustomer) {
                 payload.customer_id =
-                    selectedCustomer._id ||
-                    selectedCustomer.id ||
-                    selectedCustomer.customer_id;
+                    selectedCustomer._id;
+
             } else if (customerQuery && customerQuery.trim() !== '') {
                 payload.customer_name_fallback = customerQuery.trim();
             }
@@ -1329,7 +1314,7 @@ export default function BillingScreen({ navigation, route }) {
             const savedDue =
                 response?.due_amount ?? due_amount ?? 0;
 
-            // Update credit properly
+            // update credit
             setCustomerCredit(Number(newCredit) || 0);
 
             savedInvoiceRef.current = rawInvoice;
@@ -1347,10 +1332,10 @@ export default function BillingScreen({ navigation, route }) {
             } catch (e) {
                 console.warn('Product refresh after checkout failed:', e.message);
             }
-            // Clear customer cache so credit balances are fresh
-            customerCacheRef.current.clear();
 
-            // Refresh recent sales activity list
+            customerCacheRef.current.clear(); //cache cleared
+
+            // refresh recent sales 
             fetchRecentSalesList().catch(() => {});
 
             if (savedDue > 0 && selectedCustomer) {
@@ -1360,9 +1345,6 @@ export default function BillingScreen({ navigation, route }) {
                     [{ text: 'OK' }]
                 );
             }
-
-            // DO NOT clear selectedCustomer
-            // DO NOT reset credit
 
             setPrintModalVisible(true);
         } catch (err) {
@@ -1376,7 +1358,7 @@ export default function BillingScreen({ navigation, route }) {
             console.timeEnd('Payment Processing Time');
         }
     };
-    // Keep a ref to the latest processPayment so handleCheckout (memoized) never uses a stale version
+
     const processPaymentRef = useRef(processPayment);
     processPaymentRef.current = processPayment;
 
@@ -1416,7 +1398,7 @@ export default function BillingScreen({ navigation, route }) {
         const globalKeyHandler = (e) => {
             const state = latestStateRef.current;
 
-            // When Print/Save modal is open: P = Print, S = Save only
+            // P => Print, S => Save only
             if (state.printModalVisible) {
                 if (e.key === 'p' || e.key === 'P') {
                     e.preventDefault();
@@ -1430,15 +1412,15 @@ export default function BillingScreen({ navigation, route }) {
                     state.handleSaveOnly();
                     return;
                 }
-                // Block other shortcuts while print modal is open
+                // block other shortcuts while print modal is open
                 return;
             }
 
-            // F9 → Pay (Global, works anywhere, avoids stale closures)
+            // pay => F9
             if (e.key === 'F9') {
                 e.preventDefault();
                 e.stopPropagation();
-                // Only process if cart has items and NO modals are open
+                // cart validation
                 if (state.cartLength > 0 && !state.anyModalOpen) {
                     state.handleCheckout();
                 }
@@ -1450,9 +1432,9 @@ export default function BillingScreen({ navigation, route }) {
         return () => window.removeEventListener('keydown', globalKeyHandler, true);
     }, []);
 
-    // ─── HELPERS ────────────────────────────────────
-    const getName = (item) => item.medicine_name || item.product_name || item.name || 'Item';
-    const getPrice = (item) => item.mrp ?? item.selling_price ?? item.price ?? 0;
+    // helper 
+    const getName = (item) => item.medicine_name;
+    const getPrice = (item) => item.mrp ?? 0;
 
 
     // ─── CUSTOMER STRIP: update credit display and clear button ─────────────────────────
