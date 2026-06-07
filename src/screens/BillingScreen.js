@@ -614,7 +614,8 @@ const pmStyles = StyleSheet.create({
 
 const DEFAULT_DISCOUNT = 15; // Default discount % for new cart items
 
-export default function BillingScreen({ navigation, editInvoice, clearEditInvoice }) {
+export default function BillingScreen({ navigation, route }) {
+    const editInvoice = route?.params?.invoice || null;
     const r = useResponsive();
     // Search Products
     const [searchQuery, setSearchQuery] = useState('');
@@ -1313,7 +1314,7 @@ export default function BillingScreen({ navigation, editInvoice, clearEditInvoic
             let response;
             if (editInvoice) {
                 response = await updateCheckout(editInvoice._id || editInvoice.id, payload);
-                if (clearEditInvoice) clearEditInvoice();
+                navigation.setParams({ invoice: null });
             } else {
                 response = await processCheckout(payload);
             }
