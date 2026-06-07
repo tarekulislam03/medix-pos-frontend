@@ -24,9 +24,7 @@ export const searchProducts = async ({ query, type = 'name' }) => {
  */
 export const processCheckout = async (payload) => {
     try {
-        console.time('checkout');
         const response = await api.post('/billing/checkout', payload);
-        console.timeEnd('checkout');
         return response.data;
     } catch (error) {
         throw error;
