@@ -173,6 +173,15 @@ export default function PurchaseScreen() {
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState('');  // status label
 
+    // Upload form modal state
+    const [uploadFormVisible, setUploadFormVisible] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [uploadForm, setUploadForm] = useState({
+        supplier_name: '',
+        bill_date: '',
+        total_amount: '',
+    });
+
     // Preview modal
     const [previewUrl, setPreviewUrl] = useState(null);
     const [previewVisible, setPreviewVisible] = useState(false);
@@ -230,7 +239,7 @@ export default function PurchaseScreen() {
         setRefreshing(false);
     };
 
-    // ─── UPLOAD ────────────────────────────────────────────────────────────
+    // ─── UPLOAD (Step 1: Pick file → show form) ───────────────────────────
     const handleUploadBill = async () => {
         try {
             let file = null;
@@ -244,11 +253,41 @@ export default function PurchaseScreen() {
 
             if (!file) return; // user cancelled
 
-            setUploading(true);
-            setUploadProgress('Uploading bill to cloud...');
+            // Store the file and show the form modal
+            setSelectedFile(file);
+            setUploadForm({
+                supplier_name: '',
+                bill_date: new Date().toISOString().split('T')[0],
+                total_amount: '',
+            });
+            setUploadFormVisible(true);
+        } catch (err) {
+            console.error('File pick error:', err);
+        }
+    };
 
+    // ─── UPLOAD (Step 2: Submit form → upload) ────────────────────────────
+    const handleUploadSubmit = async () => {
+        if (!selectedFile) return;
+
+        setUploadFormVisible(false);
+        setUploading(true);
+        setUploadProgress('Uploading bill to cloud...');
+
+        try {
             const formData = new FormData();
-            formData.append('bill', file, file.name);
+            formData.append('bill', selectedFile, selectedFile.name);
+
+            // Append manual fields
+            if (uploadForm.supplier_name.trim()) {
+                formData.append('supplier_name', uploadForm.supplier_name.trim());
+            }
+            if (uploadForm.bill_date) {
+                formData.append('bill_date', uploadForm.bill_date);
+            }
+            if (uploadForm.total_amount) {
+                formData.append('total_amount', uploadForm.total_amount);
+            }
 
             await uploadPurchaseBill(formData);
 
@@ -260,7 +299,14 @@ export default function PurchaseScreen() {
         } finally {
             setUploading(false);
             setUploadProgress('');
+            setSelectedFile(null);
         }
+    };
+
+    const handleUploadCancel = () => {
+        setUploadFormVisible(false);
+        setSelectedFile(null);
+        setUploadForm({ supplier_name: '', bill_date: '', total_amount: '' });
     };
 
     // ─── DELETE ────────────────────────────────────────────────────────────
@@ -677,6 +723,108 @@ export default function PurchaseScreen() {
                     </View>
                 </View>
             </Modal>
+
+            {/* ─── UPLOAD FORM MODAL ─── */}
+            <Modal visible={uploadFormVisible} animationType="fade" transparent onRequestClose={handleUploadCancel}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.uploadFormModal, r.isSmall && { width: '92%', maxWidth: 400 }]}>
+                        {/* Modal Header */}
+                        <View style={styles.uploadFormHeader}>
+                            <View style={styles.uploadFormIconBox}>
+                                <Ionicons name="document-text-outline" size={24} color={COLORS.primary} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.uploadFormTitle}>Bill Details</Text>
+                                <Text style={styles.uploadFormSubtitle}>
+                                    {selectedFile?.name || 'Selected file'}
+                                </Text>
+                            </View>
+                            <TouchableOpacity onPress={handleUploadCancel} style={styles.uploadFormCloseBtn}>
+                                <Ionicons name="close" size={18} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Form Fields */}
+                        <View style={styles.uploadFormBody}>
+                            {/* Supplier Name */}
+                            <View style={styles.formGroup}>
+                                <Text style={styles.formLabel}>Supplier Name</Text>
+                                <View style={styles.formInputRow}>
+                                    <Ionicons name="business-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                                    <TextInput
+                                        style={styles.formInput}
+                                        placeholder="Enter supplier name"
+                                        placeholderTextColor={COLORS.textMuted}
+                                        value={uploadForm.supplier_name}
+                                        onChangeText={(val) => setUploadForm(prev => ({ ...prev, supplier_name: val }))}
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Invoice Date */}
+                            <View style={styles.formGroup}>
+                                <Text style={styles.formLabel}>Invoice Date</Text>
+                                <View style={styles.formInputRow}>
+                                    <Ionicons name="calendar-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+                                    {Platform.OS === 'web' ? (
+                                        <input
+                                            type="date"
+                                            value={uploadForm.bill_date}
+                                            onChange={(e) => setUploadForm(prev => ({ ...prev, bill_date: e.target.value }))}
+                                            style={{
+                                                flex: 1,
+                                                height: 34,
+                                                fontSize: 13,
+                                                fontFamily: 'Inter, sans-serif',
+                                                color: '#2E3B38',
+                                                backgroundColor: 'transparent',
+                                                border: 'none',
+                                                outline: 'none',
+                                                cursor: 'pointer',
+                                            }}
+                                        />
+                                    ) : (
+                                        <TextInput
+                                            style={styles.formInput}
+                                            placeholder="YYYY-MM-DD"
+                                            placeholderTextColor={COLORS.textMuted}
+                                            value={uploadForm.bill_date}
+                                            onChangeText={(val) => setUploadForm(prev => ({ ...prev, bill_date: val }))}
+                                        />
+                                    )}
+                                </View>
+                            </View>
+
+                            {/* Total Amount */}
+                            <View style={styles.formGroup}>
+                                <Text style={styles.formLabel}>Total Amount (₹)</Text>
+                                <View style={styles.formInputRow}>
+                                    <Text style={{ fontSize: 15, color: COLORS.textMuted, marginRight: 8, fontWeight: '500' }}>₹</Text>
+                                    <TextInput
+                                        style={styles.formInput}
+                                        placeholder="0.00"
+                                        placeholderTextColor={COLORS.textMuted}
+                                        value={uploadForm.total_amount}
+                                        onChangeText={(val) => setUploadForm(prev => ({ ...prev, total_amount: val.replace(/[^0-9.]/g, '') }))}
+                                        keyboardType="decimal-pad"
+                                    />
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Modal Footer */}
+                        <View style={styles.uploadFormFooter}>
+                            <TouchableOpacity style={[styles.btnSecondary, { flex: 1 }]} onPress={handleUploadCancel}>
+                                <Text style={styles.btnSecondaryText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.btnPrimary, { flex: 1 }]} onPress={handleUploadSubmit}>
+                                <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                                <Text style={styles.btnPrimaryText}>Upload</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -1031,4 +1179,92 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     deleteActions: { flexDirection: 'row', gap: 8, width: '100%' },
+
+    // ─── Upload Form Modal ────────────────────────────────────────────
+    uploadFormModal: {
+        width: 420,
+        backgroundColor: COLORS.white,
+        borderRadius: 6,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        overflow: 'hidden',
+    },
+    uploadFormHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
+        backgroundColor: '#F8FAF9',
+        gap: 10,
+    },
+    uploadFormIconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        backgroundColor: COLORS.primaryGhost,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    uploadFormTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.textPrimary,
+    },
+    uploadFormSubtitle: {
+        fontSize: 11,
+        color: COLORS.textMuted,
+        marginTop: 1,
+    },
+    uploadFormCloseBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 4,
+        backgroundColor: COLORS.bgDark,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    uploadFormBody: {
+        padding: 16,
+        gap: 14,
+    },
+    formGroup: {
+        gap: 5,
+    },
+    formLabel: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: COLORS.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 0.3,
+    },
+    formInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.white,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        borderRadius: 4,
+        paddingHorizontal: 10,
+        height: 38,
+    },
+    formInput: {
+        flex: 1,
+        height: '100%',
+        fontSize: 13,
+        color: COLORS.textPrimary,
+        outlineStyle: 'none',
+    },
+    uploadFormFooter: {
+        flexDirection: 'row',
+        gap: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderTopWidth: 0.5,
+        borderTopColor: COLORS.border,
+        backgroundColor: '#F8FAF9',
+    },
 });
