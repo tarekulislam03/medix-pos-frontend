@@ -329,20 +329,6 @@ export default function ReturnScreen({ navigation }) {
     const leftFlex = r.pick({ small: 1.8, medium: 2.2, large: 3, xlarge: 3.2 });
     const rightFlex = r.pick({ small: 1.0, medium: 1.2, large: 1.3, xlarge: 1.4 });
 
-    if (r.isSmall) {
-        return (
-            <View style={{ flex: 1, backgroundColor: COLORS.bgDark, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                <Ionicons name="desktop-outline" size={64} color={COLORS.border} />
-                <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginTop: 16, textAlign: 'center' }}>
-                    Not Available on Mobile
-                </Text>
-                <Text style={{ fontSize: 14, color: COLORS.textMuted, marginTop: 8, textAlign: 'center', lineHeight: 20 }}>
-                    The Returns interface is optimized for larger screens.{'\n'}Please use a tablet or desktop to access this feature.
-                </Text>
-            </View>
-        );
-    }
-
     return (
         <View style={{ flex: 1, backgroundColor: COLORS.bgDark }}>
             <View style={styles.container}>

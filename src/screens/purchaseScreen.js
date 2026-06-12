@@ -290,25 +290,101 @@ export default function PurchaseScreen() {
         setPreviewVisible(true);
     };
 
-    // ─── MOBILE GUARD ──────────────────────────────────────────────────────
-    if (r.isSmall) {
+    // ─── MOBILE CARD ROW ──────────────────────────────────────────────────
+    const renderMobileCard = ({ item, index }) => {
+        const hasBill = !!item.bill_image_url;
+        const statusLabel = item.status?.toUpperCase() ?? 'PENDING';
         return (
-            <View style={{ flex: 1, backgroundColor: COLORS.bgDark, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                <Ionicons name="desktop-outline" size={64} color={COLORS.border} />
-                <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginTop: 16, textAlign: 'center' }}>
-                    Not Available on Mobile
-                </Text>
-                <Text style={{ fontSize: 14, color: COLORS.textMuted, marginTop: 8, textAlign: 'center', lineHeight: 20 }}>
-                    This page is optimized for larger screens.{'\n'}Please use a tablet or desktop.
-                </Text>
+            <View style={styles.mobileCard}>
+                {/* Card Header: Supplier + Status */}
+                <View style={styles.mobileCardHeader}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.mobileCardSupplier} numberOfLines={1}>
+                            {item.supplier_name || '— No Supplier —'}
+                        </Text>
+                        {item.supplier_gstin ? <Text style={styles.mobileCardGstin}>{item.supplier_gstin}</Text> : null}
+                    </View>
+                    <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
+                        <Text style={[styles.statusText, styles[`statusText_${item.status}`]]}>
+                            {statusLabel}
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Card Body: Key details in a 2-col grid */}
+                <View style={styles.mobileCardBody}>
+                    <View style={styles.mobileDetailRow}>
+                        <View style={styles.mobileDetailItem}>
+                            <Text style={styles.mobileDetailLabel}>Date</Text>
+                            <Text style={styles.mobileDetailValue}>
+                                {item.bill_date ? formatDate(item.bill_date) : formatDate(item.createdAt)}
+                            </Text>
+                        </View>
+                        <View style={styles.mobileDetailItem}>
+                            <Text style={styles.mobileDetailLabel}>Invoice No</Text>
+                            <Text style={styles.mobileDetailValue}>{item.bill_no || '—'}</Text>
+                        </View>
+                    </View>
+                    <View style={styles.mobileDetailRow}>
+                        <View style={styles.mobileDetailItem}>
+                            <Text style={styles.mobileDetailLabel}>Amount</Text>
+                            <Text style={[styles.mobileDetailValue, { fontWeight: '600', color: COLORS.primary }]}>
+                                {item.total_amount > 0 ? `₹${Number(item.total_amount).toFixed(2)}` : '—'}
+                            </Text>
+                        </View>
+                        <View style={styles.mobileDetailItem}>
+                            <Text style={styles.mobileDetailLabel}>Items</Text>
+                            <Text style={styles.mobileDetailValue}>
+                                {item.items_count > 0 ? item.items_count : '—'}
+                            </Text>
+                        </View>
+                    </View>
+                    <View style={styles.mobileDetailRow}>
+                        <View style={styles.mobileDetailItem}>
+                            <Text style={styles.mobileDetailLabel}>Taxable</Text>
+                            <Text style={styles.mobileDetailValue}>
+                                {item.taxable_amount > 0 ? `₹${item.taxable_amount.toFixed(2)}` : '—'}
+                            </Text>
+                        </View>
+                        <View style={styles.mobileDetailItem}>
+                            <Text style={styles.mobileDetailLabel}>CGST / SGST</Text>
+                            <Text style={styles.mobileDetailValue}>
+                                {item.cgst_amount > 0 ? `₹${item.cgst_amount.toFixed(2)}` : '—'} / {item.sgst_amount > 0 ? `₹${item.sgst_amount.toFixed(2)}` : '—'}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Card Footer: Actions */}
+                <View style={styles.mobileCardFooter}>
+                    {hasBill ? (
+                        <TouchableOpacity
+                            style={styles.viewBillBtn}
+                            onPress={() => openPreview(item.bill_image_url)}
+                        >
+                            <Ionicons name="image-outline" size={13} color={COLORS.primary} style={{ marginRight: 4 }} />
+                            <Text style={styles.viewBillText}>View Bill</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={styles.noBillBadge}>
+                            <Text style={styles.noBillText}>No Bill</Text>
+                        </View>
+                    )}
+                    <TouchableOpacity
+                        style={[styles.actionBtn, styles.actionBtnDanger]}
+                        onPress={() => confirmDelete(item._id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                        <Ionicons name="trash-outline" size={13} color={COLORS.error} />
+                    </TouchableOpacity>
+                </View>
             </View>
         );
-    }
+    };
 
-    // ─── TABLE ROW ─────────────────────────────────────────────────────────
+    // ─── DESKTOP TABLE ROW ─────────────────────────────────────────────────
     const renderRow = ({ item, index }) => {
         const hasBill = !!item.bill_image_url;
-        const isAutoImport = item.source === 'auto_import';
         return (
             <View style={[styles.tableRow, index % 2 === 0 && styles.tableRowAlt]}>
                 {/* # */}
@@ -387,74 +463,80 @@ export default function PurchaseScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, r.isSmall && { padding: 10, overflow: 'hidden' }]}>
 
             {/* ─── HEADER ─── */}
-            <View style={styles.header}>
-                <View>
+            <View style={[styles.header, r.isSmall && styles.headerMobile]}>
+                <View style={{ flexShrink: 1, minWidth: 0 }}>
                     <Text style={styles.headerTitle}>Purchase Orders</Text>
-                    <Text style={styles.headerSub}>
-                        {filteredPurchases.length} record{filteredPurchases.length !== 1 ? 's' : ''} · Bills uploaded from inventory AI import
+                    <Text style={styles.headerSub} numberOfLines={r.isSmall ? 2 : 1}>
+                        {filteredPurchases.length} record{filteredPurchases.length !== 1 ? 's' : ''}{r.isSmall ? '' : ' · Bills uploaded from inventory AI import'}
                     </Text>
                 </View>
 
-                <View style={styles.headerActions}>
+                <View style={[styles.headerActions, r.isSmall && styles.headerActionsMobile]}>
                     {/* Upload Bill */}
                     <TouchableOpacity
-                        style={styles.btnPrimary}
+                        style={[styles.btnPrimary, r.isSmall && { height: 38 }]}
                         onPress={handleUploadBill}
                         disabled={uploading}
                     >
                         <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
                         <Text style={styles.btnPrimaryText}>{uploading ? 'Uploading...' : 'Upload Bill'}</Text>
                     </TouchableOpacity>
-                    {/* Date Filter */}
-                    <View style={styles.dateFilterRow}>
-                        <Ionicons name="calendar-outline" size={13} color={COLORS.textMuted} />
-                        <input
-                            type="date"
-                            value={filterDate}
-                            onChange={(e) => setFilterDate(e.target.value)}
-                            style={{
-                                height: 28,
-                                fontSize: 11,
-                                fontFamily: 'Inter, sans-serif',
-                                color: '#4A5C58',
-                                backgroundColor: '#FFFFFF',
-                                border: '0.5px solid #CDD5D1',
-                                borderRadius: 2,
-                                paddingLeft: 6,
-                                paddingRight: 4,
-                                outline: 'none',
-                                cursor: 'pointer',
-                            }}
-                        />
-                        {filterDate ? (
-                            <TouchableOpacity
-                                onPress={() => setFilterDate('')}
-                                style={styles.dateClearBtn}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            >
-                                <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
-                            </TouchableOpacity>
-                        ) : null}
-                    </View>
 
-                    {/* Supplier Search */}
-                    <View style={styles.searchBox}>
-                        <Ionicons name="search-outline" size={14} color={COLORS.textMuted} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Filter by supplier..."
-                            placeholderTextColor={COLORS.textMuted}
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                        {searchQuery.length > 0 && (
-                            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
-                            </TouchableOpacity>
-                        )}
+                    {/* Date + Search row on mobile */}
+                    <View style={[styles.filterRow, r.isSmall && styles.filterRowMobile]}>
+                        {/* Date Filter */}
+                        <View style={[styles.dateFilterRow, r.isSmall && { minWidth: 0, maxWidth: 140 }]}>
+                            <Ionicons name="calendar-outline" size={13} color={COLORS.textMuted} />
+                            <input
+                                type="date"
+                                value={filterDate}
+                                onChange={(e) => setFilterDate(e.target.value)}
+                                style={{
+                                    height: r.isSmall ? 34 : 28,
+                                    width: r.isSmall ? 100 : undefined,
+                                    maxWidth: r.isSmall ? 110 : undefined,
+                                    fontSize: 11,
+                                    fontFamily: 'Inter, sans-serif',
+                                    color: '#4A5C58',
+                                    backgroundColor: '#FFFFFF',
+                                    border: '0.5px solid #CDD5D1',
+                                    borderRadius: 2,
+                                    paddingLeft: 6,
+                                    paddingRight: 4,
+                                    outline: 'none',
+                                    cursor: 'pointer',
+                                }}
+                            />
+                            {filterDate ? (
+                                <TouchableOpacity
+                                    onPress={() => setFilterDate('')}
+                                    style={styles.dateClearBtn}
+                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                >
+                                    <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
+                                </TouchableOpacity>
+                            ) : null}
+                        </View>
+
+                        {/* Supplier Search */}
+                        <View style={[styles.searchBox, r.isSmall && styles.searchBoxMobile, { minWidth: 0 }]}>
+                            <Ionicons name="search-outline" size={14} color={COLORS.textMuted} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Filter by supplier..."
+                                placeholderTextColor={COLORS.textMuted}
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                    <Ionicons name="close-circle" size={14} color={COLORS.textMuted} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 </View>
             </View>
@@ -467,62 +549,91 @@ export default function PurchaseScreen() {
                 </View>
             )}
 
-            {/* ─── TABLE ─── */}
-            <View style={styles.tableContainer}>
-                {/* Table Header */}
-                <View style={styles.tableHeader}>
-                    <View style={[styles.thCell, { width: 44, alignItems: 'center' }]}>
-                        <Text style={styles.th}>#</Text>
-                    </View>
-                    <View style={[styles.thCell, { flex: 1.6 }]}>
-                        <Text style={styles.th}>Date / Inv No</Text>
-                    </View>
-                    <View style={[styles.thCell, { flex: 1.8 }]}>
-                        <Text style={styles.th}>Supplier / GSTIN</Text>
-                    </View>
-                    <View style={[styles.thCell, { flex: 2 }]}>
-                        <Text style={styles.th}>Taxes</Text>
-                    </View>
-                    <View style={[styles.thCell, { flex: 0.8, alignItems: 'center' }]}>
-                        <Text style={styles.th}>Items</Text>
-                    </View>
-                    <View style={[styles.thCell, { flex: 1.2, alignItems: 'center' }]}>
-                        <Text style={styles.th}>Amount</Text>
-                    </View>
-                    <View style={[styles.thCell, { flex: 1.2, alignItems: 'center' }]}>
-                        <Text style={styles.th}>Bill</Text>
-                    </View>
-                    <View style={[styles.thCell, { flex: 1, alignItems: 'center' }]}>
-                        <Text style={styles.th}>Status</Text>
-                    </View>
-                    <View style={[styles.thCell, { flex: 0.8, alignItems: 'center', borderRightWidth: 0 }]}>
-                        <Text style={styles.th}>Actions</Text>
-                    </View>
+            {/* ─── CONTENT: Cards on mobile, Table on desktop ─── */}
+            {r.isSmall ? (
+                /* ─── MOBILE: Card List ─── */
+                <View style={{ flex: 1 }}>
+                    {loading ? (
+                        <View style={styles.centerBox}>
+                            <ActivityIndicator size="large" color={COLORS.primary} />
+                            <Text style={styles.loadingText}>Loading purchases…</Text>
+                        </View>
+                    ) : filteredPurchases.length > 0 ? (
+                        <FlatList
+                            data={filteredPurchases}
+                            keyExtractor={(item) => item._id}
+                            renderItem={renderMobileCard}
+                            showsVerticalScrollIndicator={false}
+                            onRefresh={onRefresh}
+                            refreshing={refreshing}
+                            contentContainerStyle={{ paddingBottom: 20 }}
+                        />
+                    ) : (
+                        <View style={styles.centerBox}>
+                            <Ionicons name="receipt-outline" size={44} color={COLORS.border} />
+                            <Text style={styles.emptyText}>No purchase records yet</Text>
+                            <Text style={styles.emptySubText}>AI Imported bills from inventory will appear here.</Text>
+                        </View>
+                    )}
                 </View>
+            ) : (
+                /* ─── DESKTOP: Table ─── */
+                <View style={styles.tableContainer}>
+                    {/* Table Header */}
+                    <View style={styles.tableHeader}>
+                        <View style={[styles.thCell, { width: 44, alignItems: 'center' }]}>
+                            <Text style={styles.th}>#</Text>
+                        </View>
+                        <View style={[styles.thCell, { flex: 1.6 }]}>
+                            <Text style={styles.th}>Date / Inv No</Text>
+                        </View>
+                        <View style={[styles.thCell, { flex: 1.8 }]}>
+                            <Text style={styles.th}>Supplier / GSTIN</Text>
+                        </View>
+                        <View style={[styles.thCell, { flex: 2 }]}>
+                            <Text style={styles.th}>Taxes</Text>
+                        </View>
+                        <View style={[styles.thCell, { flex: 0.8, alignItems: 'center' }]}>
+                            <Text style={styles.th}>Items</Text>
+                        </View>
+                        <View style={[styles.thCell, { flex: 1.2, alignItems: 'center' }]}>
+                            <Text style={styles.th}>Amount</Text>
+                        </View>
+                        <View style={[styles.thCell, { flex: 1.2, alignItems: 'center' }]}>
+                            <Text style={styles.th}>Bill</Text>
+                        </View>
+                        <View style={[styles.thCell, { flex: 1, alignItems: 'center' }]}>
+                            <Text style={styles.th}>Status</Text>
+                        </View>
+                        <View style={[styles.thCell, { flex: 0.8, alignItems: 'center', borderRightWidth: 0 }]}>
+                            <Text style={styles.th}>Actions</Text>
+                        </View>
+                    </View>
 
-                {/* Table Body */}
-                {loading ? (
-                    <View style={styles.centerBox}>
-                        <ActivityIndicator size="large" color={COLORS.primary} />
-                        <Text style={styles.loadingText}>Loading purchases…</Text>
-                    </View>
-                ) : filteredPurchases.length > 0 ? (
-                    <FlatList
-                        data={filteredPurchases}
-                        keyExtractor={(item) => item._id}
-                        renderItem={renderRow}
-                        showsVerticalScrollIndicator={false}
-                        onRefresh={onRefresh}
-                        refreshing={refreshing}
-                    />
-                ) : (
-                    <View style={styles.centerBox}>
-                        <Ionicons name="receipt-outline" size={44} color={COLORS.border} />
-                        <Text style={styles.emptyText}>No purchase records yet</Text>
-                        <Text style={styles.emptySubText}>AI Imported bills from inventory will appear here.</Text>
-                    </View>
-                )}
-            </View>
+                    {/* Table Body */}
+                    {loading ? (
+                        <View style={styles.centerBox}>
+                            <ActivityIndicator size="large" color={COLORS.primary} />
+                            <Text style={styles.loadingText}>Loading purchases…</Text>
+                        </View>
+                    ) : filteredPurchases.length > 0 ? (
+                        <FlatList
+                            data={filteredPurchases}
+                            keyExtractor={(item) => item._id}
+                            renderItem={renderRow}
+                            showsVerticalScrollIndicator={false}
+                            onRefresh={onRefresh}
+                            refreshing={refreshing}
+                        />
+                    ) : (
+                        <View style={styles.centerBox}>
+                            <Ionicons name="receipt-outline" size={44} color={COLORS.border} />
+                            <Text style={styles.emptyText}>No purchase records yet</Text>
+                            <Text style={styles.emptySubText}>AI Imported bills from inventory will appear here.</Text>
+                        </View>
+                    )}
+                </View>
+            )}
 
             {/* ─── IMAGE PREVIEW MODAL ─── */}
             <ImagePreviewModal
@@ -534,7 +645,7 @@ export default function PurchaseScreen() {
             {/* ─── DELETE CONFIRM MODAL ─── */}
             <Modal visible={deleteModalVisible} animationType="fade" transparent>
                 <View style={styles.modalOverlay}>
-                    <View style={styles.deleteModal}>
+                    <View style={[styles.deleteModal, r.isSmall && { width: '90%', maxWidth: 380 }]}>
                         <View style={styles.deleteIconBox}>
                             <Ionicons name="warning-outline" size={32} color={COLORS.error} />
                         </View>
@@ -588,9 +699,30 @@ const styles = StyleSheet.create({
         borderBottomColor: COLORS.border,
         marginBottom: 10,
     },
+    headerMobile: {
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: 10,
+    },
     headerTitle: { fontSize: 16, fontWeight: '400', color: COLORS.textPrimary },
     headerSub: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    headerActionsMobile: {
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: 8,
+    },
+
+    // Filter row (date + search together)
+    filterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    filterRowMobile: {
+        flexDirection: 'row',
+        gap: 8,
+    },
 
     // Date Filter
     dateFilterRow: {
@@ -619,6 +751,11 @@ const styles = StyleSheet.create({
         height: 32,
         width: 200,
     },
+    searchBoxMobile: {
+        flex: 1,
+        width: undefined,
+        height: 34,
+    },
     searchInput: {
         flex: 1,
         height: '100%',
@@ -642,7 +779,71 @@ const styles = StyleSheet.create({
     },
     uploadBannerText: { fontSize: 12, color: COLORS.primary, fontWeight: '500' },
 
-    // Table
+    // ─── MOBILE CARD STYLES ──────────────────────────────────────────────
+    mobileCard: {
+        backgroundColor: COLORS.white,
+        borderRadius: 6,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+        marginBottom: 10,
+        overflow: 'hidden',
+        maxWidth: '100%',
+    },
+    mobileCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
+        backgroundColor: '#F8FAF9',
+    },
+    mobileCardSupplier: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.textPrimary,
+    },
+    mobileCardGstin: {
+        fontSize: 10,
+        color: COLORS.textMuted,
+        marginTop: 2,
+    },
+    mobileCardBody: {
+        padding: 12,
+        gap: 8,
+    },
+    mobileDetailRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    mobileDetailItem: {
+        flex: 1,
+    },
+    mobileDetailLabel: {
+        fontSize: 10,
+        fontWeight: '500',
+        color: COLORS.textMuted,
+        textTransform: 'uppercase',
+        letterSpacing: 0.3,
+        marginBottom: 2,
+    },
+    mobileDetailValue: {
+        fontSize: 12,
+        color: COLORS.textSecondary,
+    },
+    mobileCardFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderTopWidth: 0.5,
+        borderTopColor: COLORS.border,
+        backgroundColor: '#FAFBFA',
+    },
+
+    // ─── DESKTOP TABLE STYLES ────────────────────────────────────────────
     tableContainer: {
         flex: 1,
         backgroundColor: COLORS.white,

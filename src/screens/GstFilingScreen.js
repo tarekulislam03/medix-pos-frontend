@@ -129,16 +129,7 @@ export default function GstFilingScreen() {
         XLSX.writeFile(wb, `GST_Report_${monthName}_${year}.xlsx`);
     };
 
-    if (r.isSmall) {
-        return (
-            <View style={{ flex: 1, backgroundColor: COLORS.bgDark, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                <Ionicons name="desktop-outline" size={64} color={COLORS.border} />
-                <Text style={{ fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginTop: 16 }}>
-                    Not Available on Mobile
-                </Text>
-            </View>
-        );
-    }
+
 
     const renderPurchaseRow = ({ item, index }) => (
         <View style={[styles.tableRow, index % 2 === 0 && styles.tableRowAlt]}>

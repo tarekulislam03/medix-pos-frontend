@@ -1,12 +1,7 @@
 import { Platform } from 'react-native';
 import { getStoreSettings } from './storeSettings';
 
-/**
- * Builds a professional, highly readable 58mm thermal receipt HTML document.
- * Designed for clarity: bold headers, generous spacing, clear item lines,
- * rupee symbol (₹), and a crisp total section.
- * rupee symbol (₹), and a crisp total section.
- */
+
 export function buildReceiptHTML(invoice) {
   const store = getStoreSettings();
 
@@ -168,23 +163,23 @@ export function buildReceiptHTML(invoice) {
   /* ── Reset ── */
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  /* ── Base — ALL BLACK, ALL BOLD, SMALLER for thermal printers ── */
+  /* ── Base — ALL BLACK, ALL BOLD, LARGE for thermal printers ── */
   body {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     color: #000;
     background: #fff;
     width: 58mm;
     padding: 2mm 2mm 3mm 2mm;
-    line-height: 1.3;
+    line-height: 1.35;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   /* ── Store Header ── */
   .store-name {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 900;
     text-align: center;
     letter-spacing: 0.5px;
@@ -194,14 +189,14 @@ export function buildReceiptHTML(invoice) {
     margin-bottom: 2px;
   }
   .store-addr {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     text-align: center;
     color: #000;
     line-height: 1.4;
   }
   .store-phone {
-    font-size: 11px;
+    font-size: 13px;
     text-align: center;
     font-weight: 900;
     color: #000;
@@ -213,21 +208,17 @@ export function buildReceiptHTML(invoice) {
   .dash  { border-top: 1px dashed #000; margin: 3px 0; }
   .thick { border-top: 3px double #000; margin: 4px 0; }
 
-  /* ── Barcode ── */
-  .barcode-section { text-align: center; margin: 6px 0; }
-  .barcode-img { max-width: 95%; height: auto; display: block; margin: 0 auto; }
-
   /* ── Invoice meta block ── */
-  .meta-block  { font-size: 11px; font-weight: 700; line-height: 1.5; color: #000; }
+  .meta-block  { font-size: 13px; font-weight: 700; line-height: 1.5; color: #000; }
   .meta-row    { display: flex; justify-content: space-between; align-items: baseline; padding: 1px 0; }
-  .meta-label  { color: #000; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
-  .meta-val    { font-weight: 900; font-size: 11px; text-align: right; color: #000; }
+  .meta-label  { color: #000; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+  .meta-val    { font-weight: 900; font-size: 13px; text-align: right; color: #000; }
 
   /* ── Pay badge — plain bold text for thermal ── */
   .pay-badge {
     display: inline-block;
     padding: 2px 6px;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 900;
     letter-spacing: 0.5px;
     color: #000;
@@ -238,7 +229,7 @@ export function buildReceiptHTML(invoice) {
   .col-header {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -250,7 +241,7 @@ export function buildReceiptHTML(invoice) {
   .item-block  { padding: 2px 0; }
   .item-name   {
     font-weight: 900;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.3;
     word-break: break-word;
     text-transform: uppercase;
@@ -258,13 +249,13 @@ export function buildReceiptHTML(invoice) {
     color: #000;
   }
   .item-row    { display: flex; justify-content: space-between; align-items: baseline; margin-top: 0px; }
-  .item-calc   { font-size: 11px; font-weight: 700; color: #000; flex: 1; }
-  .item-total  { font-size: 12px; font-weight: 900; white-space: nowrap; margin-left: 4px; color: #000; }
+  .item-calc   { font-size: 13px; font-weight: 700; color: #000; flex: 1; }
+  .item-total  { font-size: 14px; font-weight: 900; white-space: nowrap; margin-left: 4px; color: #000; }
   .item-div    { border-top: 1px dashed #000; margin: 2px 0; }
-  .disc        { font-size: 10px; font-weight: 700; color: #000; }
+  .disc        { font-size: 12px; font-weight: 700; color: #000; }
   .loose-tag   {
     display: inline-block;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 900;
     padding: 1px 4px;
     color: #000;
@@ -274,7 +265,7 @@ export function buildReceiptHTML(invoice) {
   }
 
   /* ── Summary section ── */
-  .summary-section { font-size: 11px; font-weight: 700; }
+  .summary-section { font-size: 13px; font-weight: 700; }
   .summary-row {
     display: flex;
     justify-content: space-between;
@@ -282,13 +273,13 @@ export function buildReceiptHTML(invoice) {
     padding: 1px 0;
     color: #000;
     font-weight: 700;
-    font-size: 11px;
+    font-size: 13px;
   }
   .discount-row { color: #000; font-weight: 900; }
   .due-row      { color: #000; font-weight: 900; }
   .doctor-row   { color: #000; font-weight: 900; }
   .otc-row      { color: #000; font-weight: 700; }
-  .tax-detail-row { color: #000; font-weight: 700; font-size: 9px; line-height: 1.1; }
+  .tax-detail-row { color: #000; font-weight: 700; font-size: 11px; line-height: 1.1; }
 
   /* ── Grand Total ── */
   .total-section {
@@ -298,14 +289,14 @@ export function buildReceiptHTML(invoice) {
     padding: 3px 0 2px;
   }
   .total-label {
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 900;
     letter-spacing: 1px;
     text-transform: uppercase;
     color: #000;
   }
   .total-amount {
-    font-size: 18px;
+    font-size: 23px;
     font-weight: 900;
     letter-spacing: 0.5px;
     color: #000;
@@ -313,7 +304,7 @@ export function buildReceiptHTML(invoice) {
 
   /* ── Items count ── */
   .items-count {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     color: #000;
     text-align: right;
@@ -326,13 +317,13 @@ export function buildReceiptHTML(invoice) {
     text-align: center;
   }
   .footer-thanks {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 900;
     letter-spacing: 0.5px;
     color: #000;
   }
   .footer-sub {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     color: #000;
     margin-top: 1px;
@@ -348,7 +339,7 @@ export function buildReceiptHTML(invoice) {
     padding: 4px 0;
   }
   .qr-title {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 900;
     color: #000;
     margin-bottom: 2px;
@@ -356,25 +347,27 @@ export function buildReceiptHTML(invoice) {
     letter-spacing: 0.5px;
   }
   .qr-img {
-    width: 140px;
-    height: 140px;
+    width: 160px;
+    height: 160px;
     margin: 0 auto;
     display: block;
   }
   .qr-upi-id {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     color: #000;
     margin-top: 1px;
     word-break: break-all;
   }
   .qr-amount {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 900;
     color: #000;
     margin-top: 0px;
   }
+
 </style>
+
 </head>
 <body>
 
@@ -387,15 +380,12 @@ export function buildReceiptHTML(invoice) {
 
   <div class="solid"></div>
 
-  <!-- ══ BARCODE ══ -->
-  <div class="barcode-section">
-    <img class="barcode-img" src="https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(invoiceNo)}&scale=2&height=10&includetext" alt="Barcode ${invoiceNo}" />
-  </div>
-
-  <div class="solid"></div>
-
   <!-- ══ INVOICE META ══ -->
   <div class="meta-block">
+    <div class="meta-row">
+      <span class="meta-label">Invoice</span>
+      <span class="meta-val">#${invoiceNo}</span>
+    </div>
     <div class="meta-row">
       <span class="meta-label">Date</span>
       <span class="meta-val">${dateStr}</span>
@@ -505,33 +495,18 @@ export function printReceipt58mm(invoice) {
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
     const qrImg = doc.querySelector('.qr-img');
-    const barcodeImg = doc.querySelector('.barcode-img');
-    
-    // We wait for both images to load before printing
-    let imagesLoaded = 0;
-    const totalImages = (qrImg ? 1 : 0) + (barcodeImg ? 1 : 0);
-
-    const checkAndPrint = () => {
-      imagesLoaded++;
-      if (imagesLoaded >= totalImages) {
+    if (qrImg) {
+      if (qrImg.complete) {
         doPrint();
+      } else {
+        qrImg.onload = doPrint;
+        qrImg.onerror = doPrint; // Print anyway if image fails
       }
-    };
-
-    if (totalImages === 0) {
-      doPrint();
     } else {
-      if (qrImg) {
-        if (qrImg.complete) checkAndPrint();
-        else { qrImg.onload = checkAndPrint; qrImg.onerror = checkAndPrint; }
-      }
-      if (barcodeImg) {
-        if (barcodeImg.complete) checkAndPrint();
-        else { barcodeImg.onload = checkAndPrint; barcodeImg.onerror = checkAndPrint; }
-      }
+      doPrint();
     }
   };
-  setTimeout(doPrint, 3500); // Increased fallback timeout to 3.5s for slow networks
+  setTimeout(doPrint, 3000); // Increased fallback timeout to 3s for slow networks
 
   const doc = iframe.contentDocument || iframe.contentWindow.document;
   doc.open();

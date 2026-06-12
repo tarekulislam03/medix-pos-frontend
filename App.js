@@ -12,6 +12,10 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     body, input, button, select, textarea {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
+    html, body, #root {
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
   `;
   document.head.appendChild(style);
 }
