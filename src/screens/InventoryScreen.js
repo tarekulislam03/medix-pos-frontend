@@ -237,7 +237,7 @@ export default function InventoryScreen({ navigation, route }) {
         if (activeFilter === 'low_stock') {
             result = result.filter((p) => {
                 const qty = p.quantity ?? p.stock ?? 0;
-                const threshold = p.alert_threshold ?? 10;
+                const threshold = p.alert_threshold ?? 2;
                 return qty <= threshold;
             });
         } else if (activeFilter === 'expiring_soon') {
@@ -359,7 +359,7 @@ export default function InventoryScreen({ navigation, route }) {
                 mrp: Number(formData.mrp),
                 cost_price: formData.cost_price ? Number(formData.cost_price) : undefined,
                 quantity: Number(formData.quantity),
-                alert_threshold: Number(formData.alert_threshold) || 10,
+                alert_threshold: Number(formData.alert_threshold) || 2,
                 expiry_date: formData.expiry_date || undefined,
                 supplier_name: formData.supplier_name.trim() || undefined,
                 description: formData.description.trim() || undefined,
@@ -605,7 +605,7 @@ export default function InventoryScreen({ navigation, route }) {
                         batch_number: item.batch_number || undefined,
                         hsn_code: item.hsn_code || undefined,
                         gst: item.gst ? Number(item.gst) : undefined,
-                        alert_threshold: 10,
+                        alert_threshold: 2,
                     });
 
                     results.push({ status: "fulfilled", value: res });
@@ -754,7 +754,7 @@ export default function InventoryScreen({ navigation, route }) {
     // ─── HELPERS ────────────────────────────────────
     const getStockStatus = (product) => {
         const qty = product.quantity ?? product.stock ?? 0;
-        const threshold = product.alert_threshold ?? 10;
+        const threshold = product.alert_threshold ?? 2;
         if (qty === 0) return { label: 'Out of Stock', color: COLORS.error, bg: COLORS.errorLight };
         if (qty <= threshold) return { label: 'Low Stock', color: COLORS.warning, bg: COLORS.warningLight };
         return { label: 'In Stock', color: COLORS.success, bg: COLORS.successLight };
@@ -783,7 +783,7 @@ export default function InventoryScreen({ navigation, route }) {
     // ─── COUNT BADGES ────────────────────────────────
     const lowStockCount = products.filter((p) => {
         const qty = p.quantity ?? p.stock ?? 0;
-        const threshold = p.alert_threshold ?? 10;
+        const threshold = p.alert_threshold ?? 2;
         return qty <= threshold;
     }).length;
 
@@ -1311,7 +1311,7 @@ export default function InventoryScreen({ navigation, route }) {
                                             </View>
                                             <View style={styles.detailItem}>
                                                 <Text style={styles.detailLabel}>Alert Threshold</Text>
-                                                <Text style={styles.detailValue}>{formData.alert_threshold || '10'}</Text>
+                                                <Text style={styles.detailValue}>{formData.alert_threshold || '2'}</Text>
                                             </View>
                                         </View>
                                     </View>
@@ -3018,5 +3018,6 @@ const styles = StyleSheet.create({
         color: COLORS.textSecondary,
     },
 });
+
 
 

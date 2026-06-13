@@ -90,32 +90,42 @@ export function buildReceiptHTML(invoice) {
   const upiStoreName = (store.storeName || 'Store').replace(/[^a-zA-Z0-9\s]/g, '');
   const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiStoreName)}&am=${Number(netPayable).toFixed(2)}&cu=INR`;
   
-  // Tax breakdown
-  const totalCgst = invoice?.total_cgst || items.reduce((s, i) => s + (Number(i.cgst_amount) || 0), 0);
-  const totalSgst = invoice?.total_sgst || items.reduce((s, i) => s + (Number(i.sgst_amount) || 0), 0);
-  const totalTaxable = invoice?.total_taxable || items.reduce((s, i) => s + (Number(i.taxable_amount) || 0), 0);
-  
+  let taxRowsHTML = '';
+  items.forEach((item, index) => {
+    const cgstAmt = Number(item.cgst_amount) || 0;
+    const sgstAmt = Number(item.sgst_amount) || 0;
+    if (cgstAmt > 0 || sgstAmt > 0) {
+      const taxable = Number(item.taxable_amount) || 0;
+      const gstPercent = Number(item.gst_percent || item.gst || item.tax_percent || 0);
+      taxRowsHTML += `
+        <tr>
+          <td class="text-left">${index + 1}</td>
+          <td class="text-center">${gstPercent}%</td>
+          <td class="text-center">${Number(taxable).toFixed(2)}</td>
+          <td class="text-center">${Number(cgstAmt).toFixed(2)}</td>
+          <td class="text-center">${Number(sgstAmt).toFixed(2)}</td>
+        </tr>
+      `;
+    }
+  });
+
   let taxHTML = '';
-  if (totalCgst > 0 || totalSgst > 0) {
+  if (taxRowsHTML) {
     taxHTML = `
       <div class="divider-thin"></div>
-      <p>Tax Details</p>
+      <p style="text-align: center; font-weight: bold; margin-bottom: 2px; font-size: ${is80mm ? '12px' : '10px'};">Tax Details</p>
       <table style="margin-bottom: 0;">
         <tr>
-          <th class="text-left" style="width: 15%;">Tax</th>
-          <th class="text-center" style="width: 35%;">Taxable</th>
+          <th class="text-left" style="width: 10%;">Sl</th>
+          <th class="text-center" style="width: 15%;">GST%</th>
+          <th class="text-center" style="width: 25%;">Taxable</th>
           <th class="text-center" style="width: 25%;">CGST</th>
           <th class="text-center" style="width: 25%;">SGST</th>
         </tr>
         <tr>
-           <td colspan="4"><div class="divider-thin" style="margin: 0;"></div></td>
+           <td colspan="5"><div class="divider-thin" style="margin: 0;"></div></td>
         </tr>
-        <tr>
-          <td class="text-left">5%</td>
-          <td class="text-center">${Number(totalTaxable).toFixed(2)}</td>
-          <td class="text-center">${Number(totalCgst).toFixed(2)}</td>
-          <td class="text-center">${Number(totalSgst).toFixed(2)}</td>
-        </tr>
+        ${taxRowsHTML}
       </table>
     `;
   }

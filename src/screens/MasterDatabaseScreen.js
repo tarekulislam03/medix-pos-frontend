@@ -79,7 +79,8 @@ export default function MasterDatabaseScreen({ navigation }) {
             results.forEach(item => { 
                 next[item._id] = { 
                     mrp: item.mrp?.toString() || '0', 
-                    stock: '' 
+                    stock: '',
+                    expiry: ''
                 }; 
             });
             setSelectedItems(next);
@@ -96,10 +97,29 @@ export default function MasterDatabaseScreen({ navigation }) {
                     return parseFloat(str) || 0;
                 };
 
+                let parsedExpiry = null;
+                const expiryVal = selectedItems[m._id].expiry;
+                if (expiryVal) {
+                    const parts = expiryVal.split('/');
+                    if (parts.length === 2) {
+                        let month = parseInt(parts[0], 10);
+                        let year = parseInt(parts[1], 10);
+                        if (!isNaN(month) && !isNaN(year)) {
+                            if (year < 100) year += 2000;
+                            if (month >= 1 && month <= 12) {
+                                // Use 28th to avoid end-of-month bugs, safe for all months
+                                const mm = month.toString().padStart(2, '0');
+                                parsedExpiry = `${year}-${mm}-28`;
+                            }
+                        }
+                    }
+                }
+
                 return {
                     medicine_name: m.medicine_name,
                     mrp: parseNum(selectedItems[m._id].mrp),
-                    stock: parseNum(selectedItems[m._id].stock)
+                    stock: parseNum(selectedItems[m._id].stock),
+                    expiry_date: parsedExpiry
                 };
             });
 
@@ -230,25 +250,43 @@ export default function MasterDatabaseScreen({ navigation }) {
                                     
                                     {isSelected && (
                                         <View style={styles.expandedInputs}>
-                                            <View style={styles.inputGroup}>
-                                                <Text style={styles.inputLabel}>ADJUST MRP</Text>
-                                                <TextInput
-                                                    style={styles.inputField}
-                                                    value={selectedItems[item._id].mrp}
-                                                    onChangeText={(val) => updateSelectedItem(item._id, 'mrp', val)}
-                                                    keyboardType="decimal-pad"
-                                                    placeholder="0.00"
-                                                />
-                                            </View>
-                                            <View style={styles.inputGroup}>
-                                                <Text style={styles.inputLabel}>ADD STOCK</Text>
-                                                <TextInput
-                                                    style={styles.inputField}
-                                                    value={selectedItems[item._id].stock}
-                                                    onChangeText={(val) => updateSelectedItem(item._id, 'stock', val)}
-                                                    keyboardType="decimal-pad"
-                                                    placeholder="0"
-                                                />
+                                            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.inputLabel}>MRP (,1)</Text>
+                                                    <TextInput
+                                                        style={styles.inputField}
+                                                        value={selectedItems[item._id].mrp}
+                                                        onChangeText={(val) => updateSelectedItem(item._id, 'mrp', val)}
+                                                        keyboardType="decimal-pad"
+                                                    />
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.inputLabel}>ADD STOCK</Text>
+                                                    <TextInput
+                                                        style={styles.inputField}
+                                                        value={selectedItems[item._id].stock}
+                                                        onChangeText={(val) => updateSelectedItem(item._id, 'stock', val)}
+                                                        keyboardType="decimal-pad"
+                                                    />
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.inputLabel}>EXPIRY (MM/YY)</Text>
+                                                    <TextInput
+                                                        style={styles.inputField}
+                                                        value={selectedItems[item._id].expiry || ''}
+                                                        onChangeText={(val) => {
+                                                            const digits = val.replace(/\D/g, '');
+                                                            let formatted = digits;
+                                                            if (digits.length >= 3) {
+                                                                formatted = digits.substring(0, 2) + '/' + digits.substring(2, 4);
+                                                            }
+                                                            updateSelectedItem(item._id, 'expiry', formatted);
+                                                        }}
+                                                        placeholder="MM/YY"
+                                                        keyboardType="numbers-and-punctuation"
+                                                        maxLength={5}
+                                                    />
+                                                </View>
                                             </View>
                                         </View>
                                     )}
