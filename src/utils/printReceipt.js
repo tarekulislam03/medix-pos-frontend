@@ -346,8 +346,13 @@ export function buildReceiptHTML(invoice) {
  * Prints the receipt via a hidden iframe, triggering the native print dialog.
  * Automatically opens on web only.
  */
+let isPrinting = false;
+
 export function printReceipt(invoice) {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  if (isPrinting) return;
+  isPrinting = true;
+
   const html = buildReceiptHTML(invoice);
 
   const iframe = document.createElement('iframe');
@@ -364,6 +369,7 @@ export function printReceipt(invoice) {
         if (document.body.contains(iframe)) {
           document.body.removeChild(iframe);
         }
+        isPrinting = false;
       }, 3000);
     }, 500);
   };

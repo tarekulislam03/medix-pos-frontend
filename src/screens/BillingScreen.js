@@ -666,6 +666,57 @@ export default function BillingScreen({ navigation, route }) {
     const [recentSales, setRecentSales] = useState([]);
     const [recentSalesLoading, setRecentSalesLoading] = useState(false);
 
+    const [alerts, setAlerts] = useState([]);
+    const [alertsLoading, setAlertsLoading] = useState(false);
+
+    const fetchAlerts = async () => {
+        setAlertsLoading(true);
+        try {
+            const [lowStockRes, expiryRes] = await Promise.all([
+                api.get('/product/lowstock').catch(() => null),
+                api.get('/product/soontoexpiry').catch(() => null)
+            ]);
+            
+            const newAlerts = [];
+            
+            if (lowStockRes?.data?.data) {
+                lowStockRes.data.data.forEach(item => {
+                    newAlerts.push({
+                        id: item._id + '_low',
+                        type: 'low_stock',
+                        name: item.medicine_name,
+                        stock: item.quantity
+                    });
+                });
+            }
+            
+            if (expiryRes?.data?.data) {
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                expiryRes.data.data.forEach(item => {
+                    const expDate = new Date(item.expiry_date);
+                    if (expDate >= today) {
+                        const diffTime = expDate - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                        newAlerts.push({
+                            id: item._id + '_exp',
+                            type: 'expiry',
+                            name: item.medicine_name,
+                            days: diffDays,
+                            isExpired: false
+                        });
+                    }
+                });
+            }
+            
+            setAlerts(newAlerts);
+        } catch (error) {
+            console.warn('Failed to fetch alerts', error);
+        } finally {
+            setAlertsLoading(false);
+        }
+    };
+
 
 
     const fetchRecentSalesList = async () => {
@@ -731,6 +782,7 @@ export default function BillingScreen({ navigation, route }) {
             try {
                 if (!cancelled) {
                     await fetchRecentSalesList();
+                    await fetchAlerts();
                 }
             } catch (e) {
                 console.warn('Fetch recent sales on mount failed:', e.message);
@@ -2079,7 +2131,56 @@ export default function BillingScreen({ navigation, route }) {
                         </TouchableOpacity>
                     )}
 
-                {/* ── Bottom Transaction Status Panel ── */}
+                    {/* Inventory Alerts (Low Stock & Expiry) */}
+                    <View style={{ flexDirection: 'row', gap: SPACING.md, marginHorizontal: SPACING.md, marginBottom: SPACING.md }}>
+                        {/* Low Stock Sub-section */}
+                        <View style={{ flex: 1, backgroundColor: '#FEF3C7', borderRadius: 6, padding: SPACING.sm, borderWidth: 1, borderColor: '#FDE68A' }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309' }}>LOW STOCK ALERTS</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('Inventory', { filter: 'low_stock' })}>
+                                    <Text style={{ fontSize: 10, fontWeight: '600', color: '#D97706' }}>View All</Text>
+                                </TouchableOpacity>
+                            </View>
+                            {alertsLoading ? (
+                                <ActivityIndicator size="small" color="#B45309" />
+                            ) : alerts.filter(a => a.type === 'low_stock').length > 0 ? (
+                                alerts.filter(a => a.type === 'low_stock').slice(0, 3).map(alert => (
+                                    <View key={alert.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }}>
+                                        <Text style={{ fontSize: 11, color: '#92400E', flex: 1, paddingRight: 4 }} numberOfLines={1}>{alert.name}</Text>
+                                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#B45309' }}>{alert.stock} left</Text>
+                                    </View>
+                                ))
+                            ) : (
+                                <Text style={{ fontSize: 10, color: '#B45309', opacity: 0.7 }}>No low stock alerts</Text>
+                            )}
+                        </View>
+
+                        {/* Expiry Sub-section */}
+                        <View style={{ flex: 1, backgroundColor: '#FEE2E2', borderRadius: 6, padding: SPACING.sm, borderWidth: 1, borderColor: '#FECACA' }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B91C1C' }}>EXPIRY ALERTS</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('Inventory', { filter: 'expiring_soon' })}>
+                                    <Text style={{ fontSize: 10, fontWeight: '600', color: '#EF4444' }}>View All</Text>
+                                </TouchableOpacity>
+                            </View>
+                            {alertsLoading ? (
+                                <ActivityIndicator size="small" color="#B91C1C" />
+                            ) : alerts.filter(a => a.type === 'expiry').length > 0 ? (
+                                alerts.filter(a => a.type === 'expiry').slice(0, 3).map(alert => (
+                                    <View key={alert.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }}>
+                                        <Text style={{ fontSize: 11, color: '#991B1B', flex: 1, paddingRight: 4 }} numberOfLines={1}>{alert.name}</Text>
+                                        <Text style={{ fontSize: 11, fontWeight: '600', color: alert.isExpired ? '#991B1B' : '#B91C1C' }}>
+                                            {alert.isExpired ? 'Expired' : `${alert.days} days left`}
+                                        </Text>
+                                    </View>
+                                ))
+                            ) : (
+                                <Text style={{ fontSize: 10, color: '#B91C1C', opacity: 0.7 }}>No expiry alerts</Text>
+                            )}
+                        </View>
+                    </View>
+
+                {/* Bottom Transaction Status Panel */}
                 <View style={erpStyles.statusPanel}>
                     <View style={erpStyles.statusItem}>
                         <Text style={erpStyles.statusLabel}>ITEMS:</Text>
@@ -2310,7 +2411,6 @@ export default function BillingScreen({ navigation, route }) {
                                 <Text style={{ fontSize: 10, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 12 }}>No recent activity</Text>
                             )}
                         </View>
-
 
                 </ScrollView>
             </View>

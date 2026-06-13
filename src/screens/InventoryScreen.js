@@ -161,7 +161,7 @@ const DateField = ({ label, value, onChangeDate, required, editable = true }) =>
     );
 };
 
-export default function InventoryScreen({ navigation }) {
+export default function InventoryScreen({ navigation, route }) {
     const r = useResponsive();
     // Data
     const [products, setProducts] = useState([]);
@@ -170,8 +170,14 @@ export default function InventoryScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
 
     // Filters & Search
-    const [activeFilter, setActiveFilter] = useState('all');
+    const [activeFilter, setActiveFilter] = useState(route?.params?.filter || 'all');
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        if (route?.params?.filter) {
+            setActiveFilter(route.params.filter);
+        }
+    }, [route?.params?.filter]);
 
     // Modal
     const [devModalVisible, setDevModalVisible] = useState(false);
