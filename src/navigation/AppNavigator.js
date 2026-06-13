@@ -30,6 +30,7 @@ const linking = {
                     GstFiling: 'gst-filing',
                     Expenses: 'expenses',
                     Invoices: 'invoices',
+                    MasterDatabase: 'master-database',
                 },
             },
         },

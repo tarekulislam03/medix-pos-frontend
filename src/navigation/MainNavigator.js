@@ -11,6 +11,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import GstFilingScreen from '../screens/GstFilingScreen';
 import ExpensesScreen from '../screens/ExpensesScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
+import MasterDatabaseScreen from '../screens/MasterDatabaseScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,6 +36,7 @@ export default function MainNavigator() {
             <Stack.Screen name="Invoices">
                 {() => <ComingSoonScreen screenKey="Invoices" />}
             </Stack.Screen>
+            <Stack.Screen name="MasterDatabase" component={MasterDatabaseScreen} />
         </Stack.Navigator>
     );
 }
