@@ -9,6 +9,7 @@ import {
     Alert,
     ActivityIndicator,
     Platform,
+    Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
@@ -123,7 +124,7 @@ export default function SettingsScreen() {
                 <View style={styles.previewCard}>
                     <Text style={styles.previewTitle}>
                         <Ionicons name="receipt-outline" size={13} color={COLORS.textMuted} />
-                        {' '}Live Receipt Preview (58mm)
+                        {' '}Live Receipt Preview ({form.printerSize || '58mm'})
                     </Text>
                     <View style={styles.receiptPreview}>
                         <Text style={styles.rStoreName}>{form.storeName || 'Store Name'}</Text>
@@ -147,6 +148,29 @@ export default function SettingsScreen() {
                     </Text>
 
                     <View style={styles.formCard}>
+                        {/* Printer Size Selection */}
+                        <View style={styles.printerSizeContainer}>
+                            <Text style={styles.printerSizeLabel}>Receipt Printer Size</Text>
+                            <View style={styles.printerSizeOptions}>
+                                <TouchableOpacity
+                                    style={[styles.printerSizeOption, (form.printerSize === '58mm' || !form.printerSize) && styles.printerSizeOptionActive]}
+                                    onPress={() => set('printerSize', '58mm')}
+                                    activeOpacity={0.7}
+                                >
+                                    <Ionicons name="print-outline" size={16} color={(form.printerSize === '58mm' || !form.printerSize) ? COLORS.primary : COLORS.textMuted} />
+                                    <Text style={[styles.printerSizeText, (form.printerSize === '58mm' || !form.printerSize) && styles.printerSizeTextActive]}>58mm</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.printerSizeOption, form.printerSize === '80mm' && styles.printerSizeOptionActive]}
+                                    onPress={() => set('printerSize', '80mm')}
+                                    activeOpacity={0.7}
+                                >
+                                    <Ionicons name="print-outline" size={16} color={form.printerSize === '80mm' ? COLORS.primary : COLORS.textMuted} />
+                                    <Text style={[styles.printerSizeText, form.printerSize === '80mm' && styles.printerSizeTextActive]}>80mm</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
                         {/* Store Name */}
                         <Field
                             label="Store Name"
@@ -186,6 +210,19 @@ export default function SettingsScreen() {
                             onChangeText={v => set('gstNo', v)}
                             autoCapitalize="characters"
                         />
+
+                        {/* Show GST Details Toggle */}
+                        <View style={[fStyles.container, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 2 }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="receipt-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+                                <Text style={fStyles.label}>Show GST Breakdown on Bill</Text>
+                            </View>
+                            <Switch
+                                value={!!form.showGstDetails}
+                                onValueChange={v => set('showGstDetails', v)}
+                                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                            />
+                        </View>
 
                         {/* Medicine Store Licence No */}
                         <Field
@@ -355,6 +392,29 @@ const styles = StyleSheet.create({
         borderWidth: 0.5,
         borderColor: COLORS.border,
     },
+
+    // Printer Size
+    printerSizeContainer: { gap: 6, marginBottom: 4 },
+    printerSizeLabel: { fontSize: 11, fontWeight: '500', color: COLORS.textSecondary, textTransform: 'uppercase' },
+    printerSizeOptions: { flexDirection: 'row', gap: 8 },
+    printerSizeOption: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        height: 36,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: 4,
+        backgroundColor: COLORS.bgInput,
+    },
+    printerSizeOptionActive: {
+        borderColor: COLORS.primary,
+        backgroundColor: COLORS.primaryGhost || '#EFF6FF',
+    },
+    printerSizeText: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
+    printerSizeTextActive: { color: COLORS.primary, fontWeight: '600' },
 
     // Info note
     infoNote: {

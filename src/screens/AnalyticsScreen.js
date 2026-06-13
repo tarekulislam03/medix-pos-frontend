@@ -17,7 +17,7 @@ import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 import Skeleton from '../components/Skeleton';
 import api from '../services/api';
-import { printReceipt58mm } from '../utils/printReceipt';
+import { printReceipt } from '../utils/printReceipt';
 
 export default function AnalyticsScreen({ navigation }) {
     const r = useResponsive();
@@ -352,7 +352,7 @@ export default function AnalyticsScreen({ navigation }) {
                                                     </TouchableOpacity>
                                                     <TouchableOpacity
                                                         style={styles.actionBtn}
-                                                        onPress={() => printReceipt58mm(sale)}
+                                                        onPress={() => printReceipt(sale)}
                                                         activeOpacity={0.7}
                                                     >
                                                         <Ionicons name="print-outline" size={14} color={COLORS.primary} />
@@ -660,7 +660,7 @@ export default function AnalyticsScreen({ navigation }) {
                                                     </TouchableOpacity>
                                                     <TouchableOpacity
                                                         style={styles.actionBtn}
-                                                        onPress={() => printReceipt58mm(sale)}
+                                                        onPress={() => printReceipt(sale)}
                                                         activeOpacity={0.7}
                                                     >
                                                         <Ionicons name="print-outline" size={14} color={COLORS.primary} />

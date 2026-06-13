@@ -10,6 +10,8 @@ export const DEFAULT_SETTINGS = {
     gstNo: '',
     licenceNo: '',
     upiId: '',
+    printerSize: '58mm',
+    showGstDetails: false,
 };
 
 /**

@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 import { searchSaleByInvoice, getSaleById, updateCheckout } from '../services/billingService';
-import { printReceipt58mm } from '../utils/printReceipt';
+import { printReceipt } from '../utils/printReceipt';
 import { useResponsive } from '../utils/responsive';
 
 // Helper to format expiry date safely and compactly
@@ -320,7 +320,7 @@ export default function ReturnScreen({ navigation }) {
 
     const handlePrintReceipt = () => {
         if (savedInvoiceRef.current) {
-            printReceipt58mm(savedInvoiceRef.current);
+            printReceipt(savedInvoiceRef.current);
         }
         closePrintModal();
     };

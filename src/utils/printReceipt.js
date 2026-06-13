@@ -1,475 +1,336 @@
 import { Platform } from 'react-native';
 import { getStoreSettings } from './storeSettings';
 
+function numberToWords(num) {
+    if (num === 0) return "Zero";
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    if ((num = num.toString()).length > 9) return 'overflow';
+    const n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!n) return;
+    let str = '';
+    str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+    str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+    str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+    str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+    str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) + '' : '';
+    return str.trim();
+}
 
 export function buildReceiptHTML(invoice) {
   const store = getStoreSettings();
+  const is80mm = store.printerSize === '80mm';
 
   const items = invoice?.items || [];
-  const payMethod = (invoice?.payment_method || 'cash').toUpperCase();
+  const payMethod = (invoice?.payment_method || 'Cash');
   const invoiceNo = invoice?.invoice_number || invoice?.invoiceNumber || invoice?._id || '—';
-  const customerName =
-    invoice?.customer_name ||
-    invoice?.customer?.name ||
-    invoice?.customer?.customer_name ||
-    null;
+  const customerName = invoice?.customer_name || invoice?.customer?.name || invoice?.customer?.customer_name || 'Cash';
+  const customerPhone = invoice?.customer_phone || invoice?.customer?.phone || '';
 
-  // ── Date / Time ──────────────────────────────
   const now = invoice?.date ? new Date(invoice.date) : new Date();
-  const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
 
-  // ── Totals ───────────────────────────────────
-  const subtotal = invoice?.subtotal ?? items.reduce((sum, item) => {
-    const p = item.selling_price ?? item.mrp ?? item.price ?? 0;
-    const q = item.cart_quantity ?? item.quantity ?? 0;
-    return sum + p * q;
-  }, 0);
+  let totalQty = 0;
+  let grossTotal = 0;
+  let totalSavings = 0;
 
-  const totalDiscount = invoice?.total_discount ?? items.reduce((sum, item) => {
-    const p = item.selling_price ?? item.mrp ?? item.price ?? 0;
-    const q = item.cart_quantity ?? item.quantity ?? 0;
-    const d = item.discount_percent ?? item.discount ?? 0;
-    return sum + (p * q * d / 100);
-  }, 0);
+  let itemsHTML = '';
+  items.forEach((item, index) => {
+    const name = item.medicine_name || item.product_name || item.name || 'Item';
+    const qty = item.cart_quantity ?? item.quantity ?? 0;
+    const price = item.mrp ?? item.price ?? item.selling_price ?? 0;
+    const discPercent = item.discount_percent ?? item.discount ?? 0;
+    const isLoose = item.is_loose_sale || item.is_loose_mode;
+    const tabletCount = item.loose_tablet_count || 0;
+    const pricePerTablet = item.loose_price_per_tablet || 0;
 
+    const actualQty = isLoose ? tabletCount : qty;
+    const actualPrice = isLoose ? pricePerTablet : price;
+    const amtBeforeDisc = actualPrice * actualQty;
+    
+    // Fallbacks
+    const lineTotal = item.total ?? item.line_total ?? (amtBeforeDisc * (1 - discPercent / 100));
+
+    grossTotal += amtBeforeDisc;
+    totalSavings += (amtBeforeDisc - lineTotal);
+    totalQty += Number(actualQty);
+
+    const hsn = item.hsn_code || '';
+    const qtyDisplay = Number(actualQty).toFixed(2);
+
+    itemsHTML += `
+      <tr>
+        <td class="text-left">${index + 1}</td>
+        <td class="text-left">${name}</td>
+        <td class="text-center">${qtyDisplay}</td>
+        <td class="text-right">${Number(actualPrice).toFixed(2)}</td>
+        <td class="text-center">${Number(discPercent)}%</td>
+        <td class="text-right">${Number(lineTotal).toFixed(2)}</td>
+      </tr>
+      ${hsn ? `<tr>
+        <td></td>
+        <td colspan="5" class="text-left" style="padding-bottom: 4px; padding-top: 0; font-size: ${is80mm ? '11px' : '9px'};">
+           HSN: ${hsn}
+        </td>
+      </tr>` : ''}
+    `;
+  });
+
+  const subtotal = items.reduce((sum, item) => sum + (item.total ?? (item.price * item.quantity)), 0);
+  const totalDiscount = invoice?.total_discount || 0;
+  totalSavings += totalDiscount;
   const doctorFee = Number(invoice?.doctor_fee ?? 0);
   const otcItems = Array.isArray(invoice?.otc_items) ? invoice.otc_items : [];
   const otcTotal = Number(invoice?.otc_total ?? otcItems.reduce((s, i) => s + (Number(i.price) || 0), 0));
 
-  const grandTotal = invoice?.grand_total ?? invoice?.grandTotal ?? invoice?.total ?? (subtotal - totalDiscount + doctorFee + otcTotal);
-  const amountPaid = invoice?.amount_paid ?? invoice?.paid_amount ?? invoice?.amountPaid ?? null;
-  const dueAmount = invoice?.due_amount ?? invoice?.dueAmount ?? null;
-  const qrAmount = (amountPaid != null && amountPaid > 0) ? amountPaid : grandTotal;
-
-  // ── Item rows ────────────────────────────────
-  let itemsHTML = '';
-  items.forEach((item, idx) => {
-    const name = item.medicine_name || item.product_name || item.name || 'Item';
-    const qty = item.cart_quantity ?? item.quantity ?? 0;
-    const price = item.selling_price ?? item.mrp ?? item.price ?? 0;
-    const disc = item.discount_percent ?? item.discount ?? 0;
-
-    // Loose sale support
-    const isLoose = item.is_loose_sale || item.is_loose_mode;
-    const tabletCount = item.loose_tablet_count;
-    const pricePerTablet = item.loose_price_per_tablet;
-
-    const lineTotal = item.total ?? item.line_total ??
-      (isLoose
-        ? (item.loose_total_price ?? pricePerTablet * tabletCount)
-        : (price * qty * (1 - disc / 100)));
-
-    const qtyLine = isLoose
-      ? `${tabletCount} tab × ₹${Number(pricePerTablet).toFixed(2)}/tab`
-      : `${qty} × ₹${Number(price).toFixed(2)}${disc > 0 ? `  <span class="disc">(-${disc}%)</span>` : ''}`;
-
-    // Separate items with subtle divider (skip for last)
-    const divider = idx < items.length - 1 ? '<div class="item-div"></div>' : '';
-
-    itemsHTML += `
-<div class="item-block">
-  <div class="item-name">${name}${isLoose ? ' <span class="loose-tag">LOOSE</span>' : ''}</div>
-  <div class="item-row">
-    <span class="item-calc">${qtyLine}</span>
-    <span class="item-total">₹${Number(lineTotal).toFixed(2)}</span>
-  </div>
-</div>${divider}`;
-  });
-
-  // ── Conditional lines ─────────────────────────
-  const gstLine = store.gstNo
-    ? `<div class="store-phone">GST: ${store.gstNo}</div>`
-    : '';
-
-  const licenceLine = store.licenceNo
-    ? `<div class="store-phone">DL: ${store.licenceNo}</div>`
-    : '';
-
-  const discLine = totalDiscount > 0
-    ? `<div class="summary-row discount-row">
-        <span>Discount</span>
-        <span>-₹${Number(totalDiscount).toFixed(2)}</span>
-       </div>`
-    : '';
-
-  const totalCgst = invoice?.total_cgst || 0;
-  const totalSgst = invoice?.total_sgst || 0;
-
-  const paidLine = (amountPaid != null)
-    ? `<div class="summary-row">
-        <span>Paid Amount</span>
-        <span>₹${Number(amountPaid).toFixed(2)}</span>
-       </div>`
-    : '';
-
-  const changeLine = '';
-
-  const dueLine = (dueAmount != null && dueAmount > 0)
-    ? `<div class="summary-row due-row">
-        <span>Due Amount</span>
-        <span>₹${Number(dueAmount).toFixed(2)}</span>
-       </div>`
-    : '';
-
-  const doctorFeeLine = doctorFee > 0
-    ? `<div class="summary-row doctor-row">
-        <span>Doctor Fee</span>
-        <span>₹${Number(doctorFee).toFixed(2)}</span>
-       </div>`
-    : '';
-
-  const otcLinesHTML = otcItems.length > 0 && otcTotal > 0
-    ? otcItems
-      .filter(i => Number(i.price) > 0)
-      .map(i => `<div class="summary-row otc-row">
-        <span>${String(i.name)}</span>
-        <span>₹${Number(i.price).toFixed(2)}</span>
-       </div>`)
-      .join('')
-    : '';
-
-  const customerLine = customerName
-    ? `<div class="meta-row"><span class="meta-label">Customer</span><span class="meta-val">${customerName}</span></div>`
-    : '';
-
-  // ── UPI configuration ─────────────────────────
+  const netPayable = invoice?.grand_total ?? invoice?.grandTotal ?? invoice?.total ?? (grossTotal - totalSavings + doctorFee + otcTotal);
+  
+  // UPI configuration
   const upiId = store.upiId || '8101402916@okbizaxis';
-  const upiStoreName = store.storeName.replace(/[^a-zA-Z0-9]/g, '');
-  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiStoreName)}&am=${Number(qrAmount).toFixed(2)}&cu=INR`;
-
-  // ── Payment badge color ───────────────────────
-  const payColors = { CASH: '#166534', UPI: '#5B21B6', CARD: '#1D4ED8' };
-  const payColor = payColors[payMethod] || '#166534';
-  const payBg = { CASH: '#DCFCE7', UPI: '#EDE9FE', CARD: '#DBEAFE' }[payMethod] || '#DCFCE7';
+  const upiStoreName = (store.storeName || 'Store').replace(/[^a-zA-Z0-9\s]/g, '');
+  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiStoreName)}&am=${Number(netPayable).toFixed(2)}&cu=INR`;
+  
+  // Tax breakdown
+  const totalCgst = invoice?.total_cgst || items.reduce((s, i) => s + (Number(i.cgst_amount) || 0), 0);
+  const totalSgst = invoice?.total_sgst || items.reduce((s, i) => s + (Number(i.sgst_amount) || 0), 0);
+  const totalTaxable = invoice?.total_taxable || items.reduce((s, i) => s + (Number(i.taxable_amount) || 0), 0);
+  
+  let taxHTML = '';
+  if (totalCgst > 0 || totalSgst > 0) {
+    taxHTML = `
+      <div class="divider-thin"></div>
+      <p>Tax Details</p>
+      <table style="margin-bottom: 0;">
+        <tr>
+          <th class="text-left" style="width: 20%;">Tax Rate</th>
+          <th class="text-center" style="width: 30%;">Taxable Amt.</th>
+          <th class="text-center" style="width: 25%;">CGST Amt.</th>
+          <th class="text-center" style="width: 25%;">SGST Amt.</th>
+        </tr>
+        <tr>
+           <td colspan="4"><div class="divider-thin" style="margin: 0;"></div></td>
+        </tr>
+        <tr>
+          <td class="text-left">5%</td>
+          <td class="text-center">${Number(totalTaxable).toFixed(2)}</td>
+          <td class="text-center">${Number(totalCgst).toFixed(2)}</td>
+          <td class="text-center">${Number(totalSgst).toFixed(2)}</td>
+        </tr>
+      </table>
+    `;
+  }
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Receipt #${invoiceNo}</title>
-
 <style>
-
   @page {
-    size: 58mm auto;
+    size: ${is80mm ? '80mm' : '58mm'} auto;
     margin: 0;
   }
   @media print {
-    html, body { width: 58mm; }
+    html, body { width: ${is80mm ? '80mm' : '58mm'}; }
     .no-print  { display: none !important; }
   }
-
-  /* ── Reset ── */
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  /* ── Base — ALL BLACK, ALL BOLD, LARGE for thermal printers ── */
   body {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 14px;
-    font-weight: 700;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: ${is80mm ? '13px' : '11px'};
     color: #000;
     background: #fff;
-    width: 58mm;
-    padding: 2mm 2mm 3mm 2mm;
-    line-height: 1.35;
+    width: ${is80mm ? '80mm' : '58mm'};
+    padding: ${is80mm ? '4mm 6mm' : '2mm 4mm'};
+    line-height: 1.4;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-
-  /* ── Store Header ── */
+  .text-center { text-align: center; }
+  .text-left { text-align: left; }
+  .text-right { text-align: right; }
+  .bold { font-weight: bold; }
+  
   .store-name {
-    font-size: 18px;
-    font-weight: 900;
-    text-align: center;
-    letter-spacing: 0.5px;
+    font-size: ${is80mm ? '20px' : '14px'};
+    font-weight: bold;
     text-transform: uppercase;
-    line-height: 1.2;
-    color: #000;
     margin-bottom: 2px;
+    letter-spacing: 0.5px;
   }
   .store-addr {
-    font-size: 13px;
-    font-weight: 700;
-    text-align: center;
-    color: #000;
-    line-height: 1.4;
+    font-size: ${is80mm ? '12px' : '10px'};
+    margin-bottom: 2px;
   }
-  .store-phone {
-    font-size: 13px;
-    text-align: center;
-    font-weight: 900;
-    color: #000;
-    margin-top: 0px;
+  .divider {
+    border-top: 1px solid #000;
+    margin: 4px 0;
   }
-
-  /* ── Dividers — all solid black ── */
-  .solid { border-top: 2px solid #000; margin: 3px 0; }
-  .dash  { border-top: 1px dashed #000; margin: 3px 0; }
-  .thick { border-top: 3px double #000; margin: 4px 0; }
-
-  /* ── Invoice meta block ── */
-  .meta-block  { font-size: 13px; font-weight: 700; line-height: 1.5; color: #000; }
-  .meta-row    { display: flex; justify-content: space-between; align-items: baseline; padding: 1px 0; }
-  .meta-label  { color: #000; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
-  .meta-val    { font-weight: 900; font-size: 13px; text-align: right; color: #000; }
-
-  /* ── Pay badge — plain bold text for thermal ── */
-  .pay-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    font-size: 13px;
-    font-weight: 900;
-    letter-spacing: 0.5px;
-    color: #000;
-    border: 2px solid #000;
+  .divider-thin {
+    border-top: 1px solid #000;
+    margin: 2px 0;
   }
-
-  /* ── Column header ── */
-  .col-header {
+  .divider-thick {
+    border-top: 1.5px solid #000;
+    margin: 4px 0;
+  }
+  
+  .info-line {
     display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    color: #000;
+    justify-content: flex-start;
+  }
+  .info-label {
+    width: ${is80mm ? '100px' : '65px'};
+  }
+  .info-value {
+    flex: 1;
+    word-break: break-all;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  th {
+    font-weight: normal;
     padding-bottom: 2px;
+    vertical-align: bottom;
+    font-size: ${is80mm ? '13px' : '10px'};
   }
-
-  /* ── Item rows ── */
-  .item-block  { padding: 2px 0; }
-  .item-name   {
-    font-weight: 900;
-    font-size: 14px;
-    line-height: 1.3;
-    word-break: break-word;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    color: #000;
+  td {
+    padding-top: 1px;
+    padding-bottom: 1px;
+    vertical-align: top;
+    word-wrap: break-word;
+    font-size: ${is80mm ? '13px' : '10px'};
   }
-  .item-row    { display: flex; justify-content: space-between; align-items: baseline; margin-top: 0px; }
-  .item-calc   { font-size: 13px; font-weight: 700; color: #000; flex: 1; }
-  .item-total  { font-size: 14px; font-weight: 900; white-space: nowrap; margin-left: 4px; color: #000; }
-  .item-div    { border-top: 1px dashed #000; margin: 2px 0; }
-  .disc        { font-size: 12px; font-weight: 700; color: #000; }
-  .loose-tag   {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 900;
-    padding: 1px 4px;
-    color: #000;
-    border: 1px solid #000;
-    vertical-align: middle;
-    letter-spacing: 0.5px;
-  }
-
-  /* ── Summary section ── */
-  .summary-section { font-size: 13px; font-weight: 700; }
-  .summary-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 1px 0;
-    color: #000;
-    font-weight: 700;
-    font-size: 13px;
-  }
-  .discount-row { color: #000; font-weight: 900; }
-  .due-row      { color: #000; font-weight: 900; }
-  .doctor-row   { color: #000; font-weight: 900; }
-  .otc-row      { color: #000; font-weight: 700; }
-  .tax-detail-row { color: #000; font-weight: 700; font-size: 11px; line-height: 1.1; }
-
-  /* ── Grand Total ── */
-  .total-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 3px 0 2px;
-  }
-  .total-label {
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: #000;
-  }
-  .total-amount {
-    font-size: 23px;
-    font-weight: 900;
-    letter-spacing: 0.5px;
-    color: #000;
-  }
-
-  /* ── Items count ── */
-  .items-count {
-    font-size: 12px;
-    font-weight: 700;
-    color: #000;
-    text-align: right;
-    margin-top: 1px;
-  }
-
-  /* ── Footer ── */
-  .footer-block {
-    margin-top: 4px;
-    text-align: center;
-  }
-  .footer-thanks {
-    font-size: 13px;
-    font-weight: 900;
-    letter-spacing: 0.5px;
-    color: #000;
-  }
-  .footer-sub {
-    font-size: 12px;
-    font-weight: 700;
-    color: #000;
-    margin-top: 1px;
-  }
-  .footer-line {
-    border-top: 1px dashed #000;
-    margin: 3px 0;
-  }
-
-  /* ── UPI QR Code ── */
+  
   .qr-section {
     text-align: center;
-    padding: 4px 0;
+    padding: 8px 0;
   }
   .qr-title {
-    font-size: 13px;
-    font-weight: 900;
-    color: #000;
-    margin-bottom: 2px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: ${is80mm ? '14px' : '12px'};
+    font-weight: bold;
+    margin-bottom: 4px;
   }
   .qr-img {
-    width: 160px;
-    height: 160px;
+    width: ${is80mm ? '100px' : '75px'};
+    height: ${is80mm ? '100px' : '75px'};
     margin: 0 auto;
     display: block;
   }
-  .qr-upi-id {
-    font-size: 11px;
-    font-weight: 700;
-    color: #000;
-    margin-top: 1px;
-    word-break: break-all;
+  
+  .footer {
+    text-align: center;
+    font-weight: bold;
+    font-size: ${is80mm ? '14px' : '12px'};
+    margin-top: 8px;
+    margin-bottom: 8px;
   }
-  .qr-amount {
-    font-size: 13px;
-    font-weight: 900;
-    color: #000;
-    margin-top: 0px;
-  }
-
 </style>
-
 </head>
 <body>
-
-  <!-- ══ STORE HEADER ══ -->
-  <div class="store-name">${store.storeName}</div>
-  <div class="store-addr">${store.address}</div>
-  <div class="store-phone">📞 ${store.phone}</div>
-  ${gstLine}
-  ${licenceLine}
-
-  <div class="solid"></div>
-
-  <!-- ══ INVOICE META ══ -->
-  <div class="meta-block">
-    <div class="meta-row">
-      <span class="meta-label">Invoice</span>
-      <span class="meta-val">#${invoiceNo}</span>
-    </div>
-    <div class="meta-row">
-      <span class="meta-label">Date</span>
-      <span class="meta-val">${dateStr}</span>
-    </div>
-    <div class="meta-row">
-      <span class="meta-label">Time</span>
-      <span class="meta-val">${timeStr}</span>
-    </div>
-    ${customerLine}
-    <div class="meta-row">
-      <span class="meta-label">Payment</span>
-      <span><span class="pay-badge">${payMethod}</span></span>
-    </div>
+  <div class="text-center store-name">${store.storeName || 'Phamracy Store'}</div>
+  <div class="text-center store-addr">${store.address || ''}</div>
+  <div class="text-center store-addr">Phone : ${store.phone || ''}</div>
+  ${store.gstNo ? `<div class="text-center store-addr bold">GSTIN : ${store.gstNo}</div>` : ''}
+  ${store.licenceNo ? `<div class="text-center store-addr bold">DL : ${store.licenceNo}</div>` : ''}
+  
+  <div class="divider-thick"></div>
+  <div class="text-center bold" style="font-size: ${is80mm ? '15px' : '13px'};">RECEIPT</div>
+  <div class="divider-thick"></div>
+  
+  <div class="info-line">
+    <div class="info-label">Invoice No</div>
+    <div class="info-value">: ${invoiceNo}</div>
   </div>
-
-  <div class="dash"></div>
-
-  <!-- ══ COLUMN HEADERS ══ -->
-  <div class="col-header">
-    <span>ITEM</span>
-    <span>AMOUNT</span>
+  <div class="info-line">
+    <div class="info-label">Date</div>
+    <div class="info-value">: ${dateStr}</div>
   </div>
-
-  <div class="dash"></div>
-
-  <!-- ══ ITEMS ══ -->
-  ${itemsHTML}
-
-  <div class="solid"></div>
-
-  <!-- ══ SUMMARY ══ -->
-  <div class="summary-section">
-    <div class="summary-row">
-      <span>Subtotal</span>
-      <span>₹${Number(subtotal).toFixed(2)}</span>
-    </div>
-    ${discLine}
-    ${doctorFeeLine}
-    ${otcLinesHTML}
+  
+  <div class="text-center" style="margin: 8px 0 6px 0;">
+    <img src="https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(invoiceNo)}&scale=2&height=10&includetext" style="max-width: 70%; height: 25px;" alt="Barcode" />
   </div>
-
-  <div class="thick"></div>
-
-  <!-- ══ GRAND TOTAL ══ -->
-  <div class="total-section">
-    <span class="total-label">TOTAL</span>
-    <span class="total-amount">₹${Number(grandTotal).toFixed(2)}</span>
+  
+  <div class="divider"></div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th class="text-left" style="width: ${is80mm ? '8%' : '7%'};">Sl</th>
+        <th class="text-left" style="width: ${is80mm ? '36%' : '31%'};">Product</th>
+        <th class="text-center" style="width: ${is80mm ? '12%' : '12%'};">Qty</th>
+        <th class="text-right" style="width: ${is80mm ? '16%' : '17%'};">Rate</th>
+        <th class="text-center" style="width: ${is80mm ? '12%' : '12%'};">Disc</th>
+        <th class="text-right" style="width: ${is80mm ? '16%' : '21%'};">Amt</th>
+      </tr>
+      <tr>
+        <td colspan="6" style="padding: 0;"><div class="divider-thin"></div></td>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHTML}
+    </tbody>
+  </table>
+  
+  <div class="divider-thin"></div>
+  
+  <div style="display: flex; justify-content: space-between; padding-right: 2px; margin-bottom: 2px;">
+    <span>Gross Amount</span>
+    <span>${Number(grossTotal).toFixed(2)}</span>
   </div>
-  <div class="items-count">${items.length} item${items.length !== 1 ? 's' : ''}</div>
-
-  <div class="solid"></div>
-
-  <!-- ══ PAYMENT STATUS ══ -->
-  <div class="summary-section">
-    ${paidLine}
-    ${changeLine}
-    ${dueLine}
+  ${totalDiscount > 0 ? `
+  <div style="display: flex; justify-content: space-between; padding-right: 2px; margin-bottom: 2px;">
+    <span>Discount</span>
+    <span>-${Number(totalDiscount).toFixed(2)}</span>
+  </div>` : ''}
+  <div style="display: flex; justify-content: space-between; padding-right: 2px; font-weight: bold; font-size: ${is80mm ? '14px' : '12px'};">
+    <span>Net Amount</span>
+    <span>${Number(netPayable).toFixed(2)}</span>
   </div>
-
-  <!-- ══ UPI QR CODE ══ -->
+  
+  <div class="divider-thin"></div>
+  
+  <div style="font-style: italic; margin-bottom: 4px;">
+    Rupees ${numberToWords(Math.round(netPayable))} Only
+  </div>
+  
+  <div class="divider-thick"></div>
+  
+  ${taxHTML}
+  
+  <div class="divider-thin"></div>
+  <div style="margin-top: 2px; margin-bottom: 2px;">
+    ${payMethod} - ${Number(netPayable).toFixed(2)}
+  </div>
+  <div class="divider-thin"></div>
+  
   <div class="qr-section">
-    <div class="dash"></div>
-    <div class="qr-title">█ Scan to Pay via UPI █</div>
+    <div class="qr-title">Scan to Pay</div>
     <img class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiLink)}" alt="UPI QR" />
-    <div class="qr-amount">₹${Number(qrAmount).toFixed(2)}</div>
-    <div class="qr-upi-id">UPI: ${upiId}</div>
-    <div class="dash"></div>
   </div>
-
-  <!-- ══ FOOTER ══ -->
-  <div class="footer-block">
-    <div class="footer-line"></div>
-    <div class="footer-sub">Powered by Medix ERP</div>
+  <div class="divider-thin"></div>
+  
+  <div style="margin-top: 8px; margin-bottom: 4px; font-weight: bold; font-size: ${is80mm ? '12px' : '10px'};">
+    Please bring this receipt in case of return.
   </div>
+  
+  <div class="divider-thin"></div>
+  
+  <div class="footer">THANK YOU. VISIT US AGAIN.</div>
 
 </body>
 </html>`;
 }
 
 /**
- * Prints the 58mm receipt via a hidden iframe, triggering the native print dialog.
+ * Prints the receipt via a hidden iframe, triggering the native print dialog.
  * Automatically opens on web only.
  */
-export function printReceipt58mm(invoice) {
+export function printReceipt(invoice) {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return;
   const html = buildReceiptHTML(invoice);
 
@@ -491,7 +352,6 @@ export function printReceipt58mm(invoice) {
     }, 500);
   };
 
-  // Attach onload before writing, and ensure a fallback timeout guarantees printing
   iframe.onload = () => {
     const doc = iframe.contentDocument || iframe.contentWindow.document;
     const qrImg = doc.querySelector('.qr-img');
@@ -500,13 +360,13 @@ export function printReceipt58mm(invoice) {
         doPrint();
       } else {
         qrImg.onload = doPrint;
-        qrImg.onerror = doPrint; // Print anyway if image fails
+        qrImg.onerror = doPrint;
       }
     } else {
       doPrint();
     }
   };
-  setTimeout(doPrint, 3000); // Increased fallback timeout to 3s for slow networks
+  setTimeout(doPrint, 3000);
 
   const doc = iframe.contentDocument || iframe.contentWindow.document;
   doc.open();

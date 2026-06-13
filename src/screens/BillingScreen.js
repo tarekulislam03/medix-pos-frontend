@@ -21,7 +21,7 @@ import { searchProducts, processCheckout, updateCheckout, getRecentSales } from 
 import { searchCustomer, getCustomerLastPurchase, getCustomerCredit, payCustomerDue } from '../services/customerService';
 import { getProducts, getProductById, createProduct, getLoosePrice } from '../services/inventoryService';
 import MemoryCache from '../services/cacheService';
-import { printReceipt58mm } from '../utils/printReceipt';
+import { printReceipt } from '../utils/printReceipt';
 import { useResponsive } from '../utils/responsive';
 import api from '../services/api';
 
@@ -1363,8 +1363,8 @@ export default function BillingScreen({ navigation, route }) {
     // ─── PRINT HANDLERS ─────────────────────────────
     const handlePrintAndSave = () => {
         setPrintModalVisible(false);
-        // Open a 58mm thermal receipt popup
-        printReceipt58mm(savedInvoiceRef.current);
+        // Open a thermal receipt popup
+        printReceipt(savedInvoiceRef.current);
     };
 
     const handleSaveOnly = () => {
