@@ -102,10 +102,10 @@ export function buildReceiptHTML(invoice) {
       <p>Tax Details</p>
       <table style="margin-bottom: 0;">
         <tr>
-          <th class="text-left" style="width: 20%;">Tax Rate</th>
-          <th class="text-center" style="width: 30%;">Taxable Amt.</th>
-          <th class="text-center" style="width: 25%;">CGST Amt.</th>
-          <th class="text-center" style="width: 25%;">SGST Amt.</th>
+          <th class="text-left" style="width: 15%;">Tax</th>
+          <th class="text-center" style="width: 35%;">Taxable</th>
+          <th class="text-center" style="width: 25%;">CGST</th>
+          <th class="text-center" style="width: 25%;">SGST</th>
         </tr>
         <tr>
            <td colspan="4"><div class="divider-thin" style="margin: 0;"></div></td>
@@ -131,17 +131,23 @@ export function buildReceiptHTML(invoice) {
     margin: 0;
   }
   @media print {
-    html, body { width: ${is80mm ? '80mm' : '58mm'}; }
+    html, body { 
+      width: ${is80mm ? '80mm' : '58mm'};
+      margin: 0;
+      padding: 0;
+    }
     .no-print  { display: none !important; }
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: ${is80mm ? '11px' : '9px'};
+    font-size: ${is80mm ? '12px' : '10px'};
     color: #000;
     background: #fff;
-    width: ${is80mm ? '80mm' : '58mm'};
-    padding: ${is80mm ? '4mm 6mm' : '2mm 4mm'};
+    width: 100%;
+    max-width: ${is80mm ? '80mm' : '58mm'};
+    margin: 0 auto;
+    padding: ${is80mm ? '4mm 2mm' : '2mm 2mm'};
     line-height: 1.4;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -152,14 +158,14 @@ export function buildReceiptHTML(invoice) {
   .bold { font-weight: bold; }
   
   .store-name {
-    font-size: ${is80mm ? '20px' : '14px'};
+    font-size: ${is80mm ? '22px' : '16px'};
     font-weight: bold;
     text-transform: uppercase;
     margin-bottom: 2px;
     letter-spacing: 0.5px;
   }
   .store-addr {
-    font-size: ${is80mm ? '12px' : '10px'};
+    font-size: ${is80mm ? '14px' : '12px'};
     margin-bottom: 2px;
   }
   .divider {
@@ -196,14 +202,14 @@ export function buildReceiptHTML(invoice) {
     font-weight: normal;
     padding-bottom: 2px;
     vertical-align: bottom;
-    font-size: ${is80mm ? '11px' : '8.5px'};
+    font-size: ${is80mm ? '12px' : '9px'};
   }
   td {
     padding-top: 1px;
     padding-bottom: 1px;
     vertical-align: top;
     word-wrap: break-word;
-    font-size: ${is80mm ? '11px' : '8.5px'};
+    font-size: ${is80mm ? '12px' : '9px'};
   }
   
   .qr-section {
@@ -211,7 +217,7 @@ export function buildReceiptHTML(invoice) {
     padding: 8px 0;
   }
   .qr-title {
-    font-size: ${is80mm ? '12px' : '10px'};
+    font-size: ${is80mm ? '14px' : '12px'};
     font-weight: bold;
     margin-bottom: 4px;
   }
@@ -225,7 +231,7 @@ export function buildReceiptHTML(invoice) {
   .footer {
     text-align: center;
     font-weight: bold;
-    font-size: ${is80mm ? '12px' : '10px'};
+    font-size: ${is80mm ? '14px' : '12px'};
     margin-top: 8px;
     margin-bottom: 8px;
   }
@@ -239,7 +245,7 @@ export function buildReceiptHTML(invoice) {
   ${store.licenceNo ? `<div class="text-center store-addr bold">DL : ${store.licenceNo}</div>` : ''}
   
   <div class="divider-thick"></div>
-  <div class="text-center bold" style="font-size: ${is80mm ? '15px' : '13px'};">RECEIPT</div>
+  <div class="text-center bold" style="font-size: ${is80mm ? '17px' : '15px'};">RECEIPT</div>
   <div class="divider-thick"></div>
   
   <div class="info-line">
@@ -252,7 +258,7 @@ export function buildReceiptHTML(invoice) {
   </div>
   
   <div class="text-center" style="margin: 8px 0 6px 0;">
-    <img src="https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(invoiceNo)}&scale=2&height=10&includetext" style="max-width: 70%; height: 25px;" alt="Barcode" />
+    <img src="https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(invoiceNo)}&scale=${is80mm ? 4 : 3}&height=15&includetext" style="max-width: 100%; width: ${is80mm ? '80%' : '95%'}; height: ${is80mm ? '60px' : '45px'}; image-rendering: pixelated; margin: 0 auto;" alt="Barcode" />
   </div>
   
   <div class="divider"></div>
@@ -261,11 +267,11 @@ export function buildReceiptHTML(invoice) {
     <thead>
       <tr>
         <th class="text-left" style="width: ${is80mm ? '8%' : '7%'};">Sl</th>
-        <th class="text-left" style="width: ${is80mm ? '36%' : '31%'};">Product</th>
+        <th class="text-left" style="width: ${is80mm ? '36%' : '28%'};">Product</th>
         <th class="text-center" style="width: ${is80mm ? '12%' : '12%'};">Qty</th>
-        <th class="text-right" style="width: ${is80mm ? '16%' : '17%'};">Rate</th>
+        <th class="text-right" style="width: ${is80mm ? '16%' : '19%'};">Rate</th>
         <th class="text-center" style="width: ${is80mm ? '12%' : '12%'};">Disc</th>
-        <th class="text-right" style="width: ${is80mm ? '16%' : '21%'};">Amt</th>
+        <th class="text-right" style="width: ${is80mm ? '16%' : '22%'};">Amt</th>
       </tr>
       <tr>
         <td colspan="6" style="padding: 0;"><div class="divider-thin"></div></td>
@@ -297,7 +303,7 @@ export function buildReceiptHTML(invoice) {
     <span>${String(i.name)}</span>
     <span>${Number(i.price).toFixed(2)}</span>
   </div>`).join('') : ''}
-  <div style="display: flex; justify-content: space-between; padding-right: 2px; font-weight: bold; font-size: ${is80mm ? '12px' : '10px'};">
+  <div style="display: flex; justify-content: space-between; padding-right: 2px; font-weight: bold; font-size: ${is80mm ? '14px' : '12px'};">
     <span>Net Amount</span>
     <span>${Number(netPayable).toFixed(2)}</span>
   </div>
@@ -324,7 +330,7 @@ export function buildReceiptHTML(invoice) {
   </div>
   <div class="divider-thin"></div>
   
-  <div style="margin-top: 8px; margin-bottom: 4px; font-weight: bold; font-size: ${is80mm ? '11px' : '9px'};">
+  <div style="margin-top: 8px; margin-bottom: 4px; font-weight: bold; font-size: ${is80mm ? '13px' : '11px'};">
     Please bring this receipt in case of return.
   </div>
   
