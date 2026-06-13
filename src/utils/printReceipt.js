@@ -69,7 +69,7 @@ export function buildReceiptHTML(invoice) {
       </tr>
       ${hsn ? `<tr>
         <td></td>
-        <td colspan="5" class="text-left" style="padding-bottom: 4px; padding-top: 0; font-size: ${is80mm ? '11px' : '9px'};">
+        <td colspan="5" class="text-left" style="padding-bottom: 4px; padding-top: 0; font-size: ${is80mm ? '9px' : '7.5px'};">
            HSN: ${hsn}
         </td>
       </tr>` : ''}
@@ -137,7 +137,7 @@ export function buildReceiptHTML(invoice) {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: ${is80mm ? '13px' : '11px'};
+    font-size: ${is80mm ? '11px' : '9px'};
     color: #000;
     background: #fff;
     width: ${is80mm ? '80mm' : '58mm'};
@@ -196,14 +196,14 @@ export function buildReceiptHTML(invoice) {
     font-weight: normal;
     padding-bottom: 2px;
     vertical-align: bottom;
-    font-size: ${is80mm ? '13px' : '10px'};
+    font-size: ${is80mm ? '11px' : '8.5px'};
   }
   td {
     padding-top: 1px;
     padding-bottom: 1px;
     vertical-align: top;
     word-wrap: break-word;
-    font-size: ${is80mm ? '13px' : '10px'};
+    font-size: ${is80mm ? '11px' : '8.5px'};
   }
   
   .qr-section {
@@ -211,7 +211,7 @@ export function buildReceiptHTML(invoice) {
     padding: 8px 0;
   }
   .qr-title {
-    font-size: ${is80mm ? '14px' : '12px'};
+    font-size: ${is80mm ? '12px' : '10px'};
     font-weight: bold;
     margin-bottom: 4px;
   }
@@ -225,7 +225,7 @@ export function buildReceiptHTML(invoice) {
   .footer {
     text-align: center;
     font-weight: bold;
-    font-size: ${is80mm ? '14px' : '12px'};
+    font-size: ${is80mm ? '12px' : '10px'};
     margin-top: 8px;
     margin-bottom: 8px;
   }
@@ -287,7 +287,17 @@ export function buildReceiptHTML(invoice) {
     <span>Discount</span>
     <span>-${Number(totalDiscount).toFixed(2)}</span>
   </div>` : ''}
-  <div style="display: flex; justify-content: space-between; padding-right: 2px; font-weight: bold; font-size: ${is80mm ? '14px' : '12px'};">
+  ${doctorFee > 0 ? `
+  <div style="display: flex; justify-content: space-between; padding-right: 2px; margin-bottom: 2px;">
+    <span>Doctor Fee</span>
+    <span>${Number(doctorFee).toFixed(2)}</span>
+  </div>` : ''}
+  ${otcItems.length > 0 && otcTotal > 0 ? otcItems.filter(i => Number(i.price) > 0).map(i => `
+  <div style="display: flex; justify-content: space-between; padding-right: 2px; margin-bottom: 2px;">
+    <span>${String(i.name)}</span>
+    <span>${Number(i.price).toFixed(2)}</span>
+  </div>`).join('') : ''}
+  <div style="display: flex; justify-content: space-between; padding-right: 2px; font-weight: bold; font-size: ${is80mm ? '12px' : '10px'};">
     <span>Net Amount</span>
     <span>${Number(netPayable).toFixed(2)}</span>
   </div>
@@ -314,7 +324,7 @@ export function buildReceiptHTML(invoice) {
   </div>
   <div class="divider-thin"></div>
   
-  <div style="margin-top: 8px; margin-bottom: 4px; font-weight: bold; font-size: ${is80mm ? '12px' : '10px'};">
+  <div style="margin-top: 8px; margin-bottom: 4px; font-weight: bold; font-size: ${is80mm ? '11px' : '9px'};">
     Please bring this receipt in case of return.
   </div>
   
