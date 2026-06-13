@@ -49,6 +49,25 @@ export default function AnalyticsScreen({ navigation }) {
     const [allSales, setAllSales] = useState([]);
     const [showAllSalesModal, setShowAllSalesModal] = useState(false);
     const [allSalesSearch, setAllSalesSearch] = useState('');
+    const [loadingAllSales, setLoadingAllSales] = useState(false);
+
+    const handleViewAllSales = async () => {
+        setAllSalesSearch('');
+        setShowAllSalesModal(true);
+        if (allSales.length <= 10) {
+            setLoadingAllSales(true);
+            try {
+                const res = await api.get('/sales/history', { params: { page: 1, limit: 5000, sort: 'desc' } });
+                const resData = res?.data;
+                const fullList = Array.isArray(resData) ? resData : (Array.isArray(resData?.data) ? resData.data : (Array.isArray(resData?.invoices) ? resData.invoices : []));
+                setAllSales(fullList);
+            } catch (error) {
+                showToast('Failed to fetch all sales', 'error');
+            } finally {
+                setLoadingAllSales(false);
+            }
+        }
+    };
 
     // Custom Daily & Monthly
     const [dailyData, setDailyData] = useState([]);
@@ -91,9 +110,10 @@ export default function AnalyticsScreen({ navigation }) {
         try {
             const todayReq = api.get('/sales/today').catch(e => null);
             const monthReq = api.get('/sales/monthly').catch(e => null);
-            const invoicesReq = api.get('/sales/history', { params: { page: 1, limit: 5000, sort: 'desc' } }).catch(e => null);
+            const overviewReq = api.get('/sales/analytics-overview').catch(e => null);
+            const invoicesReq = api.get('/sales/history', { params: { page: 1, limit: 10, sort: 'desc' } }).catch(e => null);
 
-            const [todayRes, monthRes, invoicesRes] = await Promise.all([todayReq, monthReq, invoicesReq]);
+            const [todayRes, monthRes, overviewRes, invoicesRes] = await Promise.all([todayReq, monthReq, overviewReq, invoicesReq]);
 
             const extractValue = (res) => {
                 if (!res || !res.data) return 0;
@@ -117,42 +137,17 @@ export default function AnalyticsScreen({ navigation }) {
             setRecentSales(fullList.slice(0, 10)); 
             setAllSales(fullList); 
 
-            // Aggregate daily/monthly locally
-            const dMap = {};
-            const mMap = {};
-            const pMap = {};
-            const dProfitMap = {};
-            fullList.forEach(sale => {
-                const d = new Date(sale.created_at || sale.createdAt || sale.date || new Date());
-                const dStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
-                const mStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0')].join('-');
-                const val = Number(sale.grand_total || sale.total || 0);
-                const profit = Number(sale.profit || sale.total_profit || 0);
-                
-                dMap[dStr] = (dMap[dStr] || 0) + val;
-                mMap[mStr] = (mMap[mStr] || 0) + val;
-                pMap[mStr] = (pMap[mStr] || 0) + profit;
-                dProfitMap[dStr] = (dProfitMap[dStr] || 0) + profit;
-            });
-
-            setDailyData(Object.entries(dMap).map(([k, v]) => ({ date: k, total: v })).sort((a, b) => b.date.localeCompare(a.date)));
-            setDailyProfitData(Object.entries(dProfitMap).map(([k, v]) => ({ date: k, profit: v })).sort((a, b) => b.date.localeCompare(a.date)));
-            
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            
-            setMonthlyData(Object.entries(mMap)
-                .map(([k, v]) => {
-                    const [y, m] = k.split('-');
-                    return { monthId: k, month: `${monthNames[parseInt(m) - 1]} ${y}`, total: v };
-                })
-                .sort((a, b) => b.monthId.localeCompare(a.monthId)));
-            
-            setMonthlyProfitData(Object.entries(pMap)
-                .map(([k, v]) => {
-                    const [y, m] = k.split('-');
-                    return { monthId: k, month: `${monthNames[parseInt(m) - 1]} ${y}`, profit: v };
-                })
-                .sort((a, b) => b.monthId.localeCompare(a.monthId)));
+            if (overviewRes?.data) {
+                setDailyData(overviewRes.data.dailyData || []);
+                setMonthlyData(overviewRes.data.monthlyData || []);
+                setDailyProfitData(overviewRes.data.dailyProfitData || []);
+                setMonthlyProfitData(overviewRes.data.monthlyProfitData || []);
+            } else {
+                setDailyData([]);
+                setMonthlyData([]);
+                setDailyProfitData([]);
+                setMonthlyProfitData([]);
+            }
 
         } catch (error) {
             console.log('Failed to fetch analytics:', error?.message || error);
@@ -279,7 +274,7 @@ export default function AnalyticsScreen({ navigation }) {
                                 <Text style={styles.sectionTitle}>Recent Sales History</Text>
                                 <TouchableOpacity
                                     style={styles.btnSecondary}
-                                    onPress={() => { setAllSalesSearch(''); setShowAllSalesModal(true); }}
+                                    onPress={handleViewAllSales}
                                     activeOpacity={0.7}
                                 >
                                     <Text style={[styles.btnSecondaryText, { color: COLORS.primary }]}>View All</Text>
@@ -607,7 +602,10 @@ export default function AnalyticsScreen({ navigation }) {
                                 </View>
                             </View>
 
-                            <FlatList
+                            {loadingAllSales ? (
+                                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50, flex: 1 }} />
+                            ) : (
+                                <FlatList
                                 style={{ flex: 1 }}
                                 showsVerticalScrollIndicator={false}
                                 data={allSales.filter(sale => {
@@ -681,7 +679,7 @@ export default function AnalyticsScreen({ navigation }) {
                                         </View>
                                     );
                                 }}
-                            />
+                            />)}
                         </View>
 
                         {/* Modal Footer */}
