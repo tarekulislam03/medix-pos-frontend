@@ -1,63 +1,46 @@
 import { Platform } from "react-native";
+import { calculateLayout } from "./labelLayoutEngine";
+import * as Print from "expo-print";
 
-function buildLabel(product) {
-  // Fallbacks for name
-  const name =
-    product.medicine_name ||
-    product.product_name ||
-    product.name ||
-    "MEDICINE";
-
-  // Format price safely
-  const price = Number(
-    product.mrp ?? product.price ?? product.selling_price ?? 0
-  ).toFixed(2);
-
-  const barcode = product.short_barcode || product.barcode || product._id || product.id || "000000";
-
-  return `
-    <div class="label-half">
-      <div class="name">${name}</div>
-      <div class="mrp">MRP ₹${price}</div>
-      <canvas class="barcode"
-           jsbarcode-format="CODE128"
-           jsbarcode-value="${barcode}"
-           jsbarcode-height="25"
-           jsbarcode-width="1"
-           jsbarcode-displayValue="false"
-           jsbarcode-margin="0">
-      </canvas>
-      <div class="code">${barcode}</div>
-    </div>
-  `;
-}
-
+/**
+ * Builds the HTML content for the labels using the layout engine.
+ */
 export function buildLabelsHTML(labelItems) {
-  let labelsArray = [];
+  const layout = calculateLayout(labelItems);
+  const { config, rows } = layout;
 
-  labelItems.forEach(({ product, copies }) => {
-    for (let i = 0; i < copies; i++) {
-      labelsArray.push(product);
-    }
-  });
-
-  // Enforce a maximum of 14 individual labels
-  if (labelsArray.length > 14) {
-    labelsArray = labelsArray.slice(0, 14);
-  }
+  const isLeftAligned = config.rollPlacement === 'left';
+  const marginOffset = isLeftAligned ? '0' : 'auto';
 
   let pagesHtml = "";
-  for (let i = 0; i < labelsArray.length; i += 2) {
-    const prod1 = labelsArray[i];
-    const prod2 = labelsArray[i + 1];
 
-    pagesHtml += `
-        <div class="page-row">
-           ${buildLabel(prod1)}
-           ${prod2 ? buildLabel(prod2) : `<div class="label-half empty"></div>`}
+  rows.forEach((row) => {
+    const buildLabel = (prod) => {
+      if (!prod) return `<div class="label-half empty"></div>`;
+      return `
+        <div class="label-half">
+          <div class="name" style="font-size: ${prod.nameFontSize}">${prod.name}</div>
+          <div class="mrp">MRP ₹${prod.price}</div>
+          <svg class="barcode"
+               jsbarcode-format="CODE128"
+               jsbarcode-value="${prod.barcode}"
+               jsbarcode-height="25"
+               jsbarcode-width="1"
+               jsbarcode-displayValue="false"
+               jsbarcode-margin="0">
+          </svg>
+          <div class="code">${prod.barcode}</div>
         </div>
       `;
-  }
+    };
+
+    pagesHtml += `
+      <div class="page-row">
+         ${buildLabel(row.leftLabel)}
+         ${buildLabel(row.rightLabel)}
+      </div>
+    `;
+  });
 
   return `
 <!DOCTYPE html>
@@ -68,35 +51,45 @@ export function buildLabelsHTML(labelItems) {
 
 <style>
 /* 
-  Use a square page to trick Chrome into preventing auto-Landscape rotation. 
+  Physical page is 80mm wide. Height is auto to minimize paper waste.
 */
 @page {
-  size: 50mm auto; 
+  size: ${config.printerWidth} auto; 
   margin: 0;
 }
 
 html, body {
-  width: 50mm;
+  width: ${config.printerWidth};
   margin: 0;
   padding: 0;
   background-color: #fff;
   font-family: Arial, sans-serif, monospace;
 }
 
+.printable-area {
+  width: ${config.rollWidth};
+  margin-left: ${marginOffset};
+  margin-right: ${marginOffset};
+  display: flex;
+  flex-direction: column;
+}
+
 .page-row {
-  width: 50mm;
-  height: 25mm;
+  width: ${config.usableWidth};
+  height: ${config.labelHeight};
+  margin: 0 auto;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
   overflow: hidden;
+  page-break-inside: avoid;
 }
 
 .label-half {
-  width: 25mm;
-  height: 25mm;
+  width: ${config.labelWidth};
+  height: ${config.labelHeight};
   box-sizing: border-box;
   padding: 0px;
   margin: 0px;
@@ -115,18 +108,19 @@ html, body {
 
 /* Typography & Truncation */
 .name {
-  font-size: 8px;
   font-weight: bold;
   line-height: 1.1;
   width: 100%;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: ${config.maxMedicineNameLines};
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis; 
   margin-bottom: 1px;
 }
 
 .mrp {
-  font-size: 7.5px;
+  font-size: ${config.fonts.mrp};
   font-weight: bold;
   margin-bottom: 2px;
 }
@@ -134,15 +128,14 @@ html, body {
 /* Barcode Sizing */
 .barcode {
   height: 25px; /* Adjust height visually */
-  max-width: 23mm; /* Ensure it doesn't overflow 25mm half */
+  max-width: 95%; /* Keep inside */
   margin: 0;
   padding: 0;
-  image-rendering: crisp-edges;
-  image-rendering: pixelated;
+  shape-rendering: crispEdges; /* optimized for SVG 203 DPI */
 }
 
 .code {
-  font-size: 7px;
+  font-size: ${config.fonts.barcodeText};
   letter-spacing: 0.5px;
   margin: 0;
   padding: 0;
@@ -150,14 +143,16 @@ html, body {
 
 @media print {
   html, body {
-    width: 50mm !important;
+    width: ${config.printerWidth} !important;
   }
 }
 </style>
 </head>
 
 <body>
-  ${pagesHtml}
+  <div class="printable-area">
+    ${pagesHtml}
+  </div>
 
   <script>
     window.onload = function() {
@@ -172,43 +167,49 @@ html, body {
   `;
 }
 
-export function printLabels58mm(labelItems) {
-  if (Platform.OS !== "web") return;
-
+export async function printLabels58mm(labelItems) {
   const html = buildLabelsHTML(labelItems);
 
-  const iframe = document.createElement("iframe");
-  iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;";
-  document.body.appendChild(iframe);
+  if (Platform.OS === "web") {
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;";
+    document.body.appendChild(iframe);
 
-  const doc = iframe.contentWindow.document;
-  doc.open();
-  doc.write(html);
-  doc.close();
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
 
-  // Listen for the message from the iframe to know JSBarcode is done rendering
-  const messageListener = (event) => {
-    if (event.data === "LABELS_READY") {
-      window.removeEventListener("message", messageListener);
+    const messageListener = (event) => {
+      if (event.data === "LABELS_READY") {
+        window.removeEventListener("message", messageListener);
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 3000);
+      }
+    };
 
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
+    window.addEventListener("message", messageListener);
 
-      // Cleanup after print dialog closes
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 3000);
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        window.removeEventListener("message", messageListener);
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => document.body.removeChild(iframe), 3000);
+      }
+    }, 2000);
+  } else {
+    // Native print handling (iOS / Android)
+    try {
+      await Print.printAsync({
+        html,
+        width: 80 * 2.83465, // 80mm in points
+      });
+    } catch (err) {
+      console.error("Print failed", err);
     }
-  };
-
-  window.addEventListener("message", messageListener);
-
-  setTimeout(() => {
-    if (document.body.contains(iframe)) {
-      window.removeEventListener("message", messageListener);
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      setTimeout(() => document.body.removeChild(iframe), 3000);
-    }
-  }, 2000);
+  }
 }

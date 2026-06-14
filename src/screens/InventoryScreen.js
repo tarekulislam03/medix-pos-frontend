@@ -27,6 +27,7 @@ import {
 } from '../services/inventoryService';
 import { finalizePurchase } from '../services/purchaseService';
 import { printLabels58mm } from '../utils/printLabel';
+import LabelPreviewModal from '../components/LabelPreviewModal';
 import { useResponsive } from '../utils/responsive';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { DocScanner } from '../utils/cvUtils';
@@ -192,6 +193,8 @@ export default function InventoryScreen({ navigation, route }) {
     const [labelSearch, setLabelSearch] = useState('');
     const [labelItems, setLabelItems] = useState({}); // { [productId]: copies }
     const [generatingLabels, setGeneratingLabels] = useState(false);
+    const [previewModalVisible, setPreviewModalVisible] = useState(false);
+    const [previewLabelItems, setPreviewLabelItems] = useState([]);
 
     // Delete confirm
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -742,7 +745,8 @@ export default function InventoryScreen({ navigation, route }) {
                 const product = products.find(p => (p._id || p.id) === productId);
                 return { product: product || { _id: productId, medicine_name: 'Unknown' }, copies };
             });
-            printLabels58mm(items);
+            setPreviewLabelItems(items);
+            setPreviewModalVisible(true);
             closeLabelModal();
         } catch (err) {
             Alert.alert('Label Error', err.message || 'Failed to generate labels.');
@@ -863,7 +867,7 @@ export default function InventoryScreen({ navigation, route }) {
                                 <Ionicons name="create-outline" size={18} color={COLORS.textSecondary} />
                                 <Text style={styles.mobileActionText}>Edit</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.mobileActionBtn} onPress={() => printLabels58mm([{ product: item, copies: 1 }])}>
+                            <TouchableOpacity style={styles.mobileActionBtn} onPress={() => { setPreviewLabelItems([{ product: item, copies: 1 }]); setPreviewModalVisible(true); }}>
                                 <Ionicons name="scan-outline" size={18} color={COLORS.textSecondary} />
                                 <Text style={styles.mobileActionText}>Label</Text>
                             </TouchableOpacity>
@@ -987,7 +991,7 @@ export default function InventoryScreen({ navigation, route }) {
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.actionBtn}
-                        onPress={() => printLabels58mm([{ product: item, copies: 1 }])}
+                        onPress={() => { setPreviewLabelItems([{ product: item, copies: 1 }]); setPreviewModalVisible(true); }}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
                         <Ionicons name="scan-outline" size={16} color={COLORS.textSecondary} />
@@ -2124,6 +2128,12 @@ export default function InventoryScreen({ navigation, route }) {
                     </View>
                 </View>
             )}
+
+            <LabelPreviewModal
+                visible={previewModalVisible}
+                onClose={() => setPreviewModalVisible(false)}
+                labelItems={previewLabelItems}
+            />
         </View>
 
     );
