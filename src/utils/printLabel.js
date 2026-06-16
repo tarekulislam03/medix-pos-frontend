@@ -1,4 +1,18 @@
 import { Platform } from "react-native";
+import { getStoreSettings } from './storeSettings';
+
+function formatShortDate(dateStr) {
+    if (!dateStr) return '';
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return String(dateStr).slice(0,5);
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yy = String(d.getFullYear()).slice(-2);
+        return `${mm}/${yy}`;
+    } catch {
+        return '';
+    }
+}
 
 function buildLabel(product) {
   // Fallbacks for name
@@ -14,11 +28,14 @@ function buildLabel(product) {
   ).toFixed(2);
 
   const barcode = product.short_barcode || product.barcode || product._id || product.id || "000000";
+  const batch = product.batch_number || product.batch || "N/A";
+  const exp = formatShortDate(product.expiry_date || product.expiry || product.exp_date);
 
   return `
     <div class="label-half">
       <div class="name">${name}</div>
       <div class="mrp">MRP ₹${price}</div>
+      <div class="details">Exp:${exp} | B:${batch}</div>
       <canvas class="barcode"
            jsbarcode-format="CODE128"
            jsbarcode-value="${barcode}"
@@ -33,6 +50,13 @@ function buildLabel(product) {
 }
 
 export function buildLabelsHTML(labelItems) {
+  const settings = getStoreSettings();
+  const is80mm = settings.printerSize === '80mm';
+  
+  const columns = is80mm ? 3 : 2;
+  const pageWidth = is80mm ? '76mm' : '50mm';
+  const gap = is80mm ? '0.5mm' : '0mm';
+
   let labelsArray = [];
 
   labelItems.forEach(({ product, copies }) => {
@@ -41,22 +65,24 @@ export function buildLabelsHTML(labelItems) {
     }
   });
 
-  // Enforce a maximum of 14 individual labels
-  if (labelsArray.length > 14) {
-    labelsArray = labelsArray.slice(0, 14);
+  // Enforce a maximum of 30 individual labels to prevent memory issues
+  if (labelsArray.length > 30) {
+    labelsArray = labelsArray.slice(0, 30);
   }
 
   let pagesHtml = "";
-  for (let i = 0; i < labelsArray.length; i += 2) {
-    const prod1 = labelsArray[i];
-    const prod2 = labelsArray[i + 1];
-
-    pagesHtml += `
-        <div class="page-row">
-           ${buildLabel(prod1)}
-           ${prod2 ? buildLabel(prod2) : `<div class="label-half empty"></div>`}
-        </div>
-      `;
+  for (let i = 0; i < labelsArray.length; i += columns) {
+    let rowHtml = `<div class="page-row">`;
+    for (let c = 0; c < columns; c++) {
+       const prod = labelsArray[i + c];
+       if (prod) {
+           rowHtml += buildLabel(prod);
+       } else {
+           rowHtml += `<div class="label-half empty"></div>`;
+       }
+    }
+    rowHtml += `</div>`;
+    pagesHtml += rowHtml;
   }
 
   return `
@@ -71,12 +97,12 @@ export function buildLabelsHTML(labelItems) {
   Use a square page to trick Chrome into preventing auto-Landscape rotation. 
 */
 @page {
-  size: 50mm auto; 
+  size: ${pageWidth} auto; 
   margin: 0;
 }
 
 html, body {
-  width: 50mm;
+  width: ${pageWidth};
   margin: 0;
   padding: 0;
   background-color: #fff;
@@ -84,7 +110,7 @@ html, body {
 }
 
 .page-row {
-  width: 50mm;
+  width: ${pageWidth};
   height: 25mm;
   display: flex;
   flex-direction: row;
@@ -92,6 +118,7 @@ html, body {
   align-items: center;
   box-sizing: border-box;
   overflow: hidden;
+  gap: ${gap};
 }
 
 .label-half {
@@ -128,13 +155,20 @@ html, body {
 .mrp {
   font-size: 7.5px;
   font-weight: bold;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
+}
+
+.details {
+  font-size: 6px;
+  font-weight: normal;
+  margin-bottom: 1px;
+  white-space: nowrap;
 }
 
 /* Barcode Sizing */
 .barcode {
-  height: 25px; /* Adjust height visually */
-  max-width: 23mm; /* Ensure it doesn't overflow 25mm half */
+  height: 20px; /* Reduced slightly to fit details */
+  max-width: 23mm;
   margin: 0;
   padding: 0;
   image-rendering: crisp-edges;
@@ -150,7 +184,7 @@ html, body {
 
 @media print {
   html, body {
-    width: 50mm !important;
+    width: ${pageWidth} !important;
   }
 }
 </style>
@@ -212,3 +246,4 @@ export function printLabels58mm(labelItems) {
     }
   }, 2000);
 }
+
