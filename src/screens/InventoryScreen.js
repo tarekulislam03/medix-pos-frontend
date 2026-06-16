@@ -468,7 +468,20 @@ export default function InventoryScreen({ navigation, route }) {
     };
 
     const handleAutoImportPress = () => {
-        setDevModalVisible(true);
+        if (Platform.OS === 'web') {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*,application/pdf';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    processAutoImportFile(file);
+                }
+            };
+            input.click();
+        } else {
+            setDevModalVisible(true);
+        }
     };
 
     const processAutoImportFile = async (file) => {
