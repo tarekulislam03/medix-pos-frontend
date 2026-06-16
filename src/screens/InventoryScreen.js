@@ -744,10 +744,6 @@ export default function InventoryScreen({ navigation, route }) {
         }
 
         const totalCopies = Object.values(labelItems).reduce((sum, copies) => sum + (parseInt(copies, 10) || 1), 0);
-        if (totalCopies > 14) {
-            Alert.alert('Limit Exceeded', 'You cannot generate more than 14 barcode labels at once.');
-            return;
-        }
         setGeneratingLabels(true);
         try {
             // Build the list of { product, copies } from the selected items
@@ -1692,21 +1688,7 @@ export default function InventoryScreen({ navigation, route }) {
                             }}
                         />
 
-                        {/* Limit Warning Message */}
-                        {(() => {
-                            const totalCopies = Object.values(labelItems).reduce((sum, copies) => sum + (parseInt(copies, 10) || 1), 0);
-                            if (totalCopies > 14) {
-                                return (
-                                    <View style={{ paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#fef2f2', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#fca5a5', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                        <Ionicons name="warning" size={20} color="#dc2626" />
-                                        <Text style={{ color: '#dc2626', fontSize: 13, fontWeight: '600', flex: 1 }}>
-                                            Too many labels requested ({totalCopies}). The maximum allowed per batch is 14.
-                                        </Text>
-                                    </View>
-                                );
-                            }
-                            return null;
-                        })()}
+                        {/* Limit Warning Message Removed */}
 
                         {/* Footer */}
                         <View style={styles.labelModalFooter}>
@@ -1720,7 +1702,7 @@ export default function InventoryScreen({ navigation, route }) {
                                 title={generatingLabels ? 'Generating...' : `Generate ${labelSelectedCount} Label${labelSelectedCount !== 1 ? 's' : ''}`}
                                 onPress={handleGenerateLabels}
                                 loading={generatingLabels}
-                                disabled={labelSelectedCount === 0 || Object.values(labelItems).reduce((sum, copies) => sum + (parseInt(copies, 10) || 1), 0) > 14}
+                                disabled={labelSelectedCount === 0}
                                 icon={<Ionicons name="print" size={20} color={COLORS.white} />}
                                 style={{ flex: 2 }}
                             />

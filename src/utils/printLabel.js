@@ -65,10 +65,7 @@ export function buildLabelsHTML(labelItems) {
     }
   });
 
-  // Enforce a maximum of 30 individual labels to prevent memory issues
-  if (labelsArray.length > 30) {
-    labelsArray = labelsArray.slice(0, 30);
-  }
+
 
   let pagesHtml = "";
   for (let i = 0; i < labelsArray.length; i += columns) {
