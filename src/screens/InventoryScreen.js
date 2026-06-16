@@ -803,6 +803,10 @@ export default function InventoryScreen({ navigation, route }) {
 
     const zeroStockCount = products.filter((p) => (p.quantity ?? p.stock ?? 0) === 0).length;
 
+    const totalInventoryValue = useMemo(() => {
+        return products.reduce((sum, p) => sum + (Number(p.mrp || 0) * Number(p.quantity ?? p.stock ?? 0)), 0);
+    }, [products]);
+
     // ─── RENDER PRODUCT ROW ─────────────────────────
     const renderProduct = useCallback(({ item, index }) => {
         const stockStatus = getStockStatus(item);
@@ -1021,7 +1025,7 @@ export default function InventoryScreen({ navigation, route }) {
                     <Text style={[styles.headerTitle, r.isSmall && { fontSize: 16 }]} numberOfLines={1}>Inventory</Text>
                     {!r.isSmall && (
                         <Text style={styles.headerSub}>
-                            {products.length} products • {lowStockCount} low stock • {expiringSoonCount} expiring
+                            {products.length} products • {lowStockCount} low stock • {expiringSoonCount} expiring • Total Value: ₹{totalInventoryValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Text>
                     )}
                 </View>
