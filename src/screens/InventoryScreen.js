@@ -24,9 +24,8 @@ import {
     deleteProduct,
     autoImportBill,
     confirmAutoImport,
-    normalizeImage,
 } from '../services/inventoryService';
-import { finalizePurchase } from '../services/purchaseService';
+import { finalizePurchase, getPurchases } from '../services/purchaseService';
 import { printLabels58mm } from '../utils/printLabel';
 import { useResponsive } from '../utils/responsive';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -205,8 +204,14 @@ export default function InventoryScreen({ navigation, route }) {
     const [returningProduct, setReturningProduct] = useState(null);
     const [returningLoading, setReturningLoading] = useState(false);
 
+    // ─── RECENT BILLS STATE ───────────────────────
+    const [recentBills, setRecentBills] = useState([]);
+    const [recentBillsModalVisible, setRecentBillsModalVisible] = useState(false);
+    const [recentBillsLoading, setRecentBillsLoading] = useState(false);
+
     // ─── AUTO IMPORT STATE ────────────────────────
     const [autoImportUploading, setAutoImportUploading] = useState(false);
+    const [currentFactIndex, setCurrentFactIndex] = useState(0);
     const [autoImportReviewVisible, setAutoImportReviewVisible] = useState(false);
     const [autoImportItems, setAutoImportItems] = useState([]);
     const [autoImportConfirming, setAutoImportConfirming] = useState(false);
@@ -231,6 +236,42 @@ export default function InventoryScreen({ navigation, route }) {
             setLoading(false);
         }
     }, []);
+
+    // Pharmacy Facts interval logic
+    // Pharmacy Facts interval logic
+    const PHARMACY_FACTS = [
+        "Did you know? The first recorded pharmacy was established in Baghdad in 754 AD.",
+        "Fun fact: Coca-Cola was originally invented by a pharmacist as a nerve tonic!",
+        "Interesting: Penicillin was discovered completely by accident from a moldy petri dish.",
+        "Did you know? The word 'Pharmacist' comes from the Greek word 'Pharmakon'.",
+        "Fun fact: Pharmacists undergo more years of chemistry training than almost any other healthcare profession.",
+        "Did you know? Dr Pepper was formulated by a pharmacist in Waco, Texas.",
+        "Interesting: The mortar and pestle have been the symbol of pharmacy for thousands of years.",
+        "Just a moment... deciphering the tiny, tiny doctor handwriting on this invoice.",
+        "Our AI is putting on its reading glasses to process your bill...",
+        "Fun fact: Agatha Christie used her experience as a pharmacy dispenser to accurately write about poisons.",
+        "Did you know? Pepsi was also invented by a pharmacist to cure indigestion. Hence 'Pepsi' from dyspepsia.",
+        "Hang tight! Counting the imaginary pills...",
+        "Fun fact: Benjamin Franklin was a pharmacist before he was a founding father!",
+        "Did you know? The global pharmaceutical industry produces over a trillion doses of medicine a year!",
+        "Interesting: In ancient Egypt, doctors and pharmacists were the same profession.",
+        "Fun fact: A spoonful of sugar actually does help the medicine go down.",
+        "Did you know? Alexander Fleming discovered penicillin when he forgot to clean up his lab.",
+        "Hold on... translating doctor handwriting into actual text.",
+        "Fun fact: Listerine was named after Joseph Lister, a pioneer of antiseptic surgery.",
+        "Did you know? Aspirin was originally derived from the bark of a willow tree."
+    ];
+
+    // Cycling through Facts
+    useEffect(() => {
+        let interval;
+        if (autoImportUploading) {
+            interval = setInterval(() => {
+                setCurrentFactIndex(prev => (prev + 1) % PHARMACY_FACTS.length);
+            }, 4500);
+        }
+        return () => clearInterval(interval);
+    }, [autoImportUploading]);
 
     useFocusEffect(
         useCallback(() => {
@@ -533,22 +574,9 @@ export default function InventoryScreen({ navigation, route }) {
         setAutoImportUploading(true);
         setAutoImportError('');
         try {
-            let fileToUploadToAI = file;
-
-            // STEP 1: Backend Normalization (Standardize format/rotation/HEIC)
-            try {
-                console.log("[AutoImport] Standardizing image via backend...");
-                const normalizedBlob = await normalizeImage(file);
-                fileToUploadToAI = normalizedBlob;
-
-                
-            } catch (normErr) {
-                console.warn("[AutoImport] Backend normalization failed, attempting direct upload:", normErr);
-            }
-
-            // STEP 4: Upload to AI for Extraction
-            console.log("[AutoImport] Sending enhanced file for AI extraction...");
-            const result = await autoImportBill(fileToUploadToAI);
+            // STEP: Upload to AI for Extraction (Image optimization is now handled securely on the backend)
+            console.log("[AutoImport] Sending raw file for backend AI extraction...");
+            const result = await autoImportBill(file);
 
             // Extract metadata if available
             setAutoImportBillNo(result?.bill_no ?? result?.invoice_no ?? result?.data?.bill_no ?? '');
@@ -611,7 +639,7 @@ export default function InventoryScreen({ navigation, route }) {
             setAutoImportReviewVisible(true);
         } catch (err) {
             console.error('[AutoImport] Error:', err);
-            const msg = err?.message || err?.response?.data?.message || 'Failed to process the image. Please try again.';
+            const msg = "Please try again after 2 minutes. We couldn't get details from that image due to high traffic. Don't panic, just try again later.";
             setAutoImportError(msg);
             setAutoImportReviewVisible(true); // open modal to show the error
         } finally {
@@ -702,10 +730,37 @@ export default function InventoryScreen({ navigation, route }) {
                         return sum + qty * cp;
                     }, 0);
 
+                    // Collect the _id of all successfully created/updated items
+                    const imported_items = success.map(r => {
+                        // The actual product data might be in r.value.data depending on axios setup
+                        const productData = r.value?.data?.data || r.value?.data || r.value;
+                        return {
+                            inventoryId: productData?._id,
+                            quantity: Number(productData?.quantity) || 0, // Wait, we should use the confirmedItems quantity, not the aggregate quantity
+                        };
+                    });
+
+                    // It's safer to map the autoImportItems back to their responses if possible.
+                    // But since we pushed them sequentially, let's just use autoImportItems matching:
+                    const importedItemsPayload = [];
+                    for (let i = 0; i < autoImportItems.length; i++) {
+                        if (results[i].status === 'fulfilled') {
+                            const productData = results[i].value?.data?.data || results[i].value?.data || results[i].value;
+                            if (productData?._id) {
+                                importedItemsPayload.push({
+                                    inventoryId: productData._id,
+                                    quantity: Number(autoImportItems[i].quantity) || 0,
+                                    mrp: Number(autoImportItems[i].mrp) || 0
+                                });
+                            }
+                        }
+                    }
+
                     await finalizePurchase(autoImportPurchaseId, {
                         supplier_name: supplierName,
                         total_amount:  Math.round(totalAmount * 100) / 100,
                         items_count:   confirmedItems.length,
+                        imported_items: importedItemsPayload
                     });
                 } catch (finalizeErr) {
                     // Non-fatal — never block the UI for this
@@ -735,6 +790,41 @@ export default function InventoryScreen({ navigation, route }) {
         setAutoImportItems([]);
         setAutoImportError('');
         setAutoImportPurchaseId(null);
+    };
+
+    // ─── RECENT BILLS LOGIC ───────────────────────
+    const openRecentBillsModal = async () => {
+        setRecentBillsModalVisible(true);
+        setRecentBillsLoading(true);
+        try {
+            const res = await getPurchases();
+            if (res.data) {
+                // Only show bills that actually have imported items
+                const validBills = res.data.filter(b => b.imported_items && b.imported_items.length > 0);
+                setRecentBills(validBills);
+            }
+        } catch (err) {
+            showToast('Failed to fetch recent bills');
+        } finally {
+            setRecentBillsLoading(false);
+        }
+    };
+
+    const loadBillIntoLabels = (bill) => {
+        const newCart = {};
+        let count = 0;
+        
+        bill.imported_items.forEach(item => {
+            const product = products.find(p => p._id === item.inventoryId);
+            if (product) {
+                newCart[product._id] = item.quantity || 1;
+                count += newCart[product._id];
+            }
+        });
+
+        setLabelItems(newCart);
+        setRecentBillsModalVisible(false);
+        showToast(`Loaded ${count} labels from bill ${bill.bill_no || ''}`);
     };
 
     // ─── LABEL MODAL HANDLERS ────────────────────────
@@ -1154,13 +1244,8 @@ export default function InventoryScreen({ navigation, route }) {
                     <TouchableOpacity
                         style={[styles.actionHeaderBtn, { height: r.isSmall ? 32 : 32, paddingHorizontal: r.isSmall ? 8 : 12 }]}
                         onPress={handleAutoImportPress}
-                        disabled={autoImportUploading}
                     >
-                        {autoImportUploading ? (
-                            <ActivityIndicator size="small" color={COLORS.primary} />
-                        ) : (
-                            <Ionicons name="arrow-up-outline" size={16} color={COLORS.textSecondary} />
-                        )}
+                        <Ionicons name="arrow-up-outline" size={16} color={COLORS.textSecondary} />
                         {!r.isSmall && <Text style={styles.actionHeaderBtnText}>Upload bill</Text>}
                     </TouchableOpacity>
 
@@ -1740,9 +1825,18 @@ export default function InventoryScreen({ navigation, route }) {
                                     </Text>
                                 </View>
                             </View>
-                            <TouchableOpacity onPress={closeLabelModal} style={styles.modalCloseBtn}>
-                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                <TouchableOpacity 
+                                    onPress={openRecentBillsModal} 
+                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.bgInput, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
+                                >
+                                    <Ionicons name="document-text-outline" size={18} color={COLORS.primary} />
+                                    <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.primary }}>Load from Bill</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={closeLabelModal} style={styles.modalCloseBtn}>
+                                    <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         {/* Alphabet Filter */}
@@ -1882,6 +1976,68 @@ export default function InventoryScreen({ navigation, route }) {
                 </View>
             </Modal>
 
+            {/* ─── RECENT BILLS SELECTOR MODAL ─── */}
+            <Modal visible={recentBillsModalVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalCard, { width: 450, maxHeight: '80%' }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Load Labels from Bill</Text>
+                            <TouchableOpacity onPress={() => setRecentBillsModalVisible(false)} style={styles.modalCloseBtn}>
+                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        {recentBillsLoading ? (
+                            <ActivityIndicator size="large" color={COLORS.primary} style={{ padding: 40 }} />
+                        ) : recentBills.length === 0 ? (
+                            <Text style={{ padding: 40, textAlign: 'center', color: COLORS.textMuted }}>No recent bills with imported items found.</Text>
+                        ) : (
+                            <ScrollView style={{ padding: 16 }}>
+                                {recentBills.map(bill => (
+                                    <TouchableOpacity 
+                                        key={bill._id} 
+                                        style={{ backgroundColor: COLORS.bgInput, padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border }}
+                                        onPress={() => loadBillIntoLabels(bill)}
+                                    >
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                                            <Text style={{ fontWeight: '700', fontSize: 15, color: COLORS.text }}>{bill.supplier_name || 'Unknown Supplier'}</Text>
+                                            <Text style={{ fontWeight: '600', color: COLORS.primary }}>{bill.imported_items.length} items</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                            <Text style={{ fontSize: 13, color: COLORS.textMuted }}>{bill.bill_no ? `Invoice: ${bill.bill_no}` : 'No invoice #'}</Text>
+                                            <Text style={{ fontSize: 13, color: COLORS.textMuted }}>
+                                                {new Date(bill.createdAt).toLocaleDateString()}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ─── ENTERTAINING LOADING MODAL ─── */}
+            <Modal visible={autoImportUploading} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalCard, { width: 340, padding: 32, alignItems: 'center', justifyContent: 'center' }]}>
+                        <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20, transform: [{ scale: 1.2 }] }} />
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 8 }}>Analyzing Invoice...</Text>
+                        <Text style={{ fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginBottom: 24 }}>
+                            This might take up to a minute.
+                        </Text>
+                        
+                        <View style={{ backgroundColor: COLORS.bgInput, padding: 16, borderRadius: 12, width: '100%', minHeight: 80, justifyContent: 'center' }}>
+                            <Text style={{ fontSize: 11, color: COLORS.textMuted, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                PHARMACY FACT
+                            </Text>
+                            <Text style={{ fontSize: 13, color: COLORS.primary, fontStyle: 'italic', textAlign: 'left', lineHeight: 20 }}>
+                                "{PHARMACY_FACTS[currentFactIndex]}"
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             {/* ─── AUTO IMPORT REVIEW MODAL ─── */}
             <Modal visible={autoImportReviewVisible} animationType="fade" transparent>
                 <View style={styles.modalOverlay}>
@@ -1915,7 +2071,7 @@ export default function InventoryScreen({ navigation, route }) {
                         {/* ─── Error Banner (web-safe, replaces Alert) ─── */}
                         {!!autoImportError && (
                             <View style={styles.aiErrorBanner}>
-                                <Ionicons name="alert-circle" size={20} color={COLORS.error} />
+                                <Ionicons name="alert-circle" size={20} color={COLORS.warning} />
                                 <Text style={styles.aiErrorText} selectable>{autoImportError}</Text>
                             </View>
                         )}
@@ -3036,9 +3192,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: SPACING.sm,
-        backgroundColor: COLORS.errorLight,
+        backgroundColor: COLORS.warningLight,
         borderLeftWidth: 3,
-        borderLeftColor: COLORS.error,
+        borderLeftColor: COLORS.warning,
         marginHorizontal: SPACING.lg,
         marginTop: SPACING.md,
         marginBottom: SPACING.sm,
@@ -3048,7 +3204,7 @@ const styles = StyleSheet.create({
     aiErrorText: {
         flex: 1,
         fontSize: FONT_SIZES.sm,
-        color: COLORS.error,
+        color: COLORS.warning,
         lineHeight: 20,
     },
     aiCancelBtn: {
