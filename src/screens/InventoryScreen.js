@@ -795,6 +795,28 @@ export default function InventoryScreen({ navigation, route }) {
         return result;
     }, [products, labelSearch, labelLetter]);
 
+    const handleSelectAllFiltered = () => {
+        setLabelItems((prev) => {
+            const next = { ...prev };
+            filteredLabelProducts.forEach((p) => {
+                const id = p._id || p.id;
+                next[id] = p.quantity && p.quantity > 0 ? p.quantity : 1;
+            });
+            return next;
+        });
+    };
+
+    const handleClearAllFiltered = () => {
+        setLabelItems((prev) => {
+            const next = { ...prev };
+            filteredLabelProducts.forEach((p) => {
+                const id = p._id || p.id;
+                delete next[id];
+            });
+            return next;
+        });
+    };
+
     const handleGenerateLabels = () => {
         if (labelSelectedCount === 0) {
             Alert.alert('No Selection', 'Please select at least one product to generate labels.');
@@ -1754,6 +1776,21 @@ export default function InventoryScreen({ navigation, route }) {
                                 </TouchableOpacity>
                             )}
                         </View>
+
+                        {/* Select All / Clear All Row */}
+                        {filteredLabelProducts.length > 0 && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderBottomWidth: 0.5, borderBottomColor: COLORS.border, backgroundColor: COLORS.bgBody }}>
+                                <Text style={{ fontSize: 11, color: COLORS.textMuted }}>{filteredLabelProducts.length} items shown</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <TouchableOpacity onPress={handleClearAllFiltered} style={{ marginRight: 16 }}>
+                                        <Text style={{ fontSize: 12, color: COLORS.error, fontWeight: '600' }}>Clear Selection</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={handleSelectAllFiltered}>
+                                        <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: '600' }}>Select All Shown</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        )}
 
                         {/* Product List */}
                         <FlatList
