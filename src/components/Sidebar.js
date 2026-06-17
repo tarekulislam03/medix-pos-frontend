@@ -16,8 +16,6 @@ const NAV_ITEMS = [
     { key: 'Purchase', label: 'PURCHASE', icon: 'card-outline' },
     { key: 'SalesAnalytics', label: 'REPORTS', icon: 'bar-chart-outline' },
     { key: 'Returns', label: 'RETURNS', icon: 'return-down-back-outline' },
-    { key: 'Expenses', label: 'EXPENSES', icon: 'calculator-outline' },
-    { key: 'MasterDatabase', label: 'MASTER DB', icon: 'server-outline' },
     { key: 'Settings', label: 'SETTINGS', icon: 'settings-outline' },
 ];
 

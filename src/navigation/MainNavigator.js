@@ -9,9 +9,7 @@ import AnalyticsScreen from '../screens/AnalyticsScreen';
 import PurchaseScreen from '../screens/purchaseScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import GstFilingScreen from '../screens/GstFilingScreen';
-import ExpensesScreen from '../screens/ExpensesScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
-import MasterDatabaseScreen from '../screens/MasterDatabaseScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -32,11 +30,9 @@ export default function MainNavigator() {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="SalesAnalytics" component={AnalyticsScreen} />
             <Stack.Screen name="GstFiling" component={GstFilingScreen} />
-            <Stack.Screen name="Expenses" component={ExpensesScreen} />
             <Stack.Screen name="Invoices">
                 {() => <ComingSoonScreen screenKey="Invoices" />}
             </Stack.Screen>
-            <Stack.Screen name="MasterDatabase" component={MasterDatabaseScreen} />
         </Stack.Navigator>
     );
 }

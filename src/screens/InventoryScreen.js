@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     View,
     Text,
@@ -38,7 +39,7 @@ const FILTERS = [
     { key: 'all', label: 'All products', icon: 'cube-outline' },
     { key: 'low_stock', label: 'Low stock', icon: 'warning-outline' },
     { key: 'expiring_soon', label: 'Expiring soon', icon: 'time-outline' },
-    { key: 'zero_stock', label: 'Zero stock', icon: 'close-circle-outline' },
+    { key: 'expired', label: 'Expired', icon: 'skull-outline' },
 ];
 
 // ─── EMPTY PRODUCT FORM ────────────────────────
@@ -198,6 +199,11 @@ export default function InventoryScreen({ navigation, route }) {
     const [deletingProduct, setDeletingProduct] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
+    // Return confirm
+    const [returnModalVisible, setReturnModalVisible] = useState(false);
+    const [returningProduct, setReturningProduct] = useState(null);
+    const [returningLoading, setReturningLoading] = useState(false);
+
     // ─── AUTO IMPORT STATE ────────────────────────
     const [autoImportUploading, setAutoImportUploading] = useState(false);
     const [autoImportReviewVisible, setAutoImportReviewVisible] = useState(false);
@@ -225,9 +231,11 @@ export default function InventoryScreen({ navigation, route }) {
         }
     }, []);
 
-    useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchProducts();
+        }, [fetchProducts])
+    );
 
     // ─── FILTER & SEARCH ────────────────────────────
     useEffect(() => {
@@ -245,6 +253,7 @@ export default function InventoryScreen({ navigation, route }) {
             const threeMonths = new Date();
             threeMonths.setMonth(threeMonths.getMonth() + 3);
             result = result.filter((p) => {
+                if (p.returned_to_supplier) return false;
                 if (!p.expiry_date) return false;
                 const exp = new Date(p.expiry_date);
                 return exp >= now && exp <= threeMonths;
@@ -252,11 +261,10 @@ export default function InventoryScreen({ navigation, route }) {
         } else if (activeFilter === 'expired') {
             const now = new Date();
             result = result.filter((p) => {
+                if (p.returned_to_supplier) return false;
                 if (!p.expiry_date) return false;
                 return new Date(p.expiry_date) < now;
             });
-        } else if (activeFilter === 'zero_stock') {
-            result = result.filter((p) => (p.quantity ?? p.stock ?? 0) === 0);
         }
 
         // Apply search
@@ -388,6 +396,42 @@ export default function InventoryScreen({ navigation, route }) {
     const confirmDelete = (product) => {
         setDeletingProduct(product);
         setDeleteModalVisible(true);
+    };
+
+    const handleReturnToSupplier = (product) => {
+        setReturningProduct(product);
+        setReturnModalVisible(true);
+    };
+
+    const executeReturnToSupplier = async () => {
+        if (!returningProduct) return;
+        
+        const qty = Number(returningProduct.quantity ?? returningProduct.stock ?? 0);
+        if (qty <= 0) {
+            setReturnModalVisible(false);
+            setReturningProduct(null);
+            return;
+        }
+        
+        const costPrice = Number(returningProduct.cost_price || returningProduct.mrp || 0);
+        const lossSaved = qty * costPrice;
+
+        setReturningLoading(true);
+        try {
+            const payload = {
+                quantity: 0,
+                returned_to_supplier: true,
+                loss_saved_amount: lossSaved
+            };
+            await updateProduct(returningProduct._id || returningProduct.id, payload);
+            await fetchProducts();
+            setReturnModalVisible(false);
+            setReturningProduct(null);
+        } catch (err) {
+            Alert.alert('Error', err.message || 'Failed to return items to supplier');
+        } finally {
+            setReturningLoading(false);
+        }
     };
 
     const handleDelete = async () => {
@@ -797,6 +841,7 @@ export default function InventoryScreen({ navigation, route }) {
     }).length;
 
     const expiringSoonCount = products.filter((p) => {
+        if (p.returned_to_supplier) return false;
         if (!p.expiry_date) return false;
         const exp = new Date(p.expiry_date);
         const now = new Date();
@@ -806,14 +851,19 @@ export default function InventoryScreen({ navigation, route }) {
     }).length;
 
     const expiredCount = products.filter((p) => {
+        if (p.returned_to_supplier) return false;
         if (!p.expiry_date) return false;
         return new Date(p.expiry_date) < new Date();
     }).length;
 
-    const zeroStockCount = products.filter((p) => (p.quantity ?? p.stock ?? 0) === 0).length;
+
 
     const totalInventoryValue = useMemo(() => {
         return products.reduce((sum, p) => sum + (Number(p.mrp || 0) * Number(p.quantity ?? p.stock ?? 0)), 0);
+    }, [products]);
+
+    const totalLossSaved = useMemo(() => {
+        return products.reduce((sum, p) => sum + (Number(p.loss_saved_amount || 0)), 0);
     }, [products]);
 
     // ─── RENDER PRODUCT ROW ─────────────────────────
@@ -881,9 +931,16 @@ export default function InventoryScreen({ navigation, route }) {
                                 <Text style={styles.mobileActionText}>Label</Text>
                             </TouchableOpacity>
                         </View>
-                        <TouchableOpacity style={[styles.mobileActionBtn, { borderLeftWidth: 0.5, borderLeftColor: 'rgba(0,0,0,0.1)', paddingLeft: 12 }]} onPress={() => confirmDelete(item)}>
-                            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            {(activeFilter === 'expiring_soon' || activeFilter === 'expired') && (item.quantity ?? item.stock ?? 0) > 0 && (
+                                <TouchableOpacity style={[styles.mobileActionBtn, { borderLeftWidth: 0.5, borderLeftColor: 'rgba(0,0,0,0.1)', paddingLeft: 12, paddingRight: 12 }]} onPress={() => handleReturnToSupplier(item)}>
+                                    <Ionicons name="return-up-back-outline" size={18} color={COLORS.warning} />
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity style={[styles.mobileActionBtn, { borderLeftWidth: 0.5, borderLeftColor: 'rgba(0,0,0,0.1)', paddingLeft: 12 }]} onPress={() => confirmDelete(item)}>
+                                <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </TouchableOpacity>
             );
@@ -1005,6 +1062,15 @@ export default function InventoryScreen({ navigation, route }) {
                     >
                         <Ionicons name="scan-outline" size={16} color={COLORS.textSecondary} />
                     </TouchableOpacity>
+                    {(activeFilter === 'expiring_soon' || activeFilter === 'expired') && (item.quantity ?? item.stock ?? 0) > 0 && (
+                        <TouchableOpacity
+                            style={styles.actionBtn}
+                            onPress={() => handleReturnToSupplier(item)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                            <Ionicons name="return-up-back-outline" size={16} color={COLORS.warning} />
+                        </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                         style={[styles.actionBtn, styles.actionBtnDanger]}
                         onPress={() => confirmDelete(item)}
@@ -1015,7 +1081,7 @@ export default function InventoryScreen({ navigation, route }) {
                 </View>
             </TouchableOpacity>
         );
-    }, [r.isSmall, openViewModal, openEditModal, confirmDelete]);
+    }, [r.isSmall, openViewModal, openEditModal, confirmDelete, activeFilter, handleReturnToSupplier]);
 
     // ─── RENDER ─────────────────────────────────────
     return (
@@ -1034,7 +1100,7 @@ export default function InventoryScreen({ navigation, route }) {
                     <Text style={[styles.headerTitle, r.isSmall && { fontSize: 16 }]} numberOfLines={1}>Inventory</Text>
                     {!r.isSmall && (
                         <Text style={styles.headerSub}>
-                            {products.length} products • {lowStockCount} low stock • {expiringSoonCount} expiring • Total Value: ₹{totalInventoryValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {products.length} products • {lowStockCount} low stock • {expiringSoonCount} expiring • Total Value: ₹{totalInventoryValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Loss saved from expiry: ₹{totalLossSaved.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </Text>
                     )}
                 </View>
@@ -1094,7 +1160,7 @@ export default function InventoryScreen({ navigation, route }) {
                         const isActive = activeFilter === filter.key;
                         let badgeCount = 0;
                         if (filter.key === 'low_stock') badgeCount = lowStockCount;
-                        if (filter.key === 'zero_stock') badgeCount = zeroStockCount;
+
                         if (filter.key === 'expiring_soon') badgeCount = expiringSoonCount;
                         if (filter.key === 'expired') badgeCount = expiredCount;
 
@@ -1117,11 +1183,11 @@ export default function InventoryScreen({ navigation, route }) {
                                 {badgeCount > 0 && (
                                     <View style={[
                                         styles.filterTabBadge,
-                                        filter.key === 'zero_stock' || filter.key === 'expired' ? styles.filterTabBadgeDanger : styles.filterTabBadgeWarning
+                                        filter.key === 'expired' ? styles.filterTabBadgeDanger : styles.filterTabBadgeWarning
                                     ]}>
                                         <Text style={[
                                             styles.filterTabBadgeText,
-                                            filter.key === 'zero_stock' || filter.key === 'expired' ? styles.filterTabBadgeTextDanger : styles.filterTabBadgeTextWarning
+                                            filter.key === 'expired' ? styles.filterTabBadgeTextDanger : styles.filterTabBadgeTextWarning
                                         ]}>
                                             {badgeCount}
                                         </Text>
@@ -1217,15 +1283,14 @@ export default function InventoryScreen({ navigation, route }) {
                                         activeFilter === 'low_stock' ? 'warning-outline' :
                                             activeFilter === 'expiring_soon' ? 'time-outline' :
                                                 activeFilter === 'expired' ? 'skull-outline' :
-                                                    activeFilter === 'zero_stock' ? 'close-circle-outline' :
                                                         'cube-outline'
                                     }
                                     size={56}
-                                    color={(activeFilter === 'expired' || activeFilter === 'zero_stock') ? COLORS.error : COLORS.border}
+                                    color={activeFilter === 'expired' ? COLORS.error : COLORS.border}
                                 />
                                 <Text style={[
                                     styles.emptyText,
-                                    (activeFilter === 'expired' || activeFilter === 'zero_stock') && !searchQuery && { color: COLORS.success },
+                                    activeFilter === 'expired' && !searchQuery && { color: COLORS.success },
                                 ]}>
                                     {searchQuery
                                         ? 'No products match your search'
@@ -1575,6 +1640,46 @@ export default function InventoryScreen({ navigation, route }) {
                                 onPress={handleDelete}
                                 loading={deleting}
                                 icon={<Ionicons name="trash" size={18} color={COLORS.white} />}
+                                style={{ flex: 1 }}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ─── RETURN CONFIRM MODAL ─── */}
+            <Modal visible={returnModalVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.deleteModal, { width: r.pick({ small: '90%', medium: 400, large: 400, xlarge: 400 }) }]}>
+                        <View style={[styles.deleteIconBox, { backgroundColor: COLORS.warningLight }]}>
+                            <Ionicons name="return-up-back" size={36} color={COLORS.warning} />
+                        </View>
+                        <Text style={styles.deleteTitle}>Return to Supplier?</Text>
+                        <Text style={styles.deleteDesc}>
+                            Are you sure you want to return <Text style={{ fontWeight: '700' }}>{returningProduct?.quantity ?? returningProduct?.stock ?? 0}</Text> remaining units of{' '}
+                            <Text style={{ fontWeight: '700' }}>
+                                {returningProduct?.medicine_name || 'this product'}
+                            </Text>
+                            {' '}to the supplier?
+                            {'\n\n'}
+                            This will save <Text style={{ fontWeight: '700', color: COLORS.success }}>₹{((returningProduct?.quantity ?? returningProduct?.stock ?? 0) * (returningProduct?.cost_price || returningProduct?.mrp || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text> from expiry loss.
+                        </Text>
+                        <View style={styles.deleteActions}>
+                            <GradientButton
+                                title="Cancel"
+                                variant="secondary"
+                                onPress={() => {
+                                    setReturnModalVisible(false);
+                                    setReturningProduct(null);
+                                }}
+                                style={{ flex: 1 }}
+                            />
+                            <GradientButton
+                                title="Return Items"
+                                variant="primary"
+                                onPress={executeReturnToSupplier}
+                                loading={returningLoading}
+                                icon={<Ionicons name="return-up-back" size={18} color={COLORS.white} />}
                                 style={{ flex: 1 }}
                             />
                         </View>

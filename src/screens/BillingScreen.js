@@ -997,7 +997,10 @@ export default function BillingScreen({ navigation, route }) {
             if (inStockSiblings.length > 1) {
                 const oldestPid = (inStockSiblings[0]._id || inStockSiblings[0].id || '').toString();
                 if (oldestPid !== pid.toString()) {
-                    isFefoViolation = true;
+                    const isOldestInCart = cart.some(i => (i._id || i.id || i.product_id).toString() === oldestPid);
+                    if (!isOldestInCart) {
+                        isFefoViolation = true;
+                    }
                 }
             }
         }
@@ -1034,7 +1037,7 @@ export default function BillingScreen({ navigation, route }) {
                 setFefoWarning(pid);
             }, 50);
         }
-    }, [allProducts]);
+    }, [allProducts, cart]);
 
     // Submit (Enter key / barcode scanner)
     const handleSubmitSearch = useCallback(async () => {
@@ -1082,13 +1085,29 @@ export default function BillingScreen({ navigation, route }) {
         }
     }, [searchQuery, addToCart, productsLoaded, allProducts]);
 
+    const removeFromCart = useCallback((item) => {
+        const pid = item._id || item.id || item.product_id;
+        const oldQty = item.cart_quantity ?? 0;
+
+        // Restore stock directly to allProducts
+        setAllProducts(products => products.map(p => 
+            (p._id || p.id) === pid ? { ...p, quantity: (p.quantity ?? 0) + oldQty } : p
+        ));
+
+        setCart((prev) => prev.filter((i) => (i._id || i.id || i.product_id) !== pid));
+    }, []);
+
     const updateQuantity = useCallback((item, newQty) => {
         const pid = item._id || item.id || item.product_id;
         if (newQty <= 0) {
-            setCart((prev) => prev.filter((i) => (i._id || i.id || i.product_id) !== pid));
+            removeFromCart(item);
             return;
         }
+
+        const oldQty = item.cart_quantity ?? 0;
+        const diff = newQty - oldQty;
         const maxStock = item.available_stock ?? item.quantity ?? item.stock ?? 999;
+        
         if (newQty > maxStock) {
             const remaining = newQty - maxStock;
             const name = (item.medicine_name || item.name || '').toLowerCase();
@@ -1106,6 +1125,13 @@ export default function BillingScreen({ navigation, route }) {
                     [
                         { text: 'Cancel', style: 'cancel' },
                         { text: 'Yes, Split Stock', onPress: () => {
+                            let totalDiffForCurrent = maxStock - oldQty;
+                            if (totalDiffForCurrent > 0) {
+                                setAllProducts(products => products.map(p => 
+                                    (p._id || p.id) === pid ? { ...p, quantity: Math.max(0, (p.quantity ?? 0) - totalDiffForCurrent) } : p
+                                ));
+                            }
+
                             setCart(prev => {
                                 let newCart = [...prev];
                                 newCart = newCart.map((i) => (i._id || i.id || i.product_id) === pid ? { ...i, cart_quantity: maxStock } : i);
@@ -1116,6 +1142,11 @@ export default function BillingScreen({ navigation, route }) {
                                     const bStock = b.quantity ?? b.stock ?? 0;
                                     const take = Math.min(bStock, stillNeeded);
                                     const bPid = b._id || b.id;
+
+                                    setAllProducts(products => products.map(p => 
+                                        (p._id || p.id) === bPid ? { ...p, quantity: Math.max(0, (p.quantity ?? 0) - take) } : p
+                                    ));
+
                                     const existingIdx = newCart.findIndex(i => (i._id || i.id || i.product_id) === bPid);
                                     if (existingIdx >= 0) {
                                         newCart[existingIdx] = { ...newCart[existingIdx], cart_quantity: newCart[existingIdx].cart_quantity + take };
@@ -1139,12 +1170,18 @@ export default function BillingScreen({ navigation, route }) {
             Alert.alert('Stock Limit', `Only ${maxStock} units available.`);
             return;
         }
+
+        // Apply normal stock deduction
+        setAllProducts(products => products.map(p => 
+            (p._id || p.id) === pid ? { ...p, quantity: Math.max(0, (p.quantity ?? 0) - diff) } : p
+        ));
+
         setCart((prev) =>
             prev.map((i) =>
                 (i._id || i.id || i.product_id) === pid ? { ...i, cart_quantity: newQty } : i
             )
         );
-    }, [allProducts]);
+    }, [allProducts, removeFromCart]);
 
     const updateDiscount = useCallback((item, discount) => {
         const pid = item._id || item.id || item.product_id;
@@ -1155,10 +1192,7 @@ export default function BillingScreen({ navigation, route }) {
         );
     }, []);
 
-    const removeFromCart = useCallback((item) => {
-        const pid = item._id || item.id || item.product_id;
-        setCart((prev) => prev.filter((i) => (i._id || i.id || i.product_id) !== pid));
-    }, []);
+
 
     // ─── LOOSE TABLET MODE ──────────────────────────────────────────
     // Toggle between strip-based and loose-tablet-based selling for a product
@@ -1230,7 +1264,19 @@ export default function BillingScreen({ navigation, route }) {
         if (cart.length === 0) return;
         Alert.alert('Void Sale', 'Remove all items from this sale?', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Void', style: 'destructive', onPress: () => setCart([]) },
+            { text: 'Void', style: 'destructive', onPress: () => {
+                setAllProducts(products => {
+                    let updated = [...products];
+                    cart.forEach(cartItem => {
+                        const pid = cartItem._id || cartItem.id || cartItem.product_id;
+                        updated = updated.map(p => 
+                            (p._id || p.id) === pid ? { ...p, quantity: (p.quantity ?? 0) + (cartItem.cart_quantity ?? 0) } : p
+                        );
+                    });
+                    return updated;
+                });
+                setCart([]);
+            } },
         ]);
     }, [cart]);
 
@@ -2731,20 +2777,28 @@ export default function BillingScreen({ navigation, route }) {
                                 To prevent stock expiration and maintain accurate inventory tracking, you must clear the older batch before selling this newer one.
                             </Text>
                             
-                            <TouchableOpacity
-                                style={[pmStyles.confirmBtn, { width: '100%', backgroundColor: '#DC2626' }]}
-                                onPress={() => {
-                                    if (fefoWarning) {
-                                        setCart(prev => prev.filter(i => (i._id || i.id || i.product_id) !== fefoWarning));
-                                        setAllProducts(prev => prev.map(p =>
-                                            (p._id || p.id) === fefoWarning ? { ...p, quantity: (p.quantity ?? 0) + 1 } : p
-                                        ));
-                                    }
-                                    setFefoWarning(null);
-                                }}
-                            >
-                                <Text style={pmStyles.confirmBtnText}>Acknowledge & Remove</Text>
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                                <TouchableOpacity
+                                    style={[pmStyles.confirmBtn, { flex: 1, backgroundColor: '#DC2626' }]}
+                                    onPress={() => {
+                                        if (fefoWarning) {
+                                            setCart(prev => prev.filter(i => (i._id || i.id || i.product_id) !== fefoWarning));
+                                            setAllProducts(prev => prev.map(p =>
+                                                (p._id || p.id) === fefoWarning ? { ...p, quantity: (p.quantity ?? 0) + 1 } : p
+                                            ));
+                                        }
+                                        setFefoWarning(null);
+                                    }}
+                                >
+                                    <Text style={pmStyles.confirmBtnText}>Remove</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[pmStyles.confirmBtn, { flex: 1, backgroundColor: '#6B7280' }]}
+                                    onPress={() => setFefoWarning(null)}
+                                >
+                                    <Text style={pmStyles.confirmBtnText}>Add Anyway</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
                 </View>
