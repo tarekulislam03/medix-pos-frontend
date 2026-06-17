@@ -191,6 +191,7 @@ export default function InventoryScreen({ navigation, route }) {
     // Label printing modal
     const [labelModalVisible, setLabelModalVisible] = useState(false);
     const [labelSearch, setLabelSearch] = useState('');
+    const [labelLetter, setLabelLetter] = useState('All');
     const [labelItems, setLabelItems] = useState({}); // { [productId]: copies }
     const [generatingLabels, setGeneratingLabels] = useState(false);
 
@@ -740,6 +741,7 @@ export default function InventoryScreen({ navigation, route }) {
     const openLabelModal = () => {
         setLabelItems({});
         setLabelSearch('');
+        setLabelLetter('All');
         setLabelModalVisible(true);
     };
 
@@ -747,6 +749,7 @@ export default function InventoryScreen({ navigation, route }) {
         setLabelModalVisible(false);
         setLabelItems({});
         setLabelSearch('');
+        setLabelLetter('All');
     };
 
     const toggleLabelItem = (id) => {
@@ -772,14 +775,25 @@ export default function InventoryScreen({ navigation, route }) {
     const labelSelectedCount = Object.keys(labelItems).length;
 
     const filteredLabelProducts = useMemo(() => {
-        if (!labelSearch.trim()) return products;
-        const q = labelSearch.toLowerCase();
-        return products.filter(
-            (p) =>
-                (p.medicine_name || '').toLowerCase().includes(q) ||
-                (p.supplier_name || '').toLowerCase().includes(q)
-        );
-    }, [products, labelSearch]);
+        let result = products;
+
+        if (labelLetter !== 'All') {
+            result = result.filter((p) => {
+                const name = p.medicine_name || '';
+                return name.trim().toUpperCase().startsWith(labelLetter);
+            });
+        }
+
+        if (labelSearch.trim()) {
+            const q = labelSearch.toLowerCase();
+            result = result.filter(
+                (p) =>
+                    (p.medicine_name || '').toLowerCase().includes(q) ||
+                    (p.supplier_name || '').toLowerCase().includes(q)
+            );
+        }
+        return result;
+    }, [products, labelSearch, labelLetter]);
 
     const handleGenerateLabels = () => {
         if (labelSelectedCount === 0) {
@@ -1707,6 +1721,21 @@ export default function InventoryScreen({ navigation, route }) {
                             <TouchableOpacity onPress={closeLabelModal} style={styles.modalCloseBtn}>
                                 <Ionicons name="close" size={24} color={COLORS.textMuted} />
                             </TouchableOpacity>
+                        </View>
+
+                        {/* Alphabet Filter */}
+                        <View style={styles.labelAlphabetBox}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SPACING.md, gap: 6 }}>
+                                {['All', ...Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i))].map(letter => (
+                                    <TouchableOpacity
+                                        key={letter}
+                                        style={[styles.alphabetBtn, labelLetter === letter && styles.alphabetBtnActive]}
+                                        onPress={() => setLabelLetter(letter)}
+                                    >
+                                        <Text style={[styles.alphabetBtnText, labelLetter === letter && styles.alphabetBtnTextActive]}>{letter}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
                         </View>
 
                         {/* Search */}
@@ -2734,6 +2763,32 @@ const styles = StyleSheet.create({
         fontSize: FONT_SIZES.xs,
         color: COLORS.textMuted,
         marginTop: 2,
+    },
+    labelAlphabetBox: {
+        borderBottomWidth: 0.5,
+        borderBottomColor: COLORS.border,
+        paddingVertical: 8,
+        backgroundColor: COLORS.bgSurface,
+    },
+    alphabetBtn: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        backgroundColor: COLORS.bgInput,
+        borderWidth: 0.5,
+        borderColor: COLORS.border,
+    },
+    alphabetBtnActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    alphabetBtnText: {
+        fontSize: 12,
+        color: COLORS.textMuted,
+        fontWeight: '500',
+    },
+    alphabetBtnTextActive: {
+        color: COLORS.white,
     },
     labelSearchBox: {
         flexDirection: 'row',
