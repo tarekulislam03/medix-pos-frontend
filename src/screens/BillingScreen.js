@@ -1368,6 +1368,8 @@ export default function BillingScreen({ navigation, route }) {
             const payload = {
                 items: cartSnapshot.map((item) => ({
                     product_id: item._id || item.id || item.product_id,
+                    medicine_name: item.medicine_name || item.name || '',
+                    mrp: item.mrp || 0,
                     quantity: item.is_loose_mode ? 1 : item.cart_quantity,
                     discount_percent: item.is_loose_mode ? 0 : (item.discount_percent ?? 0),
                     ...(item.is_loose_mode ? {
