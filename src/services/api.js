@@ -31,7 +31,11 @@ api.interceptors.response.use(
       error.message ||
       'Something went wrong';
     console.error('API Error:', message);
-    return Promise.reject({ message, status: error.response?.status });
+    return Promise.reject({ 
+      message, 
+      status: error.response?.status,
+      data: error.response?.data
+    });
   }
 );
 

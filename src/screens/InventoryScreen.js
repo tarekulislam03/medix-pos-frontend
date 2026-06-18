@@ -183,6 +183,7 @@ export default function InventoryScreen({ navigation, route }) {
     const [devModalVisible, setDevModalVisible] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit' | 'view'
+    const [formError, setFormError] = useState('');
     const [formData, setFormData] = useState(EMPTY_FORM);
     const [editingId, setEditingId] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -222,6 +223,51 @@ export default function InventoryScreen({ navigation, route }) {
     const [autoImportPurchaseId, setAutoImportPurchaseId] = useState(null); // purchase record id from Cloudinary upload
     const [toastVisible, setToastVisible] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+
+    //  BATCH CONFLICT STATE 
+    const [batchConflicts, setBatchConflicts] = useState([]);
+    const [conflictModalVisible, setConflictModalVisible] = useState(false);
+
+    const resolveConflict = async (resolutionType) => {
+        const currentConflict = batchConflicts[0];
+        if (!currentConflict) return;
+
+        try {
+            let payload = { ...currentConflict.payload };
+            if (resolutionType === 'force_update') {
+                payload.force_update = true;
+            } else if (resolutionType === 'isolate') {
+                const baseBatch = payload.batch_number || 'BATCH';
+                payload.batch_number = `${baseBatch}-${Math.floor(Math.random() * 1000)}`;
+            }
+
+            await createProduct(payload);
+            
+            if (currentConflict.source === 'auto_import' && currentConflict.originalKey) {
+                setAutoImportItems(prev => prev.filter(i => i._key !== currentConflict.originalKey));
+            } else if (currentConflict.source === 'manual') {
+                closeModal();
+            }
+
+            await fetchProducts();
+
+            const remaining = batchConflicts.slice(1);
+            setBatchConflicts(remaining);
+            if (remaining.length === 0) {
+                setConflictModalVisible(false);
+                if (currentConflict.source === 'auto_import' && autoImportReviewVisible) {
+                    setAutoImportItems(prev => {
+                        if (prev.length === 0) {
+                            setAutoImportReviewVisible(false);
+                        }
+                        return prev;
+                    });
+                }
+            }
+        } catch (err) {
+            Alert.alert('Resolution Failed', err.message || 'Could not resolve conflict');
+        }
+    };
 
     // ─── FETCH ──────────────────────────────────────
     const fetchProducts = useCallback(async () => {
@@ -383,42 +429,48 @@ export default function InventoryScreen({ navigation, route }) {
 
     const closeModal = () => {
         setModalVisible(false);
+        setFormError('');
         setFormData(EMPTY_FORM);
         setEditingId(null);
     };
 
     // ─── SAVE (CREATE / UPDATE) ─────────────────────
     const handleSave = async () => {
+        setFormError('');
         // Validate
         if (!formData.medicine_name.trim()) {
-            Alert.alert('Validation', 'Medicine name is required.');
+            setFormError('Medicine name is required.');
             return;
         }
-        if (!formData.mrp || isNaN(Number(formData.mrp))) {
-            Alert.alert('Validation', 'Valid MRP is required.');
+        const mrpValue = Number(formData.mrp);
+        if (isNaN(mrpValue) || mrpValue <= 0) {
+            setFormError('MRP must be greater than 0.');
             return;
         }
-        if (!formData.quantity || isNaN(Number(formData.quantity))) {
-            Alert.alert('Validation', 'Valid quantity is required.');
+        
+        const qtyValue = Number(formData.quantity);
+        if (isNaN(qtyValue) || qtyValue <= 0) {
+            setFormError('Quantity must be greater than 0.');
             return;
         }
 
+        const payload = {
+            medicine_name: formData.medicine_name.trim(),
+            mrp: Number(formData.mrp),
+            cost_price: formData.cost_price ? Number(formData.cost_price) : undefined,
+            quantity: Number(formData.quantity),
+            alert_threshold: Number(formData.alert_threshold) || 2,
+            expiry_date: formData.expiry_date || undefined,
+            supplier_name: formData.supplier_name.trim() || undefined,
+            description: formData.description.trim() || undefined,
+            tablets_per_strip: formData.tablets_per_strip ? Number(formData.tablets_per_strip) : undefined,
+            batch_number: formData.batch_number.trim() || undefined,
+            hsn_code: formData.hsn_code.trim() || undefined,
+            gst: formData.gst ? Number(formData.gst) : undefined,
+        };
+
         setSaving(true);
         try {
-            const payload = {
-                medicine_name: formData.medicine_name.trim(),
-                mrp: Number(formData.mrp),
-                cost_price: formData.cost_price ? Number(formData.cost_price) : undefined,
-                quantity: Number(formData.quantity),
-                alert_threshold: Number(formData.alert_threshold) || 2,
-                expiry_date: formData.expiry_date || undefined,
-                supplier_name: formData.supplier_name.trim() || undefined,
-                description: formData.description.trim() || undefined,
-                tablets_per_strip: formData.tablets_per_strip ? Number(formData.tablets_per_strip) : undefined,
-                batch_number: formData.batch_number.trim() || undefined,
-                hsn_code: formData.hsn_code.trim() || undefined,
-                gst: formData.gst ? Number(formData.gst) : undefined,
-            };
 
             if (modalMode === 'edit' && editingId) {
                 await updateProduct(editingId, payload);
@@ -429,7 +481,16 @@ export default function InventoryScreen({ navigation, route }) {
             closeModal();
             await fetchProducts();
         } catch (err) {
-            Alert.alert('Error', err.message || 'Failed to save product');
+            if (err.status === 409 && err.data?.has_conflict) {
+                setBatchConflicts([{
+                    payload,
+                    conflictData: err.data.conflict,
+                    source: 'manual'
+                }]);
+                setConflictModalVisible(true);
+            } else {
+                setFormError(err.message || 'Failed to save product');
+            }
         } finally {
             setSaving(false);
         }
@@ -668,9 +729,16 @@ export default function InventoryScreen({ navigation, route }) {
             return;
         }
         // Validate — every row needs a medicine name
-        const invalid = autoImportItems.find((item) => !item.medicine_name.trim());
-        if (invalid) {
+        const invalidName = autoImportItems.find((item) => !item.medicine_name.trim());
+        if (invalidName) {
             setAutoImportError('All rows must have a medicine name. Please fill in or remove empty rows.');
+            return;
+        }
+
+        // Validate - MRP and Qty must be > 0
+        const invalidQtyOrMrp = autoImportItems.find((item) => Number(item.quantity) <= 0 || Number(item.mrp) <= 0);
+        if (invalidQtyOrMrp) {
+            setAutoImportError('All items must have an MRP and Quantity greater than 0.');
             return;
         }
         setAutoImportConfirming(true);
@@ -681,29 +749,51 @@ export default function InventoryScreen({ navigation, route }) {
             const results = [];
 
             for (const item of autoImportItems) {
+                const payload = {
+                    medicine_name: item.medicine_name.trim(),
+                    quantity: Number(item.quantity) || 0,
+                    mrp: Number(item.mrp) || 0,
+                    cost_price: Number(item.cost_price) || undefined,
+                    supplier_name: item.supplier_name ? item.supplier_name.trim() : undefined,
+                    expiry_date: item.expiry_date || undefined,
+                    batch_number: item.batch_number || undefined,
+                    hsn_code: item.hsn_code || undefined,
+                    gst: item.gst ? Number(item.gst) : undefined,
+                    alert_threshold: 2,
+                };
                 try {
-                    const res = await createProduct({
-                        medicine_name: item.medicine_name.trim(),
-                        quantity: Number(item.quantity) || 0,
-                        mrp: Number(item.mrp) || 0,
-                        cost_price: Number(item.cost_price) || undefined,
-                        supplier_name: item.supplier_name ? item.supplier_name.trim() : undefined,
-                        expiry_date: item.expiry_date || undefined,
-                        batch_number: item.batch_number || undefined,
-                        hsn_code: item.hsn_code || undefined,
-                        gst: item.gst ? Number(item.gst) : undefined,
-                        alert_threshold: 2,
-                    });
+                    const res = await createProduct(payload);
 
-                    results.push({ status: "fulfilled", value: res });
+                    results.push({ status: "fulfilled", value: res, originalKey: item._key });
 
                 } catch (err) {
-                    results.push({ status: "rejected", reason: err });
+                    if (err.status === 409 && err.data?.has_conflict) {
+                        results.push({ status: "conflict", payload, conflictData: err.data.conflict, originalKey: item._key });
+                    } else {
+                        results.push({ status: "rejected", reason: err, originalKey: item._key });
+                    }
                 }
             }
 
+            const conflicts = results.filter((r) => r.status === 'conflict');
             const failed = results.filter((r) => r.status === 'rejected');
             const success = results.filter((r) => r.status === 'fulfilled');
+
+            // Remove successfully imported ones from the screen
+            const successKeys = success.map(s => s.originalKey);
+            setAutoImportItems(prev => prev.filter(i => !successKeys.includes(i._key)));
+
+            if (conflicts.length > 0) {
+                // Launch modal for conflicts
+                setBatchConflicts(conflicts.map(c => ({
+                    payload: c.payload,
+                    conflictData: c.conflictData,
+                    source: 'auto_import',
+                    originalKey: c.originalKey
+                })));
+                setConflictModalVisible(true);
+                return; // Wait for user to resolve via modal
+            }
 
             if (failed.length > 0 && success.length === 0) {
                 // All failed
@@ -1468,6 +1558,13 @@ export default function InventoryScreen({ navigation, route }) {
                             contentContainerStyle={styles.modalBodyContent}
                             showsVerticalScrollIndicator={false}
                         >
+                            {formError ? (
+                                <View style={{ backgroundColor: '#fef2f2', padding: 12, borderRadius: 8, marginBottom: 15, borderWidth: 1, borderColor: '#fecaca', flexDirection: 'row', alignItems: 'center' }}>
+                                    <Ionicons name="alert-circle" size={20} color="#ef4444" style={{ marginRight: 8 }} />
+                                    <Text style={{ color: '#b91c1c', fontSize: 13, fontWeight: '500', flex: 1 }}>{formError}</Text>
+                                </View>
+                            ) : null}
+
                             {modalMode === 'view' ? (
                                 <View style={styles.detailsContainer}>
                                     <View style={styles.detailCard}>
@@ -2416,6 +2513,88 @@ export default function InventoryScreen({ navigation, route }) {
 
 
             {/* ─── UNDER DEV MODAL ─── */}
+            {/* Batch Conflict Resolution Modal */}
+            <Modal visible={conflictModalVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.labelModalCard, { width: r.pick({ small: '95%', medium: 500, large: 500, xlarge: 500 }) }]}>
+                        <View style={styles.modalHeader}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center' }}>
+                                    <Ionicons name="warning" size={18} color={COLORS.error} />
+                                </View>
+                                <Text style={styles.modalTitle}>Batch Conflict Detected</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setConflictModalVisible(false)} style={styles.modalCloseBtn}>
+                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {batchConflicts.length > 0 && (
+                            <View style={{ padding: SPACING.lg }}>
+                                <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 15 }}>
+                                    A batch with the same number already exists for <Text style={{ fontWeight: '700', color: COLORS.textPrimary }}>{batchConflicts[0].payload.medicine_name}</Text>, but the details differ.
+                                </Text>
+
+                                <View style={{ flexDirection: 'row', gap: 15 }}>
+                                    {/* Existing Batch */}
+                                    <View style={{ flex: 1, backgroundColor: '#f8fafc', padding: 15, borderRadius: RADIUS.md, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748b', marginBottom: 10 }}>EXISTING BATCH IN SYSTEM</Text>
+                                        <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 5 }}>Batch No: <Text style={{ color: COLORS.textPrimary, fontWeight: '500' }}>{batchConflicts[0].conflictData.batch_number || 'None'}</Text></Text>
+                                        
+                                        <Text style={{ fontSize: 13, color: batchConflicts[0].conflictData.conflict_fields.includes('mrp') ? COLORS.error : COLORS.textSecondary, marginBottom: 5, fontWeight: batchConflicts[0].conflictData.conflict_fields.includes('mrp') ? '700' : '400' }}>
+                                            MRP: ₹{batchConflicts[0].conflictData.existing_mrp}
+                                        </Text>
+                                        
+                                        <Text style={{ fontSize: 13, color: batchConflicts[0].conflictData.conflict_fields.includes('expiry_date') ? COLORS.error : COLORS.textSecondary, fontWeight: batchConflicts[0].conflictData.conflict_fields.includes('expiry_date') ? '700' : '400' }}>
+                                            Expiry: {batchConflicts[0].conflictData.existing_expiry || 'None'}
+                                        </Text>
+                                    </View>
+
+                                    {/* Incoming Batch */}
+                                    <View style={{ flex: 1, backgroundColor: '#f0fdf4', padding: 15, borderRadius: RADIUS.md, borderWidth: 1, borderColor: '#bbf7d0' }}>
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#16a34a', marginBottom: 10 }}>INCOMING BATCH</Text>
+                                        <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 5 }}>Batch No: <Text style={{ color: COLORS.textPrimary, fontWeight: '500' }}>{batchConflicts[0].payload.batch_number || 'None'}</Text></Text>
+                                        
+                                        <Text style={{ fontSize: 13, color: batchConflicts[0].conflictData.conflict_fields.includes('mrp') ? COLORS.error : COLORS.textSecondary, marginBottom: 5, fontWeight: batchConflicts[0].conflictData.conflict_fields.includes('mrp') ? '700' : '400' }}>
+                                            MRP: ₹{batchConflicts[0].conflictData.incoming_mrp}
+                                        </Text>
+                                        
+                                        <Text style={{ fontSize: 13, color: batchConflicts[0].conflictData.conflict_fields.includes('expiry_date') ? COLORS.error : COLORS.textSecondary, fontWeight: batchConflicts[0].conflictData.conflict_fields.includes('expiry_date') ? '700' : '400' }}>
+                                            Expiry: {batchConflicts[0].conflictData.incoming_expiry || 'None'}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={{ marginTop: 25, gap: 10 }}>
+                                    <TouchableOpacity 
+                                        style={{ backgroundColor: COLORS.primary, padding: 12, borderRadius: RADIUS.md, alignItems: 'center' }}
+                                        onPress={() => resolveConflict('force_update')}
+                                    >
+                                        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Force Update & Merge</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={{ backgroundColor: '#fff', padding: 12, borderRadius: RADIUS.md, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border }}
+                                        onPress={() => resolveConflict('isolate')}
+                                    >
+                                        <Text style={{ color: COLORS.textPrimary, fontSize: 14, fontWeight: '600' }}>Isolate as New Batch</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                        style={{ padding: 12, alignItems: 'center' }}
+                                        onPress={() => {
+                                            const remaining = batchConflicts.slice(1);
+                                            setBatchConflicts(remaining);
+                                            if (remaining.length === 0) setConflictModalVisible(false);
+                                        }}
+                                    >
+                                        <Text style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: '500' }}>Skip</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
             <Modal visible={devModalVisible} animationType="fade" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={[styles.labelModalCard, { width: r.pick({ small: '95%', medium: 450, large: 450, xlarge: 450 }) }]}>
