@@ -263,6 +263,7 @@ export default function CustomersScreen({ navigation }) {
                 <View style={[styles.cell, styles.actionsCell, { flex: 1.5, borderRightWidth: 0 }]}>
                     {hasDue && (
                         <TouchableOpacity
+                            testID="pay-due-btn"
                             style={[styles.actionBtn, { borderColor: COLORS.primary, backgroundColor: COLORS.primaryGhost }]}
                             onPress={(e) => { e.stopPropagation(); openPayModal(item); }}
                             title="Clear Dues"

@@ -191,6 +191,7 @@ export default function InventoryScreen({ navigation, route }) {
     const [labelModalVisible, setLabelModalVisible] = useState(false);
     const [labelSearch, setLabelSearch] = useState('');
     const [labelLetter, setLabelLetter] = useState('All');
+    const [labelLetterDropdown, setLabelLetterDropdown] = useState(false);
     const [labelItems, setLabelItems] = useState({}); // { [productId]: copies }
     const [generatingLabels, setGeneratingLabels] = useState(false);
 
@@ -1840,18 +1841,34 @@ export default function InventoryScreen({ navigation, route }) {
                         </View>
 
                         {/* Alphabet Filter */}
-                        <View style={styles.labelAlphabetBox}>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SPACING.md, gap: 6 }}>
-                                {['All', ...Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i))].map(letter => (
-                                    <TouchableOpacity
-                                        key={letter}
-                                        style={[styles.alphabetBtn, labelLetter === letter && styles.alphabetBtnActive]}
-                                        onPress={() => setLabelLetter(letter)}
-                                    >
-                                        <Text style={[styles.alphabetBtnText, labelLetter === letter && styles.alphabetBtnTextActive]}>{letter}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
+                        <View style={[styles.labelAlphabetBox, { width: '100%', paddingHorizontal: SPACING.md, zIndex: 10 }]}>
+                            <TouchableOpacity
+                                style={{
+                                    borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+                                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.bgInput,
+                                    width: 150
+                                }}
+                                onPress={() => setLabelLetterDropdown(!labelLetterDropdown)}
+                            >
+                                <Text style={{ fontSize: 13, fontWeight: '500', color: COLORS.textPrimary }}>First Letter: {labelLetter}</Text>
+                                <Ionicons name={labelLetterDropdown ? "chevron-up" : "chevron-down"} size={16} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+
+                            {labelLetterDropdown && (
+                                <View style={{ position: 'absolute', top: 45, left: SPACING.md, width: 150, backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, maxHeight: 200, zIndex: 999, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { height: 2, width: 0 } }}>
+                                    <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                                        {['All', ...Array.from({length: 26}, (_, i) => String.fromCharCode(65 + i))].map(letter => (
+                                            <TouchableOpacity
+                                                key={letter}
+                                                style={{ paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 0.5, borderBottomColor: COLORS.borderLight, backgroundColor: labelLetter === letter ? COLORS.accentLight : COLORS.white }}
+                                                onPress={() => { setLabelLetter(letter); setLabelLetterDropdown(false); }}
+                                            >
+                                                <Text style={{ fontSize: 13, color: labelLetter === letter ? COLORS.accent : COLORS.textPrimary, fontWeight: labelLetter === letter ? '600' : '400' }}>{letter}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                            )}
                         </View>
 
                         {/* Search */}
