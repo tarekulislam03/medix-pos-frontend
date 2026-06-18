@@ -622,8 +622,6 @@ export default function BillingScreen({ navigation, route }) {
     const [searchResults, setSearchResults] = useState([]);
     const [searchLoading, setSearchLoading] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
-    const [fefoWarning, setFefoWarning] = useState(null);
-
     // ─── PRELOADED PRODUCT LIST (for instant local search) ───
     const [allProducts, setAllProducts] = useState([]);
     const [productsLoaded, setProductsLoaded] = useState(false);
@@ -641,6 +639,11 @@ export default function BillingScreen({ navigation, route }) {
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [advancedOptionsVisible, setAdvancedOptionsVisible] = useState(false);
+
+    // FEFO Warning Modal
+    const [fefoWarningVisible, setFefoWarningVisible] = useState(false);
+    const [fefoWarningTitle, setFefoWarningTitle] = useState('');
+    const [fefoWarningMessage, setFefoWarningMessage] = useState('');
 
     // Doctor Fee & OTC Items
     const [doctorFee, setDoctorFee] = useState('');
@@ -809,7 +812,7 @@ export default function BillingScreen({ navigation, route }) {
     // Always re-focus the barcode/product search input unless an
     // explicit interactive element (input, textarea, select) was clicked,
     // OR a modal is currently open (focus-stealing breaks modal button clicks).
-    const anyModalOpen = paymentModalVisible || printModalVisible || lastPurchaseModalVisible || showFreeEntry || advancedOptionsVisible || !!fefoWarning;
+    const anyModalOpen = paymentModalVisible || printModalVisible || lastPurchaseModalVisible || showFreeEntry || advancedOptionsVisible;
     const anyModalOpenRef = useRef(anyModalOpen);
     anyModalOpenRef.current = anyModalOpen;
 
@@ -977,8 +980,7 @@ export default function BillingScreen({ navigation, route }) {
 
         const pid = product._id || product.id || product.product_id;
 
-        // FEFO Check: Warn if selling a newer batch when older is available
-        let isFefoViolation = false;
+        // FEFO Check: Hard Block if selling a newer batch when older is available
         if (!force) {
             const name = (product.medicine_name || product.name || '').trim().toLowerCase();
             const inStockSiblings = allProducts.filter(p => 
@@ -1007,12 +1009,14 @@ export default function BillingScreen({ navigation, route }) {
             });
             
             if (inStockSiblings.length > 1) {
-                const oldestPid = (inStockSiblings[0]._id || inStockSiblings[0].id || '').toString();
-                if (oldestPid !== pid.toString()) {
-                    const isOldestInCart = cart.some(i => (i._id || i.id || i.product_id).toString() === oldestPid);
-                    if (!isOldestInCart) {
-                        isFefoViolation = true;
-                    }
+                const currentIndex = inStockSiblings.findIndex(p => (p._id || p.id || '').toString() === pid.toString());
+                
+                if (currentIndex > 0) {
+                    const olderBatch = inStockSiblings[0];
+                    setFefoWarningTitle('FEFO Policy Violation');
+                    setFefoWarningMessage(`You must clear the earlier expiry batch (${olderBatch.batch_no || 'Unknown'}) first. It still has ${olderBatch.quantity ?? olderBatch.stock} units available.`);
+                    setFefoWarningVisible(true);
+                    return; // HARD BLOCK
                 }
             }
         }
@@ -1026,8 +1030,9 @@ export default function BillingScreen({ navigation, route }) {
             const existing = prev.find((i) => (i._id || i.id || i.product_id) === pid);
 
             if (existing) {
-                if (existing.cart_quantity >= maxStock) {
-                    Alert.alert('Stock Limit', `Only ${maxStock} units available.`);
+                const totalAvailable = existing.available_stock || maxStock;
+                if (existing.cart_quantity >= totalAvailable) {
+                    Alert.alert('Stock Limit', `Only ${totalAvailable} units available.`);
                     return prev;
                 }
                 return prev.map((i) =>
@@ -1043,12 +1048,6 @@ export default function BillingScreen({ navigation, route }) {
         setShowDropdown(false);
         // Re-focus search input so barcode scanner / keyboard stays active
         setTimeout(() => searchInputRef.current?.focus(), 50);
-
-        if (isFefoViolation) {
-            setTimeout(() => {
-                setFefoWarning(pid);
-            }, 50);
-        }
     }, [allProducts, cart]);
 
     // Submit (Enter key / barcode scanner)
@@ -1101,12 +1100,63 @@ export default function BillingScreen({ navigation, route }) {
         const pid = item._id || item.id || item.product_id;
         const oldQty = item.cart_quantity ?? 0;
 
-        // Restore stock directly to allProducts
-        setAllProducts(products => products.map(p => 
-            (p._id || p.id) === pid ? { ...p, quantity: (p.quantity ?? 0) + oldQty } : p
-        ));
+        setCart((prev) => {
+            let newCart = prev.filter((i) => (i._id || i.id || i.product_id) !== pid);
+            
+            // Cascading FEFO Check
+            const name = (item.medicine_name || item.name || '').trim().toLowerCase();
+            const dateA = item.expiry_date || item.expiry;
+            
+            const violatingBatches = newCart.filter(cartItem => {
+                if ((cartItem.medicine_name || cartItem.name || '').trim().toLowerCase() !== name) return false;
+                
+                const dateB = cartItem.expiry_date || cartItem.expiry;
+                let diff = 0;
+                if (!dateA && !dateB) diff = 0;
+                else if (!dateA) diff = -1;
+                else if (!dateB) diff = 1;
+                else diff = new Date(dateB) - new Date(dateA);
+                
+                if (diff === 0) {
+                    const idA = (item._id || item.id || '').toString();
+                    const idB = (cartItem._id || cartItem.id || '').toString();
+                    return idB.localeCompare(idA) > 0;
+                }
+                return diff > 0;
+            });
 
-        setCart((prev) => prev.filter((i) => (i._id || i.id || i.product_id) !== pid));
+            if (violatingBatches.length > 0) {
+                const violatingIds = violatingBatches.map(v => v._id || v.id || v.product_id);
+                newCart = newCart.filter(i => !violatingIds.includes(i._id || i.id || i.product_id));
+                
+                setAllProducts(products => {
+                    let updatedProducts = [...products];
+                    // Restore main item
+                    updatedProducts = updatedProducts.map(p => 
+                        (p._id || p.id) === pid ? { ...p, quantity: (p.quantity ?? 0) + oldQty } : p
+                    );
+                    // Restore violating batches
+                    violatingBatches.forEach(vb => {
+                        const vbPid = vb._id || vb.id || vb.product_id;
+                        const vbQty = vb.cart_quantity ?? 0;
+                        updatedProducts = updatedProducts.map(p => 
+                            (p._id || p.id) === vbPid ? { ...p, quantity: (p.quantity ?? 0) + vbQty } : p
+                        );
+                    });
+                    return updatedProducts;
+                });
+                
+                setFefoWarningTitle('FEFO Enforcement');
+                setFefoWarningMessage(`Newer batches of "${item.medicine_name || item.name}" were automatically removed because you removed the older batch.`);
+                setFefoWarningVisible(true);
+            } else {
+                setAllProducts(products => products.map(p => 
+                    (p._id || p.id) === pid ? { ...p, quantity: (p.quantity ?? 0) + oldQty } : p
+                ));
+            }
+            
+            return newCart;
+        });
     }, []);
 
     const updateQuantity = useCallback((item, newQty) => {
@@ -1188,11 +1238,57 @@ export default function BillingScreen({ navigation, route }) {
             (p._id || p.id) === pid ? { ...p, quantity: Math.max(0, (p.quantity ?? 0) - diff) } : p
         ));
 
-        setCart((prev) =>
-            prev.map((i) =>
+        setCart((prev) => {
+            let newCart = prev.map((i) =>
                 (i._id || i.id || i.product_id) === pid ? { ...i, cart_quantity: newQty } : i
-            )
-        );
+            );
+
+            if (diff < 0) {
+                const name = (item.medicine_name || item.name || '').trim().toLowerCase();
+                const dateA = item.expiry_date || item.expiry;
+                
+                const violatingBatches = newCart.filter(cartItem => {
+                    if ((cartItem.medicine_name || cartItem.name || '').trim().toLowerCase() !== name) return false;
+                    if ((cartItem._id || cartItem.id || cartItem.product_id) === pid) return false;
+                    
+                    const dateB = cartItem.expiry_date || cartItem.expiry;
+                    let d = 0;
+                    if (!dateA && !dateB) d = 0;
+                    else if (!dateA) d = -1;
+                    else if (!dateB) d = 1;
+                    else d = new Date(dateB) - new Date(dateA);
+                    
+                    if (d === 0) {
+                        const idA = (item._id || item.id || '').toString();
+                        const idB = (cartItem._id || cartItem.id || '').toString();
+                        return idB.localeCompare(idA) > 0;
+                    }
+                    return d > 0;
+                });
+
+                if (violatingBatches.length > 0) {
+                    const violatingIds = violatingBatches.map(v => v._id || v.id || v.product_id);
+                    newCart = newCart.filter(i => !violatingIds.includes(i._id || i.id || i.product_id));
+                    
+                    setAllProducts(products => {
+                        let updatedProducts = [...products];
+                        violatingBatches.forEach(vb => {
+                            const vbPid = vb._id || vb.id || vb.product_id;
+                            const vbQty = vb.cart_quantity ?? 0;
+                            updatedProducts = updatedProducts.map(p => 
+                                (p._id || p.id) === vbPid ? { ...p, quantity: (p.quantity ?? 0) + vbQty } : p
+                            );
+                        });
+                        return updatedProducts;
+                    });
+                    
+                    setFefoWarningTitle('FEFO Enforcement');
+                    setFefoWarningMessage(`Newer batches of "${item.medicine_name || item.name}" were automatically removed because you reduced the quantity of an older batch.`);
+                    setFefoWarningVisible(true);
+                }
+            }
+            return newCart;
+        });
     }, [allProducts, removeFromCart]);
 
     const updateDiscount = useCallback((item, discount) => {
@@ -1772,7 +1868,7 @@ export default function BillingScreen({ navigation, route }) {
                                         <Text style={[erpStyles.dropdownHeaderCol, { flex: 0.8, textAlign: 'right' }]}>STOCK</Text>
                                         <Text style={[erpStyles.dropdownHeaderCol, { flex: 1, textAlign: 'right' }]}>MRP</Text>
                                     </View>
-                                    <ScrollView style={{ maxHeight: 240 }} keyboardShouldPersistTaps="handled">
+                                    <ScrollView style={{ maxHeight: 380 }} keyboardShouldPersistTaps="handled">
                                         {searchResults.map((product, idx) => {
                                             const stock = product.quantity ?? product.stock ?? 0;
                                             const isOutOfStock = stock <= 0;
@@ -1780,10 +1876,24 @@ export default function BillingScreen({ navigation, route }) {
                                             const expiry = formatExpiryDate(product.expiry_date || product.expiry || 'N/A');
                                             const price = Number(getPrice(product)).toFixed(2);
                                             
-                                            // Identify if this is the FEFO priority batch (first in-stock occurrence)
+                                            // Identify if this is the FEFO priority batch (first in-stock occurrence by expiry)
                                             const inStockSiblings = searchResults.filter(p => (p.medicine_name || p.name) === (product.medicine_name || product.name) && (p.quantity ?? p.stock ?? 0) > 0);
+                                            inStockSiblings.sort((a, b) => {
+                                                const dateA = a.expiry_date || a.expiry;
+                                                const dateB = b.expiry_date || b.expiry;
+                                                let diff = 0;
+                                                if (!dateA && !dateB) diff = 0;
+                                                else if (!dateA) diff = 1;
+                                                else if (!dateB) diff = -1;
+                                                else diff = new Date(dateA) - new Date(dateB);
+                                                if (diff === 0) {
+                                                    const idA = (a._id || a.id || '').toString();
+                                                    const idB = (b._id || b.id || '').toString();
+                                                    return idA.localeCompare(idB);
+                                                }
+                                                return diff;
+                                            });
                                             const isFefoPriority = inStockSiblings.length > 1 && inStockSiblings[0]._id === (product._id || product.id) && !isOutOfStock;
-
                                             return (
                                                 <TouchableOpacity
                                                     key={product._id || product.id || idx}
@@ -1806,7 +1916,7 @@ export default function BillingScreen({ navigation, route }) {
                                                     <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                                         <Text style={erpStyles.dropdownColText} numberOfLines={1}>{batch}</Text>
                                                         {isFefoPriority && (
-                                                            <Text style={{ backgroundColor: '#FEF08A', color: '#854D0E', fontSize: 7, fontWeight: '700', paddingHorizontal: 3, paddingVertical: 1, borderRadius: 2, overflow: 'hidden' }}>FEFO</Text>
+                                                            <Text style={{ backgroundColor: '#FEF08A', color: '#854D0E', fontSize: 8, fontWeight: '700', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4, overflow: 'hidden', marginLeft: 4 }}>Sell this first</Text>
                                                         )}
                                                     </View>
                                                     <Text style={[erpStyles.dropdownColText, { flex: 1 }]} numberOfLines={1}>{expiry}</Text>
@@ -2759,64 +2869,26 @@ export default function BillingScreen({ navigation, route }) {
             </Modal>
 
             {/* FEFO Warning Modal */}
-            <Modal visible={!!fefoWarning} transparent animationType="fade" onRequestClose={() => {
-                if (fefoWarning) {
-                    setCart(prev => prev.filter(i => (i._id || i.id || i.product_id) !== fefoWarning));
-                    setAllProducts(prev => prev.map(p =>
-                        (p._id || p.id) === fefoWarning ? { ...p, quantity: (p.quantity ?? 0) + 1 } : p
-                    ));
-                }
-                setFefoWarning(null);
-            }}>
+            <Modal visible={fefoWarningVisible} transparent animationType="fade" onRequestClose={() => setFefoWarningVisible(false)}>
                 <View style={pmStyles.overlay}>
-                    <View style={[pmStyles.container, { maxWidth: 440 }]}>
-                        {/* Header */}
-                        <View style={[pmStyles.header, { backgroundColor: '#FEF2F2', borderBottomColor: '#FEE2E2', paddingVertical: 14 }]}>
-                            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-                                <Ionicons name="warning" size={22} color="#DC2626" style={{ marginRight: 10 }} />
-                                <View>
-                                    <Text style={[pmStyles.headerTitle, { color: '#991B1B' }]}>FEFO Policy Violation</Text>
-                                    <Text style={[pmStyles.headerSub, { color: '#DC2626', fontSize: 11 }]}>Strict Batch Clearance Required</Text>
-                                </View>
-                            </View>
+                    <View style={[pmStyles.container, { maxWidth: 380, alignItems: 'center', paddingTop: 30 }]}>
+                        <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center', marginBottom: 15 }}>
+                            <Ionicons name="warning" size={32} color={COLORS.error} />
                         </View>
-                        
-                        {/* Body */}
-                        <View style={{ padding: 24, alignItems: 'center' }}>
-                            <Ionicons name="time-outline" size={56} color="#DC2626" style={{ marginBottom: 16, opacity: 0.9 }} />
-                            <Text style={{ fontSize: 16, color: COLORS.textPrimary, textAlign: 'center', marginBottom: 8, fontWeight: '600' }}>
-                                An older batch is available for sale.
-                            </Text>
-                            <Text style={{ fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 24, paddingHorizontal: 10 }}>
-                                To prevent stock expiration and maintain accurate inventory tracking, you must clear the older batch before selling this newer one.
-                            </Text>
-                            
-                            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
-                                <TouchableOpacity
-                                    style={[pmStyles.confirmBtn, { flex: 1, backgroundColor: '#DC2626' }]}
-                                    onPress={() => {
-                                        if (fefoWarning) {
-                                            setCart(prev => prev.filter(i => (i._id || i.id || i.product_id) !== fefoWarning));
-                                            setAllProducts(prev => prev.map(p =>
-                                                (p._id || p.id) === fefoWarning ? { ...p, quantity: (p.quantity ?? 0) + 1 } : p
-                                            ));
-                                        }
-                                        setFefoWarning(null);
-                                    }}
-                                >
-                                    <Text style={pmStyles.confirmBtnText}>Remove</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[pmStyles.confirmBtn, { flex: 1, backgroundColor: '#6B7280' }]}
-                                    onPress={() => setFefoWarning(null)}
-                                >
-                                    <Text style={pmStyles.confirmBtnText}>Add Anyway</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 }}>{fefoWarningTitle}</Text>
+                        <Text style={{ fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>{fefoWarningMessage}</Text>
+                        <TouchableOpacity 
+                            style={{ width: '100%', height: 44, backgroundColor: COLORS.error, borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}
+                            onPress={() => setFefoWarningVisible(false)}
+                        >
+                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>I Understand</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
+
+
+
         </View>
     );
 }
