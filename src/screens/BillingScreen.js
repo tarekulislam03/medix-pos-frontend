@@ -742,14 +742,26 @@ export default function BillingScreen({ navigation, route }) {
     const customerSearchTimeout = useRef(null);
 
     useEffect(() => {
-        if (editInvoice && editInvoice.items) {
-            const mappedCart = editInvoice.items.map((it) => ({
-                ...it,
-                _id: it.product_id,
-                cart_quantity: it.quantity,
-                mrp: it.mrp || 0,
-                discount_percent: it.discount_percent || 0,
-            }));
+        if (editInvoice && editInvoice.items && productsLoaded) {
+            const mappedCart = editInvoice.items.map((it) => {
+                const pid = it.product_id;
+                // Find the product in allProducts to get current inventory stock
+                const inventoryProduct = allProducts.find(p => 
+                    String(p._id || p.id) === String(pid)
+                );
+                const currentInventoryStock = inventoryProduct ? (inventoryProduct.quantity ?? 0) : 0;
+                // Available stock = what's currently in inventory + what was sold in this invoice
+                const totalAvailable = currentInventoryStock + (it.quantity || 0);
+
+                return {
+                    ...it,
+                    _id: pid,
+                    cart_quantity: it.quantity,
+                    mrp: it.mrp || 0,
+                    discount_percent: it.discount_percent || 0,
+                    available_stock: totalAvailable,
+                };
+            });
             setCart(mappedCart);
 
             if (editInvoice.customer && editInvoice.customer_name) {
@@ -762,7 +774,7 @@ export default function BillingScreen({ navigation, route }) {
                 handleSelectCustomer(c);
             }
         }
-    }, [editInvoice]);
+    }, [editInvoice, productsLoaded]);
     const searchInputRef = useRef(null);
     const customerCacheRef = useRef(new MemoryCache(120000)); // 2-min TTL
 
