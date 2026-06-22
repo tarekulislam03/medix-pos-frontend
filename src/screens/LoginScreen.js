@@ -141,7 +141,7 @@ export default function LoginScreen({ navigation }) {
             <View style={s.stripDot} />
             <Text style={s.stripOnline}>ONLINE</Text>
             <Text style={s.stripSep}>│</Text>
-            <Text style={s.stripLabel}>BUILD v1.0</Text>
+            <Text style={s.stripLabel}>BUILD v1.2</Text>
             <View style={{ flex: 1 }} />
             <Text style={s.stripLabel}>MediX POS & ERP</Text>
         </View>
@@ -153,19 +153,15 @@ export default function LoginScreen({ navigation }) {
             {/* Brand */}
             <View style={s.brand}>
                 <Image
-                    source={require('../../assets/icon.png')}
+                    source={require('../../assets/web-logo.png')}
                     style={s.brandIcon}
                     resizeMode="contain"
                 />
-                <View>
-                    <Text style={s.brandName}>
-                        Medi<Text style={s.brandX}>X</Text>
-                    </Text>
-                    <Text style={s.brandSub}>POS & ERP</Text>
-                </View>
+                
             </View>
-
+<View style={s.infoSection}>
             <View style={s.rule} />
+
 
             {/* Modules */}
             <Text style={s.sectionHead}>MODULES</Text>
@@ -186,7 +182,8 @@ export default function LoginScreen({ navigation }) {
                 <SysRow k="Platform" v="Web / Tablet" />
                 <SysRow k="Database" v="Cloud" />
                 <SysRow k="Encryption" v="AES-256" />
-                <SysRow k="Version" v="1.0.0" />
+                <SysRow k="Version" v="1.0.2" />
+            </View>
             </View>
 
             {/* Footer */}
@@ -207,10 +204,9 @@ export default function LoginScreen({ navigation }) {
                 keyboardShouldPersistTaps="handled"
             >
                 {!isWide && (
-                    <View style={{ alignItems: 'center', marginBottom: 24, marginTop: 12 }}>
-                        <Image source={require('../../assets/icon.png')} style={{ width: 48, height: 48, marginBottom: 8 }} resizeMode="contain" />
-                        <Text style={{ fontSize: 24, fontWeight: '700', color: T.heading }}>Medi<Text style={{ color: T.panelAccent }}>X</Text></Text>
-                        <Text style={{ fontSize: 10, color: T.muted, letterSpacing: 2 }}>POS & ERP</Text>
+                    <View style={{ alignItems: 'center', marginBottom: 24, marginTop: 12, borderRadius: 20 }}>
+                        <Image source={require('../../assets/medix-web-logo.png')} style={{ width: 100, height: 100, marginBottom: 8 }} resizeMode="contain" />
+                        
                     </View>
                 )}
 
@@ -316,9 +312,9 @@ export default function LoginScreen({ navigation }) {
             <View style={s.rightFoot}>
                 <Text style={s.footText}>MediX POS</Text>
                 <Text style={s.footSep}>│</Text>
-                <Text style={s.footText}>v1.0.0</Text>
+                <Text style={s.footText}>v1.0.2</Text>
                 <Text style={s.footSep}>│</Text>
-                <Text style={s.footText}>Support: 1800-123-4567</Text>
+                <Text style={s.footText}>Support: 8101402916</Text>
             </View>
         </Animated.View>
     );
@@ -412,11 +408,11 @@ const s = StyleSheet.create({
     brand: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 0,
     },
     brandIcon: {
-        width: 26,
-        height: 26,
+        width: 150,
+        height: 150,
         marginRight: 8,
     },
     brandName: {
@@ -438,7 +434,10 @@ const s = StyleSheet.create({
     rule: {
         height: 1,
         backgroundColor: T.panelBorder,
-        marginVertical: 10,
+        marginVertical: 10
+    },
+    infoSection:{
+        marginTop: -42
     },
     sectionHead: {
         fontSize: 8.5,
