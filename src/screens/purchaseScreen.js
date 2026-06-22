@@ -16,9 +16,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
-import { uploadPurchaseBill, getPurchases, deletePurchase } from '../services/purchaseService';
+import { uploadPurchaseBill, getPurchases, deletePurchase, createManualPurchase } from '../services/purchaseService';
 
-// ─── File picker helper (web only — uses <input type="file"> ────────────────
+// â”€â”€â”€ File picker helper (web only â€” uses <input type="file"> â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const pickFileWeb = () =>
     new Promise((resolve) => {
         const input = document.createElement('input');
@@ -31,9 +31,9 @@ const pickFileWeb = () =>
         input.click();
     });
 
-// ─── Format date helper ─────────────────────────────────────────────────────
+// â”€â”€â”€ Format date helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const formatDate = (iso) => {
-    if (!iso) return '—';
+    if (!iso) return 'â€”';
     const d = new Date(iso);
     const day = String(d.getDate()).padStart(2, '0');
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -41,7 +41,7 @@ const formatDate = (iso) => {
     return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };
 
-// ─── Bill Image Preview Modal ───────────────────────────────────────────────
+// â”€â”€â”€ Bill Image Preview Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ImagePreviewModal = ({ visible, imageUrl, onClose }) => (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
         <View style={previewStyles.overlay}>
@@ -156,9 +156,9 @@ const previewStyles = StyleSheet.create({
     closeBtnText: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MAIN SCREEN
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export default function PurchaseScreen() {
     const r = useResponsive();
 
@@ -186,12 +186,28 @@ export default function PurchaseScreen() {
     const [previewUrl, setPreviewUrl] = useState(null);
     const [previewVisible, setPreviewVisible] = useState(false);
 
+    // Manual Purchase modal
+    const [manualPurchaseModalVisible, setManualPurchaseModalVisible] = useState(false);
+    const [manualPurchaseLoading, setManualPurchaseLoading] = useState(false);
+    const [manualPurchaseForm, setManualPurchaseForm] = useState({
+        supplier_name: '',
+        supplier_gstin: '',
+        bill_no: '',
+        bill_date: '',
+        notes: '',
+        items: [],
+        taxable_amount: 0,
+        cgst_amount: 0,
+        sgst_amount: 0,
+        total_amount: 0,
+    });
+
     // Delete confirm
     const [deletingId, setDeletingId] = useState(null);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    // ─── FETCH ─────────────────────────────────────────────────────────────
+    // â”€â”€â”€ FETCH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const fetchPurchases = useCallback(async () => {
         setLoading(true);
         try {
@@ -220,7 +236,7 @@ export default function PurchaseScreen() {
             );
         }
 
-        // Date filter — single day
+        // Date filter â€” single day
         if (filterDate) {
             const dayStart = new Date(filterDate + 'T00:00:00');
             const dayEnd = new Date(filterDate + 'T23:59:59');
@@ -239,7 +255,109 @@ export default function PurchaseScreen() {
         setRefreshing(false);
     };
 
-    // ─── UPLOAD (Step 1: Pick file → show form) ───────────────────────────
+    // â”€â”€â”€ MANUAL PURCHASE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    const handleManualPurchaseItemChange = (index, field, value) => {
+        const newItems = [...manualPurchaseForm.items];
+        newItems[index][field] = value;
+        
+        let taxable = 0;
+        let cgst = 0;
+        let sgst = 0;
+        newItems.forEach(item => {
+            const qty = Number(item.quantity) || 0;
+            const rate = Number(item.rate) || 0;
+            const discount = Number(item.discount) || 0;
+            const discountedRate = rate - (rate * (discount / 100));
+            const itemTaxable = qty * discountedRate;
+            const itemGst = Number(item.gst) || 0;
+            const itemGstAmt = (itemTaxable * itemGst) / 100;
+            
+            taxable += itemTaxable;
+            cgst += itemGstAmt / 2;
+            sgst += itemGstAmt / 2;
+        });
+        
+        setManualPurchaseForm({
+            ...manualPurchaseForm,
+            items: newItems,
+            taxable_amount: taxable,
+            cgst_amount: cgst,
+            sgst_amount: sgst,
+            total_amount: taxable + cgst + sgst
+        });
+    };
+
+    const addManualPurchaseItem = () => {
+        setManualPurchaseForm({
+            ...manualPurchaseForm,
+            items: [
+                ...manualPurchaseForm.items,
+                { medicine_name: '', mrp: '', quantity: '', batch_number: '', expiry_date: '', hsn_code: '', gst: '', rate: '', discount: '' }
+            ]
+        });
+    };
+
+    const removeManualPurchaseItem = (index) => {
+        const newItems = manualPurchaseForm.items.filter((_, i) => i !== index);
+        let taxable = 0;
+        let cgst = 0;
+        let sgst = 0;
+        newItems.forEach(item => {
+            const qty = Number(item.quantity) || 0;
+            const rate = Number(item.rate) || 0;
+            const discount = Number(item.discount) || 0;
+            const discountedRate = rate - (rate * (discount / 100));
+            const itemTaxable = qty * discountedRate;
+            const itemGst = Number(item.gst) || 0;
+            const itemGstAmt = (itemTaxable * itemGst) / 100;
+            taxable += itemTaxable;
+            cgst += itemGstAmt / 2;
+            sgst += itemGstAmt / 2;
+        });
+        setManualPurchaseForm({
+            ...manualPurchaseForm,
+            items: newItems,
+            taxable_amount: taxable,
+            cgst_amount: cgst,
+            sgst_amount: sgst,
+            total_amount: taxable + cgst + sgst
+        });
+    };
+
+    const handleSaveManualPurchase = async () => {
+        if (!manualPurchaseForm.supplier_name.trim()) {
+            Alert.alert('Validation Error', 'Supplier Name is required.');
+            return;
+        }
+        if (manualPurchaseForm.items.length === 0) {
+            Alert.alert('Validation Error', 'Please add at least one item.');
+            return;
+        }
+        for (let i = 0; i < manualPurchaseForm.items.length; i++) {
+            if (!manualPurchaseForm.items[i].medicine_name.trim()) {
+                Alert.alert('Validation Error', `Item #${i + 1} must have a Product Name.`);
+                return;
+            }
+        }
+
+        setManualPurchaseLoading(true);
+        try {
+            await createManualPurchase(manualPurchaseForm);
+            Alert.alert('Success', 'Manual purchase saved successfully!');
+            setManualPurchaseModalVisible(false);
+            setManualPurchaseForm({
+                supplier_name: '', supplier_gstin: '', bill_no: '', bill_date: '', notes: '',
+                items: [], taxable_amount: 0, cgst_amount: 0, sgst_amount: 0, total_amount: 0,
+            });
+            fetchPurchases();
+        } catch (error) {
+            Alert.alert('Error', error.message || 'Failed to save manual purchase.');
+        } finally {
+            setManualPurchaseLoading(false);
+        }
+    };
+
+    // â”€â”€â”€ UPLOAD (Step 1: Pick file â†’ show form) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const handleUploadBill = async () => {
         try {
             let file = null;
@@ -266,7 +384,7 @@ export default function PurchaseScreen() {
         }
     };
 
-    // ─── UPLOAD (Step 2: Submit form → upload) ────────────────────────────
+    // â”€â”€â”€ UPLOAD (Step 2: Submit form â†’ upload) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const handleUploadSubmit = async () => {
         if (!selectedFile) return;
 
@@ -309,7 +427,7 @@ export default function PurchaseScreen() {
         setUploadForm({ supplier_name: '', bill_date: '', total_amount: '' });
     };
 
-    // ─── DELETE ────────────────────────────────────────────────────────────
+    // â”€â”€â”€ DELETE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const confirmDelete = (id) => {
         setDeletingId(id);
         setDeleteModalVisible(true);
@@ -330,13 +448,13 @@ export default function PurchaseScreen() {
         }
     };
 
-    // ─── PREVIEW ───────────────────────────────────────────────────────────
+    // â”€â”€â”€ PREVIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const openPreview = (url) => {
         setPreviewUrl(url);
         setPreviewVisible(true);
     };
 
-    // ─── MOBILE CARD ROW ──────────────────────────────────────────────────
+    // â”€â”€â”€ MOBILE CARD ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const renderMobileCard = ({ item, index }) => {
         const hasBill = !!item.bill_image_url;
         const statusLabel = item.status?.toUpperCase() ?? 'PENDING';
@@ -346,7 +464,7 @@ export default function PurchaseScreen() {
                 <View style={styles.mobileCardHeader}>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.mobileCardSupplier} numberOfLines={1}>
-                            {item.supplier_name || '— No Supplier —'}
+                            {item.supplier_name || 'â€” No Supplier â€”'}
                         </Text>
                         {item.supplier_gstin ? <Text style={styles.mobileCardGstin}>{item.supplier_gstin}</Text> : null}
                     </View>
@@ -368,20 +486,20 @@ export default function PurchaseScreen() {
                         </View>
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>Invoice No</Text>
-                            <Text style={styles.mobileDetailValue}>{item.bill_no || '—'}</Text>
+                            <Text style={styles.mobileDetailValue}>{item.bill_no || 'â€”'}</Text>
                         </View>
                     </View>
                     <View style={styles.mobileDetailRow}>
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>Amount</Text>
                             <Text style={[styles.mobileDetailValue, { fontWeight: '600', color: COLORS.primary }]}>
-                                {item.total_amount > 0 ? `₹${Number(item.total_amount).toFixed(2)}` : '—'}
+                                {item.total_amount > 0 ? `â‚¹${Number(item.total_amount).toFixed(2)}` : 'â€”'}
                             </Text>
                         </View>
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>Items</Text>
                             <Text style={styles.mobileDetailValue}>
-                                {item.items_count > 0 ? item.items_count : '—'}
+                                {item.items_count > 0 ? item.items_count : 'â€”'}
                             </Text>
                         </View>
                     </View>
@@ -389,13 +507,13 @@ export default function PurchaseScreen() {
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>Taxable</Text>
                             <Text style={styles.mobileDetailValue}>
-                                {item.taxable_amount > 0 ? `₹${item.taxable_amount.toFixed(2)}` : '—'}
+                                {item.taxable_amount > 0 ? `â‚¹${item.taxable_amount.toFixed(2)}` : 'â€”'}
                             </Text>
                         </View>
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>CGST / SGST</Text>
                             <Text style={styles.mobileDetailValue}>
-                                {item.cgst_amount > 0 ? `₹${item.cgst_amount.toFixed(2)}` : '—'} / {item.sgst_amount > 0 ? `₹${item.sgst_amount.toFixed(2)}` : '—'}
+                                {item.cgst_amount > 0 ? `â‚¹${item.cgst_amount.toFixed(2)}` : 'â€”'} / {item.sgst_amount > 0 ? `â‚¹${item.sgst_amount.toFixed(2)}` : 'â€”'}
                             </Text>
                         </View>
                     </View>
@@ -428,7 +546,7 @@ export default function PurchaseScreen() {
         );
     };
 
-    // ─── DESKTOP TABLE ROW ─────────────────────────────────────────────────
+    // â”€â”€â”€ DESKTOP TABLE ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const renderRow = ({ item, index }) => {
         const hasBill = !!item.bill_image_url;
         return (
@@ -445,29 +563,29 @@ export default function PurchaseScreen() {
                 {/* Supplier / GSTIN */}
                 <View style={[styles.cell, { flex: 1.8 }]}>
                     <Text style={styles.cellText} numberOfLines={1}>
-                        {item.supplier_name || <Text style={{ color: COLORS.textMuted, fontStyle: 'italic' }}>—</Text>}
+                        {item.supplier_name || <Text style={{ color: COLORS.textMuted, fontStyle: 'italic' }}>â€”</Text>}
                     </Text>
                     {item.supplier_gstin ? <Text style={styles.cellMuted}>{item.supplier_gstin}</Text> : null}
                 </View>
                 {/* Taxes (Taxable / CGST / SGST) */}
                 <View style={[styles.cell, { flex: 2 }]}>
                     <Text style={styles.cellText}>
-                        Taxable: {item.taxable_amount > 0 ? `₹${item.taxable_amount.toFixed(2)}` : '—'}
+                        Taxable: {item.taxable_amount > 0 ? `â‚¹${item.taxable_amount.toFixed(2)}` : 'â€”'}
                     </Text>
                     <Text style={styles.cellMuted}>
-                        CGST: {item.cgst_amount > 0 ? `₹${item.cgst_amount.toFixed(2)}` : '—'} | SGST: {item.sgst_amount > 0 ? `₹${item.sgst_amount.toFixed(2)}` : '—'}
+                        CGST: {item.cgst_amount > 0 ? `â‚¹${item.cgst_amount.toFixed(2)}` : 'â€”'} | SGST: {item.sgst_amount > 0 ? `â‚¹${item.sgst_amount.toFixed(2)}` : 'â€”'}
                     </Text>
                 </View>
                 {/* Items */}
                 <View style={[styles.cell, { flex: 0.8, alignItems: 'center' }]}>
                     <Text style={styles.cellText}>
-                        {item.items_count > 0 ? item.items_count : '—'}
+                        {item.items_count > 0 ? item.items_count : 'â€”'}
                     </Text>
                 </View>
                 {/* Amount */}
                 <View style={[styles.cell, { flex: 1.2, alignItems: 'center' }]}>
                     <Text style={styles.cellText}>
-                        {item.total_amount > 0 ? `₹${Number(item.total_amount).toFixed(2)}` : '—'}
+                        {item.total_amount > 0 ? `â‚¹${Number(item.total_amount).toFixed(2)}` : 'â€”'}
                     </Text>
                 </View>
                 {/* Bill Image */}
@@ -511,25 +629,35 @@ export default function PurchaseScreen() {
     return (
         <View style={[styles.container, r.isSmall && { padding: 10, overflow: 'hidden' }]}>
 
-            {/* ─── HEADER ─── */}
+            {/* â”€â”€â”€ HEADER â”€â”€â”€ */}
             <View style={[styles.header, r.isSmall && styles.headerMobile]}>
                 <View style={{ flexShrink: 1, minWidth: 0 }}>
                     <Text style={styles.headerTitle}>Purchase Orders</Text>
                     <Text style={styles.headerSub} numberOfLines={r.isSmall ? 2 : 1}>
-                        {filteredPurchases.length} record{filteredPurchases.length !== 1 ? 's' : ''}{r.isSmall ? '' : ' · Bills uploaded from inventory AI import'}
+                        {filteredPurchases.length} record{filteredPurchases.length !== 1 ? 's' : ''}{r.isSmall ? '' : ' Â· Bills uploaded from inventory AI import'}
                     </Text>
                 </View>
 
                 <View style={[styles.headerActions, r.isSmall && styles.headerActionsMobile]}>
-                    {/* Upload Bill */}
-                    <TouchableOpacity
-                        style={[styles.btnPrimary, r.isSmall && { height: 38 }]}
-                        onPress={handleUploadBill}
-                        disabled={uploading}
-                    >
-                        <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
-                        <Text style={styles.btnPrimaryText}>{uploading ? 'Uploading...' : 'Upload Bill'}</Text>
-                    </TouchableOpacity>
+                    {/* Manual Purchase & Upload Bill */}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                            style={[styles.btnSecondary, r.isSmall && { height: 38 }]}
+                            onPress={() => setManualPurchaseModalVisible(true)}
+                        >
+                            <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} style={{ marginRight: 6 }} />
+                            <Text style={[styles.btnSecondaryText, { color: COLORS.primary }]}>Add Purchase</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.btnPrimary, r.isSmall && { height: 38 }]}
+                            onPress={handleUploadBill}
+                            disabled={uploading}
+                        >
+                            <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                            <Text style={styles.btnPrimaryText}>{uploading ? 'Uploading...' : 'Upload Bill'}</Text>
+                        </TouchableOpacity>
+                    </View>
 
                     {/* Date + Search row on mobile */}
                     <View style={[styles.filterRow, r.isSmall && styles.filterRowMobile]}>
@@ -587,22 +715,22 @@ export default function PurchaseScreen() {
                 </View>
             </View>
 
-            {/* ─── UPLOAD INFO BANNER (only shown while uploading) ─── */}
+            {/* â”€â”€â”€ UPLOAD INFO BANNER (only shown while uploading) â”€â”€â”€ */}
             {uploading && (
                 <View style={styles.uploadBanner}>
                     <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 8 }} />
-                    <Text style={styles.uploadBannerText}>{uploadProgress || 'Processing…'}</Text>
+                    <Text style={styles.uploadBannerText}>{uploadProgress || 'Processingâ€¦'}</Text>
                 </View>
             )}
 
-            {/* ─── CONTENT: Cards on mobile, Table on desktop ─── */}
+            {/* â”€â”€â”€ CONTENT: Cards on mobile, Table on desktop â”€â”€â”€ */}
             {r.isSmall ? (
-                /* ─── MOBILE: Card List ─── */
+                /* â”€â”€â”€ MOBILE: Card List â”€â”€â”€ */
                 <View style={{ flex: 1 }}>
                     {loading ? (
                         <View style={styles.centerBox}>
                             <ActivityIndicator size="large" color={COLORS.primary} />
-                            <Text style={styles.loadingText}>Loading purchases…</Text>
+                            <Text style={styles.loadingText}>Loading purchasesâ€¦</Text>
                         </View>
                     ) : filteredPurchases.length > 0 ? (
                         <FlatList
@@ -623,7 +751,7 @@ export default function PurchaseScreen() {
                     )}
                 </View>
             ) : (
-                /* ─── DESKTOP: Table ─── */
+                /* â”€â”€â”€ DESKTOP: Table â”€â”€â”€ */
                 <View style={styles.tableContainer}>
                     {/* Table Header */}
                     <View style={styles.tableHeader}>
@@ -660,7 +788,7 @@ export default function PurchaseScreen() {
                     {loading ? (
                         <View style={styles.centerBox}>
                             <ActivityIndicator size="large" color={COLORS.primary} />
-                            <Text style={styles.loadingText}>Loading purchases…</Text>
+                            <Text style={styles.loadingText}>Loading purchasesâ€¦</Text>
                         </View>
                     ) : filteredPurchases.length > 0 ? (
                         <FlatList
@@ -681,14 +809,14 @@ export default function PurchaseScreen() {
                 </View>
             )}
 
-            {/* ─── IMAGE PREVIEW MODAL ─── */}
+            {/* â”€â”€â”€ IMAGE PREVIEW MODAL â”€â”€â”€ */}
             <ImagePreviewModal
                 visible={previewVisible}
                 imageUrl={previewUrl}
                 onClose={() => { setPreviewVisible(false); setPreviewUrl(null); }}
             />
 
-            {/* ─── DELETE CONFIRM MODAL ─── */}
+            {/* â”€â”€â”€ DELETE CONFIRM MODAL â”€â”€â”€ */}
             <Modal visible={deleteModalVisible} animationType="fade" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={[styles.deleteModal, r.isSmall && { width: '90%', maxWidth: 380 }]}>
@@ -724,7 +852,142 @@ export default function PurchaseScreen() {
                 </View>
             </Modal>
 
-            {/* ─── UPLOAD FORM MODAL ─── */}
+            {/* â”€â”€â”€ MANUAL PURCHASE MODAL â”€â”€â”€ */}
+            <Modal visible={manualPurchaseModalVisible} transparent animationType="slide">
+                <View style={formStyles.overlay}>
+                    <View style={[formStyles.container, { width: '95%', maxWidth: 1000, maxHeight: '90%' }]}>
+                        <View style={formStyles.header}>
+                            <View>
+                                <Text style={formStyles.title}>Manual Purchase Entry</Text>
+                                <Text style={formStyles.subtitle}>Enter supplier and item details</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setManualPurchaseModalVisible(false)}>
+                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView style={formStyles.body}>
+                            {/* Supplier Section */}
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 }}>1. Supplier Info</Text>
+                            <View style={{ flexDirection: r.isSmall ? 'column' : 'row', gap: 15, marginBottom: 20 }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={formStyles.label}>Supplier Name <Text style={{ color: COLORS.error }}>*</Text></Text>
+                                    <TextInput style={formStyles.input} placeholder="Supplier Name" value={manualPurchaseForm.supplier_name} onChangeText={(t) => setManualPurchaseForm({ ...manualPurchaseForm, supplier_name: t })} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={formStyles.label}>GST No.</Text>
+                                    <TextInput style={formStyles.input} placeholder="GSTIN" value={manualPurchaseForm.supplier_gstin} onChangeText={(t) => setManualPurchaseForm({ ...manualPurchaseForm, supplier_gstin: t })} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={formStyles.label}>Invoice ID</Text>
+                                    <TextInput style={formStyles.input} placeholder="Invoice ID" value={manualPurchaseForm.bill_no} onChangeText={(t) => setManualPurchaseForm({ ...manualPurchaseForm, bill_no: t })} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={formStyles.label}>Bill Date</Text>
+                                    <TextInput style={formStyles.input} placeholder="YYYY-MM-DD" value={manualPurchaseForm.bill_date} onChangeText={(t) => setManualPurchaseForm({ ...manualPurchaseForm, bill_date: t })} />
+                                </View>
+                            </View>
+
+                            {/* Items Section */}
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.textPrimary }}>2. Items Info</Text>
+                                <TouchableOpacity onPress={addManualPurchaseItem} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F9FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, borderWidth: 1, borderColor: '#BAE6FD' }}>
+                                    <Ionicons name="add" size={14} color="#0284C7" style={{ marginRight: 4 }} />
+                                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#0284C7' }}>Add Row</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {manualPurchaseForm.items.length === 0 ? (
+                                <View style={{ padding: 20, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed', marginBottom: 20 }}>
+                                    <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>No items added. Click "Add Row" to start.</Text>
+                                </View>
+                            ) : (
+                                <View style={{ gap: 10, marginBottom: 20 }}>
+                                    {manualPurchaseForm.items.map((item, idx) => (
+                                        <View key={idx} style={{ backgroundColor: '#F8FAFC', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                                                <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.textSecondary }}>Item #{idx + 1}</Text>
+                                                <TouchableOpacity onPress={() => removeManualPurchaseItem(idx)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                                                    <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            <View style={{ flexDirection: r.isSmall ? 'column' : 'row', gap: 10, flexWrap: 'wrap' }}>
+                                                <View style={{ flex: 2, minWidth: 140 }}>
+                                                    <Text style={formStyles.label}>Product Name <Text style={{ color: COLORS.error }}>*</Text></Text>
+                                                    <TextInput style={formStyles.input} placeholder="Product Name" value={item.medicine_name} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'medicine_name', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 60 }}>
+                                                    <Text style={formStyles.label}>MRP</Text>
+                                                    <TextInput style={formStyles.input} keyboardType="numeric" placeholder="0.00" value={item.mrp} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'mrp', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 60 }}>
+                                                    <Text style={formStyles.label}>Rate</Text>
+                                                    <TextInput style={formStyles.input} keyboardType="numeric" placeholder="0.00" value={item.rate} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'rate', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 50 }}>
+                                                    <Text style={formStyles.label}>Disc %</Text>
+                                                    <TextInput style={formStyles.input} keyboardType="numeric" placeholder="0" value={item.discount} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'discount', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 50 }}>
+                                                    <Text style={formStyles.label}>Qty</Text>
+                                                    <TextInput style={formStyles.input} keyboardType="numeric" placeholder="0" value={item.quantity} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'quantity', t)} />
+                                                </View>
+                                                <View style={{ flex: 1.5, minWidth: 80 }}>
+                                                    <Text style={formStyles.label}>Batch</Text>
+                                                    <TextInput style={formStyles.input} placeholder="Batch" value={item.batch_number} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'batch_number', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 60 }}>
+                                                    <Text style={formStyles.label}>Expiry</Text>
+                                                    <TextInput style={formStyles.input} placeholder="MM/YY" value={item.expiry_date} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'expiry_date', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 60 }}>
+                                                    <Text style={formStyles.label}>HSN</Text>
+                                                    <TextInput style={formStyles.input} placeholder="HSN" value={item.hsn_code} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'hsn_code', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 50 }}>
+                                                    <Text style={formStyles.label}>GST %</Text>
+                                                    <TextInput style={formStyles.input} keyboardType="numeric" placeholder="0" value={item.gst} onChangeText={(t) => handleManualPurchaseItemChange(idx, 'gst', t)} />
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+
+                            {/* Tax Details Section */}
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 }}>3. Tax & Totals</Text>
+                            <View style={{ flexDirection: r.isSmall ? 'column' : 'row', gap: 15, backgroundColor: '#F0FDFA', padding: 15, borderRadius: 8, borderWidth: 1, borderColor: '#CCFBF1' }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 11, color: COLORS.textMuted, marginBottom: 4 }}>Taxable Amount</Text>
+                                    <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.textPrimary }}>₹{manualPurchaseForm.taxable_amount.toFixed(2)}</Text>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 11, color: COLORS.textMuted, marginBottom: 4 }}>Total CGST</Text>
+                                    <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.textPrimary }}>₹{manualPurchaseForm.cgst_amount.toFixed(2)}</Text>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 11, color: COLORS.textMuted, marginBottom: 4 }}>Total SGST</Text>
+                                    <Text style={{ fontSize: 16, fontWeight: '700', color: COLORS.textPrimary }}>₹{manualPurchaseForm.sgst_amount.toFixed(2)}</Text>
+                                </View>
+                                <View style={{ flex: 1, backgroundColor: '#FFFFFF', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 6, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}>
+                                    <Text style={{ fontSize: 11, color: COLORS.textMuted, marginBottom: 4 }}>Total Amount</Text>
+                                    <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F766E' }}>₹{manualPurchaseForm.total_amount.toFixed(2)}</Text>
+                                </View>
+                            </View>
+
+                        </ScrollView>
+                        <View style={formStyles.footer}>
+                            <TouchableOpacity style={formStyles.cancelBtn} onPress={() => setManualPurchaseModalVisible(false)} disabled={manualPurchaseLoading}>
+                                <Text style={formStyles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={formStyles.saveBtn} onPress={handleSaveManualPurchase} disabled={manualPurchaseLoading}>
+                                {manualPurchaseLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={formStyles.saveBtnText}>Save Purchase</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* â”€â”€â”€ UPLOAD FORM MODAL â”€â”€â”€ */}
             <Modal visible={uploadFormVisible} animationType="fade" transparent onRequestClose={handleUploadCancel}>
                 <View style={styles.modalOverlay}>
                     <View style={[styles.uploadFormModal, r.isSmall && { width: '92%', maxWidth: 400 }]}>
@@ -829,7 +1092,29 @@ export default function PurchaseScreen() {
     );
 }
 
-// ─── STYLES ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const formStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+    container: { backgroundColor: '#fff', borderRadius: 0, padding: 12, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 2, display: 'flex', flexDirection: 'column' },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
+    title: { fontSize: 15, fontWeight: '700', color: '#0F172A', textTransform: 'uppercase' },
+    subtitle: { fontSize: 11, color: '#64748B', marginTop: 2 },
+    body: { flex: 1 },
+    label: { fontSize: 10, fontWeight: '600', color: '#475569', marginBottom: 4, textTransform: 'uppercase' },
+    input: { height: 28, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 0, paddingHorizontal: 6, backgroundColor: '#FFFFFF', fontSize: 12, color: '#0F172A', outlineStyle: 'none' },
+    inputFocus: { borderColor: '#2563EB', backgroundColor: '#F0F9FF' },
+    footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E2E8F0', marginTop: 10 },
+    cancelBtn: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 0, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#CBD5E1' },
+    cancelBtnText: { color: '#475569', fontSize: 12, fontWeight: '600' },
+    saveBtn: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 0, backgroundColor: '#0F766E', justifyContent: 'center', alignItems: 'center', minWidth: 120 },
+    saveBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+    tableHeader: { backgroundColor: '#F1F5F9', borderBottomWidth: 1, borderBottomColor: '#CBD5E1', paddingVertical: 6, paddingHorizontal: 4 },
+    tableHeaderText: { fontSize: 10, fontWeight: '700', color: '#334155', textTransform: 'uppercase' },
+    tableCell: { paddingHorizontal: 2, paddingVertical: 2, borderBottomWidth: 1, borderBottomColor: '#E2E8F0', borderRightWidth: 1, borderRightColor: '#E2E8F0' },
+    tableRow: { flexDirection: 'row', backgroundColor: '#FFFFFF' },
+    tableRowHover: { backgroundColor: '#F8FAFC' }
+});
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -927,7 +1212,7 @@ const styles = StyleSheet.create({
     },
     uploadBannerText: { fontSize: 12, color: COLORS.primary, fontWeight: '500' },
 
-    // ─── MOBILE CARD STYLES ──────────────────────────────────────────────
+    // â”€â”€â”€ MOBILE CARD STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     mobileCard: {
         backgroundColor: COLORS.white,
         borderRadius: 6,
@@ -991,7 +1276,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FAFBFA',
     },
 
-    // ─── DESKTOP TABLE STYLES ────────────────────────────────────────────
+    // â”€â”€â”€ DESKTOP TABLE STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     tableContainer: {
         flex: 1,
         backgroundColor: COLORS.white,
@@ -1180,7 +1465,7 @@ const styles = StyleSheet.create({
     },
     deleteActions: { flexDirection: 'row', gap: 8, width: '100%' },
 
-    // ─── Upload Form Modal ────────────────────────────────────────────
+    // â”€â”€â”€ Upload Form Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     uploadFormModal: {
         width: 420,
         backgroundColor: COLORS.white,

@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "MediX POS",
+    "name": "Medix",
     "slug": "medix-pos",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "landscape",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/medix-mobile-app-logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/web-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#1A3C34"
     },
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/web-logo.png",
         "backgroundColor": "#1A3C34"
       },
       "edgeToEdgeEnabled": false,
@@ -29,7 +29,7 @@
       "package": "com.anonymous.medixpos"
     },
     "web": {
-      "favicon": "./assets/icon.png"
+      "favicon": "./assets/favicon-medix-v2.png"
     },
     "plugins": [
       [

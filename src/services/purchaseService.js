@@ -39,3 +39,8 @@ export const finalizePurchase = async (purchaseId, meta) => {
     const response = await api.patch(`/purchase/${purchaseId}/finalize`, meta);
     return response.data;
 };
+
+export const createManualPurchase = async (purchaseData) => {
+    const response = await api.post(`/purchase/manual`, purchaseData);
+    return response.data;
+};

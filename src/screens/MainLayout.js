@@ -9,6 +9,7 @@ import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 import { logoutUser } from '../services/authService';
 import { AuthContext } from '../context/AuthContext';
+import { fetchStoreSettings } from '../utils/storeSettings';
 
 const getOperationalDateStr = (d) => {
     const day = String(d.getDate()).padStart(2, '0');
@@ -37,12 +38,26 @@ export default function MainLayout() {
     const r = useResponsive();
 
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [storeSettings, setStoreSettings] = useState(null);
 
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
         }, 10000);
         return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const s = await fetchStoreSettings({});
+                if (mounted) setStoreSettings(s);
+            } catch (e) {
+                console.error('Failed to load settings', e);
+            }
+        })();
+        return () => { mounted = false; };
     }, []);
 
     // Derive active route from the child navigator's state
@@ -75,8 +90,8 @@ export default function MainLayout() {
             <View style={styles.topBar}>
                 <View style={styles.topBarLeft}>
                     {r.isSmall && (
-                        <TouchableOpacity 
-                            style={styles.hamburgerBtn} 
+                        <TouchableOpacity
+                            style={styles.hamburgerBtn}
                             onPress={() => setSidebarOpen(true)}
                         >
                             <Ionicons name="menu" size={20} color={COLORS.white} />
@@ -84,16 +99,26 @@ export default function MainLayout() {
                     )}
                     <View style={styles.topBarBrand}>
                         <Image
-                            source={require('../../assets/icon.png')}
+                            source={require('../../assets/web-logo.png')}
                             style={{
-                                width: 22,
-                                height: 22
+                                width: r.isSmall ? 80 : 100,
+                                height: r.isSmall ? 32 : 40,
                             }}
                             resizeMode="contain"
                         />
-                        <Text style={styles.topBarTitle}>MediX POS & ERP</Text>
+
                     </View>
                 </View>
+                {!r.isSmall && (
+                    <View style={styles.topBarCenter}>
+                        <View style={styles.storeInfo}>
+                            <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
+                            <Text style={[styles.storeMeta, { marginLeft: 6, fontSize: 13 }]}>
+                                If you are facing any problem using the software or facing any technical problems, please whatsapp you problem to this number <Text style={{ fontWeight: '700', color: '#FFFFFF' }}>8101402916</Text>
+                            </Text>
+                        </View>
+                    </View>
+                )}
 
                 {/* Top Bar Right: Operational Info */}
                 <View style={styles.topBarRight}>
@@ -150,7 +175,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#24312E',
-        height: 36,
+        height: 50,
         paddingHorizontal: 12,
         borderBottomWidth: 0.5,
         borderBottomColor: 'rgba(255,255,255,0.1)',
@@ -172,9 +197,8 @@ const styles = StyleSheet.create({
     },
     topBarBrand: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginLeft: 4,
+
+        marginLeft: 5,
     },
     topBarTitle: {
         fontWeight: '500',
@@ -227,5 +251,39 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 5,
     },
+    topBarCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+},
+
+storeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+},
+
+storeName: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginLeft: 6,
+},
+
+storeMeta: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 15,
+    fontWeight: '500',
+},
+
+storeDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginHorizontal: 10,
+},
 
 });
