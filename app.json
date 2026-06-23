@@ -29,7 +29,7 @@
       "package": "com.anonymous.medixpos"
     },
     "web": {
-      "favicon": "./assets/favicon-medix-v2.png"
+      "favicon": "./assets/medix-app-icon.png"
     },
     "plugins": [
       [

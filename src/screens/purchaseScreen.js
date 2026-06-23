@@ -18,7 +18,7 @@ import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
 import { uploadPurchaseBill, getPurchases, deletePurchase, createManualPurchase } from '../services/purchaseService';
 
-// â”€â”€â”€ File picker helper (web only â€” uses <input type="file"> â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── File picker helper (web only — uses <input type="file"> ────────────────
 const pickFileWeb = () =>
     new Promise((resolve) => {
         const input = document.createElement('input');
@@ -31,9 +31,9 @@ const pickFileWeb = () =>
         input.click();
     });
 
-// â”€â”€â”€ Format date helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Format date helper ─────────────────────────────────────────────────────
 const formatDate = (iso) => {
-    if (!iso) return 'â€”';
+    if (!iso) return '—';
     const d = new Date(iso);
     const day = String(d.getDate()).padStart(2, '0');
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -41,7 +41,7 @@ const formatDate = (iso) => {
     return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };
 
-// â”€â”€â”€ Bill Image Preview Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Bill Image Preview Modal ───────────────────────────────────────────────
 const ImagePreviewModal = ({ visible, imageUrl, onClose }) => (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
         <View style={previewStyles.overlay}>
@@ -156,9 +156,9 @@ const previewStyles = StyleSheet.create({
     closeBtnText: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary },
 });
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN SCREEN
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 export default function PurchaseScreen() {
     const r = useResponsive();
 
@@ -207,7 +207,7 @@ export default function PurchaseScreen() {
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
-    // â”€â”€â”€ FETCH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── FETCH ─────────────────────────────────────────────────────────────
     const fetchPurchases = useCallback(async () => {
         setLoading(true);
         try {
@@ -236,7 +236,7 @@ export default function PurchaseScreen() {
             );
         }
 
-        // Date filter â€” single day
+        // Date filter — single day
         if (filterDate) {
             const dayStart = new Date(filterDate + 'T00:00:00');
             const dayEnd = new Date(filterDate + 'T23:59:59');
@@ -255,9 +255,21 @@ export default function PurchaseScreen() {
         setRefreshing(false);
     };
 
-    // â”€â”€â”€ MANUAL PURCHASE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── MANUAL PURCHASE ──────────────────────────────────────────────────
     const handleManualPurchaseItemChange = (index, field, value) => {
         const newItems = [...manualPurchaseForm.items];
+        
+        if (field === 'expiry_date') {
+            let formatted = value.replace(/\D/g, '');
+            if (formatted.length > 4) {
+                formatted = formatted.substring(0, 4);
+            }
+            if (formatted.length >= 3) {
+                formatted = formatted.substring(0, 2) + '/' + formatted.substring(2);
+            }
+            value = formatted;
+        }
+
         newItems[index][field] = value;
         
         let taxable = 0;
@@ -342,7 +354,24 @@ export default function PurchaseScreen() {
 
         setManualPurchaseLoading(true);
         try {
-            await createManualPurchase(manualPurchaseForm);
+            const payload = { ...manualPurchaseForm };
+            payload.items = payload.items.map(item => {
+                let formattedExpiry = item.expiry_date;
+                if (formattedExpiry && formattedExpiry.includes('/')) {
+                    const parts = formattedExpiry.split('/');
+                    if (parts.length === 2 && parts[0].length === 2 && parts[1].length === 2) {
+                        const month = parseInt(parts[0], 10);
+                        const year = 2000 + parseInt(parts[1], 10);
+                        // Get the last day of the month (month is 1-based here, so passing it to Date as monthIndex gets the 0th day of the NEXT month, i.e., last day of current month)
+                        const lastDay = new Date(year, month, 0).getDate();
+                        // Format to YYYY-MM-DD so Mongoose parses it reliably
+                        formattedExpiry = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+                    }
+                }
+                return { ...item, expiry_date: formattedExpiry };
+            });
+
+            await createManualPurchase(payload);
             Alert.alert('Success', 'Manual purchase saved successfully!');
             setManualPurchaseModalVisible(false);
             setManualPurchaseForm({
@@ -357,7 +386,7 @@ export default function PurchaseScreen() {
         }
     };
 
-    // â”€â”€â”€ UPLOAD (Step 1: Pick file â†’ show form) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── UPLOAD (Step 1: Pick file → show form) ───────────────────────────
     const handleUploadBill = async () => {
         try {
             let file = null;
@@ -384,7 +413,7 @@ export default function PurchaseScreen() {
         }
     };
 
-    // â”€â”€â”€ UPLOAD (Step 2: Submit form â†’ upload) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── UPLOAD (Step 2: Submit form → upload) ────────────────────────────
     const handleUploadSubmit = async () => {
         if (!selectedFile) return;
 
@@ -427,7 +456,7 @@ export default function PurchaseScreen() {
         setUploadForm({ supplier_name: '', bill_date: '', total_amount: '' });
     };
 
-    // â”€â”€â”€ DELETE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── DELETE ────────────────────────────────────────────────────────────
     const confirmDelete = (id) => {
         setDeletingId(id);
         setDeleteModalVisible(true);
@@ -448,13 +477,13 @@ export default function PurchaseScreen() {
         }
     };
 
-    // â”€â”€â”€ PREVIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── PREVIEW ───────────────────────────────────────────────────────────
     const openPreview = (url) => {
         setPreviewUrl(url);
         setPreviewVisible(true);
     };
 
-    // â”€â”€â”€ MOBILE CARD ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── MOBILE CARD ROW ──────────────────────────────────────────────────
     const renderMobileCard = ({ item, index }) => {
         const hasBill = !!item.bill_image_url;
         const statusLabel = item.status?.toUpperCase() ?? 'PENDING';
@@ -464,7 +493,7 @@ export default function PurchaseScreen() {
                 <View style={styles.mobileCardHeader}>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.mobileCardSupplier} numberOfLines={1}>
-                            {item.supplier_name || 'â€” No Supplier â€”'}
+                            {item.supplier_name || '— No Supplier —'}
                         </Text>
                         {item.supplier_gstin ? <Text style={styles.mobileCardGstin}>{item.supplier_gstin}</Text> : null}
                     </View>
@@ -486,20 +515,20 @@ export default function PurchaseScreen() {
                         </View>
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>Invoice No</Text>
-                            <Text style={styles.mobileDetailValue}>{item.bill_no || 'â€”'}</Text>
+                            <Text style={styles.mobileDetailValue}>{item.bill_no || '—'}</Text>
                         </View>
                     </View>
                     <View style={styles.mobileDetailRow}>
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>Amount</Text>
                             <Text style={[styles.mobileDetailValue, { fontWeight: '600', color: COLORS.primary }]}>
-                                {item.total_amount > 0 ? `â‚¹${Number(item.total_amount).toFixed(2)}` : 'â€”'}
+                                {item.total_amount > 0 ? `₹${Number(item.total_amount).toFixed(2)}` : '—'}
                             </Text>
                         </View>
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>Items</Text>
                             <Text style={styles.mobileDetailValue}>
-                                {item.items_count > 0 ? item.items_count : 'â€”'}
+                                {item.items_count > 0 ? item.items_count : '—'}
                             </Text>
                         </View>
                     </View>
@@ -507,13 +536,13 @@ export default function PurchaseScreen() {
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>Taxable</Text>
                             <Text style={styles.mobileDetailValue}>
-                                {item.taxable_amount > 0 ? `â‚¹${item.taxable_amount.toFixed(2)}` : 'â€”'}
+                                {item.taxable_amount > 0 ? `₹${item.taxable_amount.toFixed(2)}` : '—'}
                             </Text>
                         </View>
                         <View style={styles.mobileDetailItem}>
                             <Text style={styles.mobileDetailLabel}>CGST / SGST</Text>
                             <Text style={styles.mobileDetailValue}>
-                                {item.cgst_amount > 0 ? `â‚¹${item.cgst_amount.toFixed(2)}` : 'â€”'} / {item.sgst_amount > 0 ? `â‚¹${item.sgst_amount.toFixed(2)}` : 'â€”'}
+                                {item.cgst_amount > 0 ? `₹${item.cgst_amount.toFixed(2)}` : '—'} / {item.sgst_amount > 0 ? `₹${item.sgst_amount.toFixed(2)}` : '—'}
                             </Text>
                         </View>
                     </View>
@@ -546,7 +575,7 @@ export default function PurchaseScreen() {
         );
     };
 
-    // â”€â”€â”€ DESKTOP TABLE ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── DESKTOP TABLE ROW ─────────────────────────────────────────────────
     const renderRow = ({ item, index }) => {
         const hasBill = !!item.bill_image_url;
         return (
@@ -563,29 +592,29 @@ export default function PurchaseScreen() {
                 {/* Supplier / GSTIN */}
                 <View style={[styles.cell, { flex: 1.8 }]}>
                     <Text style={styles.cellText} numberOfLines={1}>
-                        {item.supplier_name || <Text style={{ color: COLORS.textMuted, fontStyle: 'italic' }}>â€”</Text>}
+                        {item.supplier_name || <Text style={{ color: COLORS.textMuted, fontStyle: 'italic' }}>—</Text>}
                     </Text>
                     {item.supplier_gstin ? <Text style={styles.cellMuted}>{item.supplier_gstin}</Text> : null}
                 </View>
                 {/* Taxes (Taxable / CGST / SGST) */}
                 <View style={[styles.cell, { flex: 2 }]}>
                     <Text style={styles.cellText}>
-                        Taxable: {item.taxable_amount > 0 ? `â‚¹${item.taxable_amount.toFixed(2)}` : 'â€”'}
+                        Taxable: {item.taxable_amount > 0 ? `₹${item.taxable_amount.toFixed(2)}` : '—'}
                     </Text>
                     <Text style={styles.cellMuted}>
-                        CGST: {item.cgst_amount > 0 ? `â‚¹${item.cgst_amount.toFixed(2)}` : 'â€”'} | SGST: {item.sgst_amount > 0 ? `â‚¹${item.sgst_amount.toFixed(2)}` : 'â€”'}
+                        CGST: {item.cgst_amount > 0 ? `₹${item.cgst_amount.toFixed(2)}` : '—'} | SGST: {item.sgst_amount > 0 ? `₹${item.sgst_amount.toFixed(2)}` : '—'}
                     </Text>
                 </View>
                 {/* Items */}
                 <View style={[styles.cell, { flex: 0.8, alignItems: 'center' }]}>
                     <Text style={styles.cellText}>
-                        {item.items_count > 0 ? item.items_count : 'â€”'}
+                        {item.items_count > 0 ? item.items_count : '—'}
                     </Text>
                 </View>
                 {/* Amount */}
                 <View style={[styles.cell, { flex: 1.2, alignItems: 'center' }]}>
                     <Text style={styles.cellText}>
-                        {item.total_amount > 0 ? `â‚¹${Number(item.total_amount).toFixed(2)}` : 'â€”'}
+                        {item.total_amount > 0 ? `₹${Number(item.total_amount).toFixed(2)}` : '—'}
                     </Text>
                 </View>
                 {/* Bill Image */}
@@ -629,12 +658,12 @@ export default function PurchaseScreen() {
     return (
         <View style={[styles.container, r.isSmall && { padding: 10, overflow: 'hidden' }]}>
 
-            {/* â”€â”€â”€ HEADER â”€â”€â”€ */}
+            {/* ─── HEADER ─── */}
             <View style={[styles.header, r.isSmall && styles.headerMobile]}>
                 <View style={{ flexShrink: 1, minWidth: 0 }}>
                     <Text style={styles.headerTitle}>Purchase Orders</Text>
                     <Text style={styles.headerSub} numberOfLines={r.isSmall ? 2 : 1}>
-                        {filteredPurchases.length} record{filteredPurchases.length !== 1 ? 's' : ''}{r.isSmall ? '' : ' Â· Bills uploaded from inventory AI import'}
+                        {filteredPurchases.length} record{filteredPurchases.length !== 1 ? 's' : ''}{r.isSmall ? '' : ' · Bills uploaded from inventory AI import'}
                     </Text>
                 </View>
 
@@ -715,22 +744,22 @@ export default function PurchaseScreen() {
                 </View>
             </View>
 
-            {/* â”€â”€â”€ UPLOAD INFO BANNER (only shown while uploading) â”€â”€â”€ */}
+            {/* ─── UPLOAD INFO BANNER (only shown while uploading) ─── */}
             {uploading && (
                 <View style={styles.uploadBanner}>
                     <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 8 }} />
-                    <Text style={styles.uploadBannerText}>{uploadProgress || 'Processingâ€¦'}</Text>
+                    <Text style={styles.uploadBannerText}>{uploadProgress || 'Processing…'}</Text>
                 </View>
             )}
 
-            {/* â”€â”€â”€ CONTENT: Cards on mobile, Table on desktop â”€â”€â”€ */}
+            {/* ─── CONTENT: Cards on mobile, Table on desktop ─── */}
             {r.isSmall ? (
-                /* â”€â”€â”€ MOBILE: Card List â”€â”€â”€ */
+                /* ─── MOBILE: Card List ─── */
                 <View style={{ flex: 1 }}>
                     {loading ? (
                         <View style={styles.centerBox}>
                             <ActivityIndicator size="large" color={COLORS.primary} />
-                            <Text style={styles.loadingText}>Loading purchasesâ€¦</Text>
+                            <Text style={styles.loadingText}>Loading purchases…</Text>
                         </View>
                     ) : filteredPurchases.length > 0 ? (
                         <FlatList
@@ -751,7 +780,7 @@ export default function PurchaseScreen() {
                     )}
                 </View>
             ) : (
-                /* â”€â”€â”€ DESKTOP: Table â”€â”€â”€ */
+                /* ─── DESKTOP: Table ─── */
                 <View style={styles.tableContainer}>
                     {/* Table Header */}
                     <View style={styles.tableHeader}>
@@ -788,7 +817,7 @@ export default function PurchaseScreen() {
                     {loading ? (
                         <View style={styles.centerBox}>
                             <ActivityIndicator size="large" color={COLORS.primary} />
-                            <Text style={styles.loadingText}>Loading purchasesâ€¦</Text>
+                            <Text style={styles.loadingText}>Loading purchases…</Text>
                         </View>
                     ) : filteredPurchases.length > 0 ? (
                         <FlatList
@@ -809,14 +838,14 @@ export default function PurchaseScreen() {
                 </View>
             )}
 
-            {/* â”€â”€â”€ IMAGE PREVIEW MODAL â”€â”€â”€ */}
+            {/* ─── IMAGE PREVIEW MODAL ─── */}
             <ImagePreviewModal
                 visible={previewVisible}
                 imageUrl={previewUrl}
                 onClose={() => { setPreviewVisible(false); setPreviewUrl(null); }}
             />
 
-            {/* â”€â”€â”€ DELETE CONFIRM MODAL â”€â”€â”€ */}
+            {/* ─── DELETE CONFIRM MODAL ─── */}
             <Modal visible={deleteModalVisible} animationType="fade" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={[styles.deleteModal, r.isSmall && { width: '90%', maxWidth: 380 }]}>
@@ -852,7 +881,7 @@ export default function PurchaseScreen() {
                 </View>
             </Modal>
 
-            {/* â”€â”€â”€ MANUAL PURCHASE MODAL â”€â”€â”€ */}
+            {/* ─── MANUAL PURCHASE MODAL ─── */}
             <Modal visible={manualPurchaseModalVisible} transparent animationType="slide">
                 <View style={formStyles.overlay}>
                     <View style={[formStyles.container, { width: '95%', maxWidth: 1000, maxHeight: '90%' }]}>
@@ -987,7 +1016,7 @@ export default function PurchaseScreen() {
                 </View>
             </Modal>
 
-            {/* â”€â”€â”€ UPLOAD FORM MODAL â”€â”€â”€ */}
+            {/* ─── UPLOAD FORM MODAL ─── */}
             <Modal visible={uploadFormVisible} animationType="fade" transparent onRequestClose={handleUploadCancel}>
                 <View style={styles.modalOverlay}>
                     <View style={[styles.uploadFormModal, r.isSmall && { width: '92%', maxWidth: 400 }]}>
@@ -1092,7 +1121,7 @@ export default function PurchaseScreen() {
     );
 }
 
-// â”€â”€â”€ STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── STYLES ──────────────────────────────────────────────────────────────────
 const formStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
     container: { backgroundColor: '#fff', borderRadius: 0, padding: 12, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 2, display: 'flex', flexDirection: 'column' },
@@ -1212,7 +1241,7 @@ const styles = StyleSheet.create({
     },
     uploadBannerText: { fontSize: 12, color: COLORS.primary, fontWeight: '500' },
 
-    // â”€â”€â”€ MOBILE CARD STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── MOBILE CARD STYLES ──────────────────────────────────────────────
     mobileCard: {
         backgroundColor: COLORS.white,
         borderRadius: 6,
@@ -1276,7 +1305,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FAFBFA',
     },
 
-    // â”€â”€â”€ DESKTOP TABLE STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── DESKTOP TABLE STYLES ────────────────────────────────────────────
     tableContainer: {
         flex: 1,
         backgroundColor: COLORS.white,
@@ -1465,7 +1494,7 @@ const styles = StyleSheet.create({
     },
     deleteActions: { flexDirection: 'row', gap: 8, width: '100%' },
 
-    // â”€â”€â”€ Upload Form Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ─── Upload Form Modal ────────────────────────────────────────────
     uploadFormModal: {
         width: 420,
         backgroundColor: COLORS.white,

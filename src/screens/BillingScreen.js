@@ -1,4 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHotkeys } from 'react-hotkeys-hook'
 import {
     View,
@@ -671,6 +673,8 @@ export default function BillingScreen({ navigation, route }) {
 
     const [alerts, setAlerts] = useState([]);
     const [alertsLoading, setAlertsLoading] = useState(false);
+    const [todayStats, setTodayStats] = useState({ todaySales: 0, totalOrders: 0 });
+    const [softwareUsedTime, setSoftwareUsedTime] = useState({ hours: 0, minutes: 0 });
 
     const fetchAlerts = async () => {
         setAlertsLoading(true);
@@ -719,6 +723,68 @@ export default function BillingScreen({ navigation, route }) {
             setAlertsLoading(false);
         }
     };
+
+    const fetchTodayStats = async () => {
+        try {
+            const response = await api.get('/sales/today');
+            if (response && response.data && response.data.data) {
+                setTodayStats({
+                    todaySales: response.data.data.total_sales ?? 0,
+                    totalOrders: response.data.data.total_orders ?? 0,
+                });
+            }
+        } catch (error) {
+            console.warn('Failed to fetch today stats:', error);
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchTodayStats();
+            
+            let interval;
+            const initUsageTime = async () => {
+                const now = new Date();
+                const todayStr = now.toDateString();
+                
+                try {
+                    let savedData = await AsyncStorage.getItem('software_usage_start');
+                    let startData = savedData ? JSON.parse(savedData) : null;
+                    
+                    if (!startData || startData.date !== todayStr) {
+                        // Start fresh for today
+                        startData = {
+                            date: todayStr,
+                            timestamp: now.getTime()
+                        };
+                        await AsyncStorage.setItem('software_usage_start', JSON.stringify(startData));
+                    }
+                    
+                    const startTime = startData.timestamp;
+                    
+                    const updateUsageTime = () => {
+                        const currentTime = new Date().getTime();
+                        const diffMs = currentTime - startTime;
+                        const totalMinutes = Math.floor(diffMs / 60000);
+                        const hours = Math.floor(totalMinutes / 60);
+                        const minutes = totalMinutes % 60;
+                        setSoftwareUsedTime({ hours, minutes });
+                    };
+                    
+                    updateUsageTime();
+                    interval = setInterval(updateUsageTime, 60000);
+                } catch (e) {
+                    console.warn("Error loading usage time", e);
+                }
+            };
+            
+            initUsageTime();
+            
+            return () => {
+                if (interval) clearInterval(interval);
+            };
+        }, [])
+    );
 
 
 
@@ -798,6 +864,7 @@ export default function BillingScreen({ navigation, route }) {
                 if (!cancelled) {
                     await fetchRecentSalesList();
                     await fetchAlerts();
+                    await fetchTodayStats();
                 }
             } catch (e) {
                 console.warn('Fetch recent sales on mount failed:', e.message);
@@ -1542,8 +1609,9 @@ export default function BillingScreen({ navigation, route }) {
 
             customerCacheRef.current.clear(); //cache cleared
 
-            // refresh recent sales 
+            // refresh recent sales and stats
             fetchRecentSalesList().catch(() => {});
+            fetchTodayStats().catch(() => {});
 
             if (savedDue > 0 && selectedCustomer) {
                 Alert.alert(
@@ -2303,29 +2371,8 @@ export default function BillingScreen({ navigation, route }) {
 
                     {/* Inventory Alerts (Low Stock & Expiry) */}
                     <View style={{ flexDirection: 'row', gap: SPACING.md, marginHorizontal: SPACING.md, marginBottom: SPACING.md }}>
-                        {/* Low Stock Sub-section */}
-                        <View style={{ flex: 1, backgroundColor: '#FEF3C7', borderRadius: 6, padding: SPACING.sm, borderWidth: 1, borderColor: '#FDE68A' }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B45309' }}>LOW STOCK ALERTS</Text>
-                                <TouchableOpacity onPress={() => navigation.navigate('Inventory', { filter: 'low_stock' })}>
-                                    <Text style={{ fontSize: 10, fontWeight: '600', color: '#D97706' }}>View All</Text>
-                                </TouchableOpacity>
-                            </View>
-                            {alertsLoading ? (
-                                <ActivityIndicator size="small" color="#B45309" />
-                            ) : alerts.filter(a => a.type === 'low_stock').length > 0 ? (
-                                alerts.filter(a => a.type === 'low_stock').slice(0, 3).map(alert => (
-                                    <View key={alert.id} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 }}>
-                                        <Text style={{ fontSize: 11, color: '#92400E', flex: 1, paddingRight: 4 }} numberOfLines={1}>{alert.name}</Text>
-                                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#B45309' }}>{alert.stock} left</Text>
-                                    </View>
-                                ))
-                            ) : (
-                                <Text style={{ fontSize: 10, color: '#B45309', opacity: 0.7 }}>No low stock alerts</Text>
-                            )}
-                        </View>
 
-                        {/* Expiry Sub-section */}
+                        {/* Expiry Sub-section (Left) */}
                         <View style={{ flex: 1, backgroundColor: '#FEE2E2', borderRadius: 6, padding: SPACING.sm, borderWidth: 1, borderColor: '#FECACA' }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                                 <Text style={{ fontSize: 12, fontWeight: '700', color: '#B91C1C' }}>EXPIRY ALERTS</Text>
@@ -2347,6 +2394,22 @@ export default function BillingScreen({ navigation, route }) {
                             ) : (
                                 <Text style={{ fontSize: 10, color: '#B91C1C', opacity: 0.7 }}>No expiry alerts</Text>
                             )}
+                        </View>
+
+                        {/* Info Sub-section (Right) */}
+                        <View style={{ flex: 1, backgroundColor: '#EFF6FF', borderRadius: 6, padding: SPACING.sm, borderWidth: 1, borderColor: '#BFDBFE', justifyContent: 'center' }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <Text style={{ fontSize: 11, color: '#1E3A8A', fontWeight: '600' }}>Bills Today:</Text>
+                                <Text style={{ fontSize: 11, color: '#1E3A8A', fontWeight: '700' }}>{todayStats.totalOrders}</Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <Text style={{ fontSize: 11, color: '#1E3A8A', fontWeight: '600' }}>Today's Sale:</Text>
+                                <Text style={{ fontSize: 11, color: '#1E3A8A', fontWeight: '700' }}>₹{todayStats.todaySales.toLocaleString('en-IN')}</Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <Text style={{ fontSize: 11, color: '#1E3A8A', fontWeight: '600' }}>Software Used Today:</Text>
+                                <Text style={{ fontSize: 11, color: '#1E3A8A', fontWeight: '700' }}>{softwareUsedTime.hours}h {softwareUsedTime.minutes}m</Text>
+                            </View>
                         </View>
                     </View>
 
