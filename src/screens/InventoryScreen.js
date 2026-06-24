@@ -36,7 +36,7 @@ import imageCompression from 'browser-image-compression';
 // ─── FILTER TABS ────────────────────────────────
 const FILTERS = [
     { key: 'all', label: 'All products', icon: 'cube-outline' },
-    { key: 'low_stock', label: 'Low stock', icon: 'warning-outline' },
+    { key: 'dead_stock', label: 'Dead stock', icon: 'archive-outline' },
     { key: 'expiring_soon', label: 'Expiring soon', icon: 'time-outline' },
     { key: 'expired', label: 'Expired', icon: 'skull-outline' },
 ];
@@ -227,6 +227,35 @@ export default function InventoryScreen({ navigation, route }) {
     //  BATCH CONFLICT STATE 
     const [batchConflicts, setBatchConflicts] = useState([]);
     const [conflictModalVisible, setConflictModalVisible] = useState(false);
+    const [pendingFinalizeItems, setPendingFinalizeItems] = useState([]);
+
+    const finalizePurchaseCall = async (itemsToFinalize) => {
+        if (!autoImportPurchaseId) return;
+        try {
+            const supplierName = itemsToFinalize.find(i => i.supplier_name?.trim())?.supplier_name?.trim() || '';
+            const totalAmount  = itemsToFinalize.reduce((sum, i) => {
+                const qty = Number(i.quantity) || 0;
+                const cp  = Number(i.cost_price) || Number(i.mrp) || 0;
+                return sum + qty * cp;
+            }, 0);
+
+            await finalizePurchase(autoImportPurchaseId, {
+                supplier_name: supplierName,
+                total_amount:  Math.round(totalAmount * 100) / 100,
+                items_count:   itemsToFinalize.length,
+                imported_items: itemsToFinalize.map(i => ({
+                    inventoryId: i.inventoryId,
+                    quantity: i.quantity,
+                    mrp: i.mrp
+                }))
+            });
+        } catch (finalizeErr) {
+            console.warn('[AutoImport] finalizePurchase failed (non-fatal):', finalizeErr?.message);
+        } finally {
+            setAutoImportPurchaseId(null);
+            setPendingFinalizeItems([]);
+        }
+    };
 
     const resolveConflict = async (resolutionType) => {
         const currentConflict = batchConflicts[0];
@@ -241,10 +270,24 @@ export default function InventoryScreen({ navigation, route }) {
                 payload.batch_number = `${baseBatch}-${Math.floor(Math.random() * 1000)}`;
             }
 
-            await createProduct(payload);
+            const res = await createProduct(payload);
+            const productData = res?.data?.data || res?.data || res;
+            
+            let updatedFinalizeItems = [...pendingFinalizeItems];
             
             if (currentConflict.source === 'auto_import' && currentConflict.originalKey) {
                 setAutoImportItems(prev => prev.filter(i => i._key !== currentConflict.originalKey));
+                
+                if (productData?._id && currentConflict.originalItem) {
+                    updatedFinalizeItems.push({
+                        inventoryId: productData._id,
+                        quantity: Number(currentConflict.originalItem.quantity) || 0,
+                        mrp: Number(currentConflict.originalItem.mrp) || 0,
+                        cost_price: Number(currentConflict.originalItem.cost_price) || Number(currentConflict.originalItem.mrp) || 0,
+                        supplier_name: currentConflict.originalItem.supplier_name || ''
+                    });
+                    setPendingFinalizeItems(updatedFinalizeItems);
+                }
             } else if (currentConflict.source === 'manual') {
                 closeModal();
             }
@@ -255,13 +298,18 @@ export default function InventoryScreen({ navigation, route }) {
             setBatchConflicts(remaining);
             if (remaining.length === 0) {
                 setConflictModalVisible(false);
-                if (currentConflict.source === 'auto_import' && autoImportReviewVisible) {
-                    setAutoImportItems(prev => {
-                        if (prev.length === 0) {
-                            setAutoImportReviewVisible(false);
-                        }
-                        return prev;
-                    });
+                if (currentConflict.source === 'auto_import') {
+                    if (autoImportReviewVisible) {
+                        setAutoImportItems(prev => {
+                            if (prev.length === 0) {
+                                setAutoImportReviewVisible(false);
+                            }
+                            return prev;
+                        });
+                    }
+                    if (autoImportPurchaseId) {
+                        await finalizePurchaseCall(updatedFinalizeItems);
+                    }
                 }
             }
         } catch (err) {
@@ -331,11 +379,14 @@ export default function InventoryScreen({ navigation, route }) {
         let result = [...products];
 
         // Apply filter
-        if (activeFilter === 'low_stock') {
+        if (activeFilter === 'dead_stock') {
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
             result = result.filter((p) => {
                 const qty = p.quantity ?? p.stock ?? 0;
-                const threshold = p.alert_threshold ?? 2;
-                return qty <= threshold;
+                if (qty <= 0) return false;
+                if (!p.createdAt) return false;
+                return new Date(p.createdAt) < threeMonthsAgo;
             });
         } else if (activeFilter === 'expiring_soon') {
             const now = new Date();
@@ -783,13 +834,31 @@ export default function InventoryScreen({ navigation, route }) {
             const successKeys = success.map(s => s.originalKey);
             setAutoImportItems(prev => prev.filter(i => !successKeys.includes(i._key)));
 
+            const newFinalizeItems = [];
+            for (let i = 0; i < autoImportItems.length; i++) {
+                if (results[i].status === 'fulfilled') {
+                    const productData = results[i].value?.data?.data || results[i].value?.data || results[i].value;
+                    if (productData?._id) {
+                        newFinalizeItems.push({
+                            inventoryId: productData._id,
+                            quantity: Number(autoImportItems[i].quantity) || 0,
+                            mrp: Number(autoImportItems[i].mrp) || 0,
+                            cost_price: Number(autoImportItems[i].cost_price) || Number(autoImportItems[i].mrp) || 0,
+                            supplier_name: autoImportItems[i].supplier_name || ''
+                        });
+                    }
+                }
+            }
+
             if (conflicts.length > 0) {
+                setPendingFinalizeItems(newFinalizeItems);
                 // Launch modal for conflicts
                 setBatchConflicts(conflicts.map(c => ({
                     payload: c.payload,
                     conflictData: c.conflictData,
                     source: 'auto_import',
-                    originalKey: c.originalKey
+                    originalKey: c.originalKey,
+                    originalItem: autoImportItems.find(item => item._key === c.originalKey)
                 })));
                 setConflictModalVisible(true);
                 return; // Wait for user to resolve via modal
@@ -811,54 +880,7 @@ export default function InventoryScreen({ navigation, route }) {
 
             // ── Finalize the linked Purchase record (best-effort, non-blocking) ──
             if (autoImportPurchaseId) {
-                try {
-                    // Derive aggregate metadata from confirmed items
-                    const confirmedItems = autoImportItems;
-                    const supplierName = confirmedItems.find(i => i.supplier_name?.trim())?.supplier_name?.trim() || '';
-                    const totalAmount  = confirmedItems.reduce((sum, i) => {
-                        const qty = Number(i.quantity) || 0;
-                        const cp  = Number(i.cost_price) || Number(i.mrp) || 0;
-                        return sum + qty * cp;
-                    }, 0);
-
-                    // Collect the _id of all successfully created/updated items
-                    const imported_items = success.map(r => {
-                        // The actual product data might be in r.value.data depending on axios setup
-                        const productData = r.value?.data?.data || r.value?.data || r.value;
-                        return {
-                            inventoryId: productData?._id,
-                            quantity: Number(productData?.quantity) || 0, // Wait, we should use the confirmedItems quantity, not the aggregate quantity
-                        };
-                    });
-
-                    // It's safer to map the autoImportItems back to their responses if possible.
-                    // But since we pushed them sequentially, let's just use autoImportItems matching:
-                    const importedItemsPayload = [];
-                    for (let i = 0; i < autoImportItems.length; i++) {
-                        if (results[i].status === 'fulfilled') {
-                            const productData = results[i].value?.data?.data || results[i].value?.data || results[i].value;
-                            if (productData?._id) {
-                                importedItemsPayload.push({
-                                    inventoryId: productData._id,
-                                    quantity: Number(autoImportItems[i].quantity) || 0,
-                                    mrp: Number(autoImportItems[i].mrp) || 0
-                                });
-                            }
-                        }
-                    }
-
-                    await finalizePurchase(autoImportPurchaseId, {
-                        supplier_name: supplierName,
-                        total_amount:  Math.round(totalAmount * 100) / 100,
-                        items_count:   confirmedItems.length,
-                        imported_items: importedItemsPayload
-                    });
-                } catch (finalizeErr) {
-                    // Non-fatal — never block the UI for this
-                    console.warn('[AutoImport] finalizePurchase failed (non-fatal):', finalizeErr?.message);
-                } finally {
-                    setAutoImportPurchaseId(null);
-                }
+                await finalizePurchaseCall(newFinalizeItems);
             }
 
             if (failed.length > 0) {
@@ -1051,10 +1073,13 @@ export default function InventoryScreen({ navigation, route }) {
     };
 
     // ─── COUNT BADGES ────────────────────────────────
-    const lowStockCount = products.filter((p) => {
+    const deadStockCount = products.filter((p) => {
         const qty = p.quantity ?? p.stock ?? 0;
-        const threshold = p.alert_threshold ?? 2;
-        return qty <= threshold;
+        if (qty <= 0) return false;
+        if (!p.createdAt) return false;
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        return new Date(p.createdAt) < threeMonthsAgo;
     }).length;
 
     const expiringSoonCount = products.filter((p) => {
@@ -1371,7 +1396,7 @@ export default function InventoryScreen({ navigation, route }) {
                     {FILTERS.map((filter) => {
                         const isActive = activeFilter === filter.key;
                         let badgeCount = 0;
-                        if (filter.key === 'low_stock') badgeCount = lowStockCount;
+                        if (filter.key === 'dead_stock') badgeCount = deadStockCount;
 
                         if (filter.key === 'expiring_soon') badgeCount = expiringSoonCount;
                         if (filter.key === 'expired') badgeCount = expiredCount;
@@ -1492,7 +1517,7 @@ export default function InventoryScreen({ navigation, route }) {
                             <View style={styles.centerBox}>
                                 <Ionicons
                                     name={
-                                        activeFilter === 'low_stock' ? 'warning-outline' :
+                                        activeFilter === 'dead_stock' ? 'archive-outline' :
                                             activeFilter === 'expiring_soon' ? 'time-outline' :
                                                 activeFilter === 'expired' ? 'skull-outline' :
                                                         'cube-outline'
