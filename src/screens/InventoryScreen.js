@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONT_SIZES, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 import GradientButton from '../components/GradientButton';
+import FlappyBird from '../components/FlappyBird';
 import Skeleton from '../components/Skeleton';
 import {
     getProducts,
@@ -331,42 +332,6 @@ export default function InventoryScreen({ navigation, route }) {
             setLoading(false);
         }
     }, []);
-
-    // Pharmacy Facts interval logic
-    // Pharmacy Facts interval logic
-    const PHARMACY_FACTS = [
-        "Did you know? The first recorded pharmacy was established in Baghdad in 754 AD.",
-        "Fun fact: Coca-Cola was originally invented by a pharmacist as a nerve tonic!",
-        "Interesting: Penicillin was discovered completely by accident from a moldy petri dish.",
-        "Did you know? The word 'Pharmacist' comes from the Greek word 'Pharmakon'.",
-        "Fun fact: Pharmacists undergo more years of chemistry training than almost any other healthcare profession.",
-        "Did you know? Dr Pepper was formulated by a pharmacist in Waco, Texas.",
-        "Interesting: The mortar and pestle have been the symbol of pharmacy for thousands of years.",
-        "Just a moment... deciphering the tiny, tiny doctor handwriting on this invoice.",
-        "Our AI is putting on its reading glasses to process your bill...",
-        "Fun fact: Agatha Christie used her experience as a pharmacy dispenser to accurately write about poisons.",
-        "Did you know? Pepsi was also invented by a pharmacist to cure indigestion. Hence 'Pepsi' from dyspepsia.",
-        "Hang tight! Counting the imaginary pills...",
-        "Fun fact: Benjamin Franklin was a pharmacist before he was a founding father!",
-        "Did you know? The global pharmaceutical industry produces over a trillion doses of medicine a year!",
-        "Interesting: In ancient Egypt, doctors and pharmacists were the same profession.",
-        "Fun fact: A spoonful of sugar actually does help the medicine go down.",
-        "Did you know? Alexander Fleming discovered penicillin when he forgot to clean up his lab.",
-        "Hold on... translating doctor handwriting into actual text.",
-        "Fun fact: Listerine was named after Joseph Lister, a pioneer of antiseptic surgery.",
-        "Did you know? Aspirin was originally derived from the bark of a willow tree."
-    ];
-
-    // Cycling through Facts
-    useEffect(() => {
-        let interval;
-        if (autoImportUploading) {
-            interval = setInterval(() => {
-                setCurrentFactIndex(prev => (prev + 1) % PHARMACY_FACTS.length);
-            }, 4500);
-        }
-        return () => clearInterval(interval);
-    }, [autoImportUploading]);
 
     useFocusEffect(
         useCallback(() => {
@@ -2167,17 +2132,9 @@ export default function InventoryScreen({ navigation, route }) {
                     <View style={[styles.modalCard, { width: 340, padding: 32, alignItems: 'center', justifyContent: 'center' }]}>
                         <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20, transform: [{ scale: 1.2 }] }} />
                         <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 8 }}>Analyzing Invoice...</Text>
-                        <Text style={{ fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginBottom: 24 }}>
-                            This might take up to a minute.
-                        </Text>
                         
-                        <View style={{ backgroundColor: COLORS.bgInput, padding: 16, borderRadius: 12, width: '100%', minHeight: 80, justifyContent: 'center' }}>
-                            <Text style={{ fontSize: 11, color: COLORS.textMuted, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>
-                                PHARMACY FACT
-                            </Text>
-                            <Text style={{ fontSize: 13, color: COLORS.primary, fontStyle: 'italic', textAlign: 'left', lineHeight: 20 }}>
-                                "{PHARMACY_FACTS[currentFactIndex]}"
-                            </Text>
+                        <View style={{ marginTop: 10 }}>
+                            <FlappyBird />
                         </View>
                     </View>
                 </View>
