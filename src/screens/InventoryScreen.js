@@ -721,7 +721,16 @@ export default function InventoryScreen({ navigation, route }) {
             setAutoImportReviewVisible(true);
         } catch (err) {
             console.error('[AutoImport] Error:', err);
-            const msg = "Please try again after 2 minutes. We couldn't get details from that image due to high traffic. Don't panic, just try again later.";
+            
+            const errorMessage = (err?.response?.data?.message || err?.message || "").toLowerCase();
+            let msg = "Please try again after 2 minutes. We couldn't get details from that image due to high traffic. Don't panic, just try again later.";
+            
+            if (err?.message === 'Network Error' || errorMessage.includes('network error') || err?.code === 'ERR_NETWORK') {
+                msg = "Please connet to internet";
+            } else if (err?.response?.status === 429 || err?.response?.status === 503 || errorMessage.includes('too many request') || errorMessage.includes('rate limit') || errorMessage.includes('server busy')) {
+                msg = "Don't panic, ai servers are busy right now. Just try again 5 minutes later";
+            }
+
             setAutoImportError(msg);
             setAutoImportReviewVisible(true); // open modal to show the error
         } finally {
