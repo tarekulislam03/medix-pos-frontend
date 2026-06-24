@@ -17,6 +17,7 @@ const NAV_ITEMS = [
     { key: 'SalesAnalytics', label: 'REPORTS', icon: 'bar-chart-outline' },
     { key: 'Returns', label: 'RETURNS', icon: 'return-down-back-outline' },
     { key: 'Settings', label: 'SETTINGS', icon: 'settings-outline' },
+    { key: 'Bored', label: 'ARE YOU BORED?', icon: 'game-controller-outline' },
 ];
 
 export default function Sidebar({ activeScreen, onNavigate, onLogout }) {

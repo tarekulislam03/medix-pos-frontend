@@ -682,6 +682,10 @@ export default function InventoryScreen({ navigation, route }) {
                 return;
             }
 
+            // Capture supplier from the root response if available
+            const globalSupplier = result?.supplier_name ?? result?.supplierName ?? result?.supplier ?? result?.vendor_name ?? result?.vendorName ?? result?.vendor ?? 
+                                   result?.data?.supplier_name ?? result?.data?.supplierName ?? result?.data?.supplier ?? result?.data?.vendor_name ?? result?.data?.vendorName ?? result?.data?.vendor ?? '';
+
             const normalised = extracted.map((item, idx) => ({
                 _key: String(idx),
                 medicine_name: String(
@@ -698,7 +702,7 @@ export default function InventoryScreen({ navigation, route }) {
                     item.cost_price ?? item.cost ?? item.purchase_price ?? item.buy_price ?? item.purchase_rate ?? item.net_rate ?? ''
                 ),
                 supplier_name: String(
-                    item.supplier_name ?? item.supplier ?? item.vendor_name ?? item.vendor ?? item.mfg ?? item.manufacturer ?? ''
+                    item.supplier_name ?? item.supplierName ?? item.supplier ?? item.vendor_name ?? item.vendorName ?? item.vendor ?? item.mfg ?? item.manufacturer ?? globalSupplier ?? ''
                 ),
                 expiry_date: parseExpiryDate(
                     item.expiry_date || item.expiry || item.exp_date || item.exp || item.expiration || item.expiration_date || ''

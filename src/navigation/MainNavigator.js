@@ -10,6 +10,7 @@ import PurchaseScreen from '../screens/purchaseScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import GstFilingScreen from '../screens/GstFilingScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
+import BoredScreen from '../screens/BoredScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +34,7 @@ export default function MainNavigator() {
             <Stack.Screen name="Invoices">
                 {() => <ComingSoonScreen screenKey="Invoices" />}
             </Stack.Screen>
+            <Stack.Screen name="Bored" component={BoredScreen} />
         </Stack.Navigator>
     );
 }
