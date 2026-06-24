@@ -1082,6 +1082,12 @@ export default function InventoryScreen({ navigation, route }) {
         return new Date(p.createdAt) < threeMonthsAgo;
     }).length;
 
+    const lowStockCount = products.filter((p) => {
+        const qty = p.quantity ?? p.stock ?? 0;
+        const threshold = p.alert_threshold ?? 2;
+        return qty > 0 && qty <= threshold;
+    }).length;
+
     const expiringSoonCount = products.filter((p) => {
         if (p.returned_to_supplier) return false;
         if (!p.expiry_date) return false;
