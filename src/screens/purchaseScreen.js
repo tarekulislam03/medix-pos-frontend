@@ -159,7 +159,7 @@ const previewStyles = StyleSheet.create({
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN SCREEN
 // ═══════════════════════════════════════════════════════════════════════════
-export default function PurchaseScreen() {
+export default function PurchaseScreen({ route, navigation }) {
     const r = useResponsive();
 
     const [purchases, setPurchases] = useState([]);
@@ -175,6 +175,7 @@ export default function PurchaseScreen() {
 
     // Upload form modal state
     const [uploadFormVisible, setUploadFormVisible] = useState(false);
+    const [autoImportNoticeVisible, setAutoImportNoticeVisible] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [uploadForm, setUploadForm] = useState({
         supplier_name: '',
@@ -224,6 +225,13 @@ export default function PurchaseScreen() {
     }, []);
 
     useEffect(() => { fetchPurchases(); }, [fetchPurchases]);
+
+    useEffect(() => {
+        if (route?.params?.openAddModal) {
+            setManualPurchaseModalVisible(true);
+            navigation.setParams({ openAddModal: undefined });
+        }
+    }, [route?.params?.openAddModal, navigation]);
 
     useEffect(() => {
         let filtered = purchases;
@@ -388,6 +396,11 @@ export default function PurchaseScreen() {
 
     // ─── UPLOAD (Step 1: Pick file → show form) ───────────────────────────
     const handleUploadBill = async () => {
+        setAutoImportNoticeVisible(true);
+    };
+
+    const confirmUploadBill = async () => {
+        setAutoImportNoticeVisible(false);
         try {
             let file = null;
 
@@ -1112,6 +1125,61 @@ export default function PurchaseScreen() {
                             <TouchableOpacity style={[styles.btnPrimary, { flex: 1 }]} onPress={handleUploadSubmit}>
                                 <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
                                 <Text style={styles.btnPrimaryText}>Upload</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/*  AUTO IMPORT NOTICE MODAL  */}
+            <Modal visible={autoImportNoticeVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalCard, { width: r.pick({ small: '95%', medium: 450, large: 500, xlarge: 500 }), padding: 0, overflow: 'hidden' }]}>
+                        {/* Header */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: COLORS.warningLight, justifyContent: 'center', alignItems: 'center' }}>
+                                    <Ionicons name="information-circle-outline" size={24} color={COLORS.warning} />
+                                </View>
+                                <View>
+                                    <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text }}>Notice</Text>
+                                    <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>Auto Import Unavailable</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={() => setAutoImportNoticeVisible(false)}>
+                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Body */}
+                        <View style={{ padding: 24 }}>
+                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24 }}>
+                                We're very sorry for the inconvenience. The auto bill import feature is under repair. It will be available from 28.06.26.
+                            </Text>
+                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24, marginTop: 12 }}>
+                                Send the bill images via whatsapp to this number - <Text style={{ fontWeight: '700', color: COLORS.primary }}>8101402916</Text>. We will take care of the purchase entry and stock update.
+                            </Text>
+                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24, marginTop: 12, fontWeight: '600' }}>
+                                OR, You can still add your bill through manual entry.
+                            </Text>
+                        </View>
+
+                        {/* Footer */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 20, paddingTop: 0, gap: 12 }}>
+                            <TouchableOpacity
+                                style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border }}
+                                onPress={() => setAutoImportNoticeVisible(false)}
+                            >
+                                <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text }}>Close</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, backgroundColor: COLORS.primary }}
+                                onPress={() => {
+                                    setAutoImportNoticeVisible(false);
+                                    setManualPurchaseModalVisible(true);
+                                }}
+                            >
+                                <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.white }}>Manual Purchase Upload</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

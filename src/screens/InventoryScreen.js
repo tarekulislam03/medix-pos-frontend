@@ -182,6 +182,7 @@ export default function InventoryScreen({ navigation, route }) {
 
     // Modal
     const [devModalVisible, setDevModalVisible] = useState(false);
+    const [autoImportNoticeVisible, setAutoImportNoticeVisible] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit' | 'view'
     const [formError, setFormError] = useState('');
@@ -632,20 +633,7 @@ export default function InventoryScreen({ navigation, route }) {
     };
 
     const handleAutoImportPress = () => {
-        if (Platform.OS === 'web') {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*,application/pdf';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    processAutoImportFile(file);
-                }
-            };
-            input.click();
-        } else {
-            setDevModalVisible(true);
-        }
+        setAutoImportNoticeVisible(true);
     };
 
     const processAutoImportFile = async (file) => {
@@ -2633,6 +2621,62 @@ export default function InventoryScreen({ navigation, route }) {
                                 onPress={() => setDevModalVisible(false)}
                                 style={{ flex: 1 }}
                             />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={autoImportNoticeVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.labelModalCard, { width: r.pick({ small: '95%', medium: 450, large: 500, xlarge: 500 }) }]}>
+                        {/* Header */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <View style={[styles.modalIcon, { backgroundColor: COLORS.warningLight }]}>
+                                    <Ionicons name="information-circle-outline" size={22} color={COLORS.warning} />
+                                </View>
+                                <View>
+                                    <Text style={styles.modalTitle}>Notice</Text>
+                                    <Text style={styles.labelModalSub}>
+                                        Auto Import Unavailable
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={() => setAutoImportNoticeVisible(false)} style={styles.modalCloseBtn}>
+                                <Ionicons name="close" size={24} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Body */}
+                        <View style={{ padding: 24 }}>
+                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24 }}>
+                                We're very sorry for the inconvenience. The auto bill import feature is under maintanence. It will be available from 29.06.26.
+                            </Text>
+                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24, marginTop: 12 }}>
+                                Please send the bill images via whatsapp to this number - <Text style={{ fontWeight: '700', color: COLORS.primary }}>8101402916</Text>. We will take care of the purchase entry and stock update till the feature is available.
+                            </Text>
+                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24, marginTop: 12, fontWeight: '600' }}>
+                                OR, You can still add your bill through manual entry.
+                            </Text>
+                        </View>
+
+                        {/* Footer */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 24, paddingTop: 0, gap: 12 }}>
+                            <TouchableOpacity
+                                style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border }}
+                                onPress={() => setAutoImportNoticeVisible(false)}
+                            >
+                                <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text }}>Close</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, backgroundColor: COLORS.primary }}
+                                onPress={() => {
+                                    setAutoImportNoticeVisible(false);
+                                    navigation.navigate('Purchase', { openAddModal: true });
+                                }}
+                            >
+                                <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.white }}>Manual Purchase Upload</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
