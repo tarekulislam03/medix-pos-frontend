@@ -20,6 +20,9 @@ function numberToWords(num) {
 export function buildReceiptHTML(invoice) {
   const store = getStoreSettings();
   const is80mm = store.printerSize === '80mm';
+  const showDiscPercent = store.showDiscountPercentage !== false;
+  const showBarcode = store.showBarcode !== false;
+  const showQrCode = store.showQrCode !== false;
 
   const items = invoice?.items || [];
   const payMethod = (invoice?.payment_method || 'Cash');
@@ -57,14 +60,16 @@ export function buildReceiptHTML(invoice) {
 
     const hsn = item.hsn_code || '';
     const qtyDisplay = Number(actualQty).toFixed(2);
+    
+    const discDisplay = showDiscPercent ? `${Number(discPercent)}%` : Number(amtBeforeDisc - lineTotal).toFixed(2);
 
     itemsHTML += `
       <tr>
         <td class="text-left">${index + 1}</td>
         <td class="text-left">${name}</td>
         <td class="text-center">${qtyDisplay}</td>
-        <td class="text-right">${Number(actualPrice).toFixed(2)}</td>
-        <td class="text-center">${Number(discPercent)}%</td>
+        <td class="text-right" style="padding-right: 4px;">${Number(actualPrice).toFixed(2)}</td>
+        <td class="text-center" style="padding-left: 4px;">${discDisplay}</td>
         <td class="text-right">${Number(lineTotal).toFixed(2)}</td>
       </tr>
       ${hsn ? `<tr>
@@ -157,7 +162,7 @@ export function buildReceiptHTML(invoice) {
     width: 100%;
     max-width: ${is80mm ? '80mm' : '58mm'};
     margin: 0 auto;
-    padding: ${is80mm ? '4mm 2mm' : '2mm 2mm'};
+    padding: ${is80mm ? '4mm 4mm' : '2mm 5mm'};
     line-height: 1.4;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -267,9 +272,11 @@ export function buildReceiptHTML(invoice) {
     <div class="info-value">: ${dateStr}</div>
   </div>
   
+  ${showBarcode ? `
   <div class="text-center" style="margin: 8px 0 6px 0;">
     <img src="https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(invoiceNo)}&scale=${is80mm ? 4 : 3}&height=15&includetext" style="max-width: 100%; width: ${is80mm ? '80%' : '95%'}; height: ${is80mm ? '60px' : '45px'}; image-rendering: pixelated; margin: 0 auto;" alt="Barcode" />
   </div>
+  ` : ''}
   
   <div class="divider"></div>
   
@@ -277,10 +284,10 @@ export function buildReceiptHTML(invoice) {
     <thead>
       <tr>
         <th class="text-left" style="width: ${is80mm ? '8%' : '7%'};">Sl</th>
-        <th class="text-left" style="width: ${is80mm ? '36%' : '28%'};">Product</th>
-        <th class="text-center" style="width: ${is80mm ? '12%' : '12%'};">Qty</th>
-        <th class="text-right" style="width: ${is80mm ? '16%' : '19%'};">Rate</th>
-        <th class="text-center" style="width: ${is80mm ? '12%' : '12%'};">Disc</th>
+        <th class="text-left" style="width: ${is80mm ? '34%' : '27%'};">Product</th>
+        <th class="text-center" style="width: ${is80mm ? '11%' : '11%'};">Qty</th>
+        <th class="text-right" style="width: ${is80mm ? '16%' : '18%'}; padding-right: 4px;">Rate</th>
+        <th class="text-center" style="width: ${is80mm ? '15%' : '15%'}; padding-left: 4px;">${showDiscPercent ? 'Disc' : 'Disc(₹)'}</th>
         <th class="text-right" style="width: ${is80mm ? '16%' : '22%'};">Amt</th>
       </tr>
       <tr>
@@ -334,11 +341,13 @@ export function buildReceiptHTML(invoice) {
   </div>
   <div class="divider-thin"></div>
   
+  ${showQrCode ? `
   <div class="qr-section">
     <div class="qr-title">Scan to Pay</div>
     <img class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiLink)}" alt="UPI QR" />
   </div>
   <div class="divider-thin"></div>
+  ` : ''}
   
   <div style="margin-top: 8px; margin-bottom: 4px; font-weight: bold; font-size: ${is80mm ? '13px' : '11px'};">
     Please bring this receipt in case of return.

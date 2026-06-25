@@ -12,6 +12,9 @@ export const DEFAULT_SETTINGS = {
     upiId: '',
     printerSize: '58mm',
     showGstDetails: false,
+    showDiscountPercentage: true,
+    showBarcode: true,
+    showQrCode: true,
 };
 
 /**

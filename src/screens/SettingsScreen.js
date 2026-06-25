@@ -224,6 +224,45 @@ export default function SettingsScreen() {
                             />
                         </View>
 
+                        {/* Show Discount Percentage on Receipt */}
+                        <View style={[fStyles.container, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 2 }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="pricetag-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+                                <Text style={fStyles.label}>Show Discount % on Bill Items</Text>
+                            </View>
+                            <Switch
+                                value={form.showDiscountPercentage ?? true}
+                                onValueChange={v => set('showDiscountPercentage', v)}
+                                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                            />
+                        </View>
+
+                        {/* Show Invoice Barcode */}
+                        <View style={[fStyles.container, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 2 }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="barcode-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+                                <Text style={fStyles.label}>Show Invoice Barcode on Bill</Text>
+                            </View>
+                            <Switch
+                                value={form.showBarcode ?? true}
+                                onValueChange={v => set('showBarcode', v)}
+                                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                            />
+                        </View>
+
+                        {/* Show Payment QR Code */}
+                        <View style={[fStyles.container, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, paddingHorizontal: 2 }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="qr-code-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 6 }} />
+                                <Text style={fStyles.label}>Show Payment QR Code on Bill</Text>
+                            </View>
+                            <Switch
+                                value={form.showQrCode ?? true}
+                                onValueChange={v => set('showQrCode', v)}
+                                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                            />
+                        </View>
+
                         {/* Medicine Store Licence No */}
                         <Field
                             label="Medicine Store Licence No."
