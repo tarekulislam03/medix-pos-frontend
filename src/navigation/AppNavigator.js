@@ -25,6 +25,7 @@ const linking = {
                     Customers: 'customers',
                     Returns: 'returns',
                     Purchase: 'purchase',
+                    AdminPurchaseUpload: 'purchase/admin/upload',
                     Settings: 'settings',
                     SalesAnalytics: 'analytics',
                     GstFiling: 'gst-filing',

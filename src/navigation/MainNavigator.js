@@ -7,6 +7,7 @@ import CustomersScreen from '../screens/CustomersScreen';
 import ReturnScreen from '../screens/ReturnScreen';
 import AnalyticsScreen from '../screens/AnalyticsScreen';
 import PurchaseScreen from '../screens/purchaseScreen';
+import AdminPurchaseUploadScreen from '../screens/AdminPurchaseUploadScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import GstFilingScreen from '../screens/GstFilingScreen';
 import ComingSoonScreen from '../screens/ComingSoonScreen';
@@ -28,6 +29,7 @@ export default function MainNavigator() {
             <Stack.Screen name="Customers" component={CustomersScreen} />
             <Stack.Screen name="Returns" component={ReturnScreen} />
             <Stack.Screen name="Purchase" component={PurchaseScreen} />
+            <Stack.Screen name="AdminPurchaseUpload" component={AdminPurchaseUploadScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="SalesAnalytics" component={AnalyticsScreen} />
             <Stack.Screen name="GstFiling" component={GstFilingScreen} />

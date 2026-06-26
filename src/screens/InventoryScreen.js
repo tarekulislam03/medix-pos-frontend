@@ -1331,14 +1331,6 @@ export default function InventoryScreen({ navigation, route }) {
                 ]}>
                     <TouchableOpacity
                         style={[styles.actionHeaderBtn, { height: r.isSmall ? 32 : 32, paddingHorizontal: r.isSmall ? 8 : 12 }]}
-                        onPress={handleAutoImportPress}
-                    >
-                        <Ionicons name="arrow-up-outline" size={16} color={COLORS.textSecondary} />
-                        {!r.isSmall && <Text style={styles.actionHeaderBtnText}>Upload bill</Text>}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[styles.actionHeaderBtn, { height: r.isSmall ? 32 : 32, paddingHorizontal: r.isSmall ? 8 : 12 }]}
                         onPress={openLabelModal}
                     >
                         <Ionicons name="pricetag-outline" size={16} color={COLORS.textSecondary} />

@@ -12,6 +12,7 @@ import {
     ScrollView,
     Platform,
     Image,
+    Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
@@ -394,9 +395,8 @@ export default function PurchaseScreen({ route, navigation }) {
         }
     };
 
-    // ─── UPLOAD (Step 1: Pick file → show form) ───────────────────────────
     const handleUploadBill = async () => {
-        setAutoImportNoticeVisible(true);
+        Linking.openURL('https://wa.me/918101402916');
     };
 
     const confirmUploadBill = async () => {
@@ -510,10 +510,18 @@ export default function PurchaseScreen({ route, navigation }) {
                         </Text>
                         {item.supplier_gstin ? <Text style={styles.mobileCardGstin}>{item.supplier_gstin}</Text> : null}
                     </View>
-                    <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
-                        <Text style={[styles.statusText, styles[`statusText_${item.status}`]]}>
-                            {statusLabel}
-                        </Text>
+                    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                        {item.needs_manual_review && (
+                            <View style={[styles.statusBadge, { backgroundColor: COLORS.warningLight, borderColor: COLORS.warning, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 }]}>
+                                <Ionicons name="warning-outline" size={10} color={COLORS.warning} style={{ marginRight: 3 }} />
+                                <Text style={[styles.statusText, { color: COLORS.warning }]}>REVIEW</Text>
+                            </View>
+                        )}
+                        <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
+                            <Text style={[styles.statusText, styles[`statusText_${item.status}`]]}>
+                                {statusLabel}
+                            </Text>
+                        </View>
                     </View>
                 </View>
 
@@ -647,7 +655,13 @@ export default function PurchaseScreen({ route, navigation }) {
                     )}
                 </View>
                 {/* Status */}
-                <View style={[styles.cell, { flex: 1, alignItems: 'center' }]}>
+                <View style={[styles.cell, { flex: 1, alignItems: 'center', gap: 4 }]}>
+                    {item.needs_manual_review && (
+                        <View style={[styles.statusBadge, { backgroundColor: COLORS.warningLight, borderColor: COLORS.warning, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, marginBottom: 4 }]}>
+                            <Ionicons name="warning-outline" size={10} color={COLORS.warning} style={{ marginRight: 3 }} />
+                            <Text style={[styles.statusText, { color: COLORS.warning }]}>REVIEW</Text>
+                        </View>
+                    )}
                     <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
                         <Text style={[styles.statusText, styles[`statusText_${item.status}`]]}>
                             {item.status?.toUpperCase() ?? 'PENDING'}
