@@ -237,8 +237,8 @@ export function buildReceiptHTML(invoice) {
     margin-bottom: 4px;
   }
   .qr-img {
-    width: ${is80mm ? '100px' : '75px'};
-    height: ${is80mm ? '100px' : '75px'};
+    width: ${is80mm ? '100px' : '120px'};
+    height: ${is80mm ? '100px' : '120px'};
     margin: 0 auto;
     display: block;
   }
