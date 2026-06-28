@@ -1007,6 +1007,7 @@ export default function BillingScreen({ navigation, route }) {
         searchTimeout.current = setTimeout(() => {
             // If products are preloaded, search locally (instant)
             if (productsLoaded && allProducts.length > 0) {
+                console.log("Searching locally");
                 const q = query.trim().toLowerCase();
                 const filtered = allProducts.filter(p =>
                     (p.medicine_name && p.medicine_name.toLowerCase().includes(q)) ||
@@ -1576,7 +1577,10 @@ export default function BillingScreen({ navigation, route }) {
                 response = await updateCheckout(editInvoice._id || editInvoice.id, payload);
                 navigation.setParams({ invoice: null });
             } else {
+                console.time("checkout-api");
                 response = await processCheckout(payload);
+                console.timeEnd("checkout-api");
+
             }
 
             const rawInvoice =

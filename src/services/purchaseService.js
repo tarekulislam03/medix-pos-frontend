@@ -44,3 +44,26 @@ export const createManualPurchase = async (purchaseData) => {
     const response = await api.post(`/purchase/manual`, purchaseData);
     return response.data;
 };
+
+/**
+ * Upload a purchase bill for AI auto-import.
+ * This runs asynchronously on the backend.
+ * @param {FormData} formData - must include a field named "bill"
+ */
+export const autoImportBill = async (formData) => {
+    const response = await api.post('/product/auto-import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
+    });
+    return response.data;
+};
+
+/**
+ * Confirm and finalize auto-import items.
+ * Hits product/auto-import/confirm to update stock.
+ * @param {Object} data - { items: [...] }
+ */
+export const confirmAutoImport = async (data) => {
+    const response = await api.post('/product/auto-import/confirm', data);
+    return response.data;
+};

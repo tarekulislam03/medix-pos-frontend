@@ -17,7 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
-import { uploadPurchaseBill, getPurchases, deletePurchase, createManualPurchase } from '../services/purchaseService';
+import { uploadPurchaseBill, getPurchases, deletePurchase, createManualPurchase, autoImportBill, confirmAutoImport, finalizePurchase } from '../services/purchaseService';
 
 // ─── File picker helper (web only — uses <input type="file"> ────────────────
 const pickFileWeb = () =>
@@ -209,6 +209,13 @@ export default function PurchaseScreen({ route, navigation }) {
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
+    // Auto Import Review modal
+    const [reviewModalVisible, setReviewModalVisible] = useState(false);
+    const [reviewPurchaseId, setReviewPurchaseId] = useState(null);
+    const [reviewLoading, setReviewLoading] = useState(false);
+    const [reviewItems, setReviewItems] = useState([]);
+    const [reviewMetadata, setReviewMetadata] = useState({});
+
     // ─── FETCH ─────────────────────────────────────────────────────────────
     const fetchPurchases = useCallback(async () => {
         setLoading(true);
@@ -396,7 +403,7 @@ export default function PurchaseScreen({ route, navigation }) {
     };
 
     const handleUploadBill = async () => {
-        Linking.openURL('https://wa.me/918101402916');
+        confirmUploadBill();
     };
 
     const confirmUploadBill = async () => {
@@ -449,17 +456,19 @@ export default function PurchaseScreen({ route, navigation }) {
                 formData.append('total_amount', uploadForm.total_amount);
             }
 
-            await uploadPurchaseBill(formData);
+            await autoImportBill(formData);
 
-            setUploadProgress('Upload successful!');
+            setUploadProgress('Upload started! Processing in background...');
             await fetchPurchases();
         } catch (err) {
             console.error('Upload error:', err);
-            Alert.alert('Upload Failed', err?.message || 'Could not upload the bill. Check Cloudinary config.');
+            Alert.alert('Upload Failed', err?.message || 'Could not start auto-import processing.');
         } finally {
-            setUploading(false);
-            setUploadProgress('');
-            setSelectedFile(null);
+            setTimeout(() => {
+                setUploading(false);
+                setUploadProgress('');
+                setSelectedFile(null);
+            }, 3000);
         }
     };
 
@@ -467,6 +476,60 @@ export default function PurchaseScreen({ route, navigation }) {
         setUploadFormVisible(false);
         setSelectedFile(null);
         setUploadForm({ supplier_name: '', bill_date: '', total_amount: '' });
+    };
+
+    // ─── REVIEW AUTO IMPORT ────────────────────────────────────────────────
+    const handleOpenReview = (item) => {
+        setReviewPurchaseId(item._id);
+        setReviewMetadata({
+            supplier_name: item.supplier_name,
+            total_amount: item.total_amount,
+            items_count: item.items_count || (item.extracted_items || []).length
+        });
+        setReviewItems(item.extracted_items || []);
+        setReviewModalVisible(true);
+    };
+
+    const handleReviewItemChange = (index, field, value) => {
+        const newItems = [...reviewItems];
+        newItems[index][field] = value;
+        setReviewItems(newItems);
+    };
+
+    const handleReviewItemDelete = (index) => {
+        const newItems = reviewItems.filter((_, i) => i !== index);
+        setReviewItems(newItems);
+    };
+
+    const handleReviewConfirm = async () => {
+        if (!reviewItems.length) {
+            Alert.alert('Error', 'No items to confirm.');
+            return;
+        }
+
+        setReviewLoading(true);
+        try {
+            // Confirm the items, hits product controller and creates/updates inventory
+            const confirmRes = await confirmAutoImport({ purchaseId: reviewPurchaseId, items: reviewItems });
+            
+            // Finalize the purchase record
+            const meta = {
+                ...reviewMetadata,
+                imported_items: confirmRes.imported_items || []
+            };
+            await finalizePurchase(reviewPurchaseId, meta);
+
+            Alert.alert('Success', 'Import confirmed and stock updated.');
+            setReviewModalVisible(false);
+            setReviewPurchaseId(null);
+            setReviewItems([]);
+            fetchPurchases();
+        } catch (err) {
+            console.error('Review confirm error:', err);
+            Alert.alert('Error', err?.message || 'Failed to confirm import.');
+        } finally {
+            setReviewLoading(false);
+        }
     };
 
     // ─── DELETE ────────────────────────────────────────────────────────────
@@ -553,20 +616,6 @@ export default function PurchaseScreen({ route, navigation }) {
                             </Text>
                         </View>
                     </View>
-                    <View style={styles.mobileDetailRow}>
-                        <View style={styles.mobileDetailItem}>
-                            <Text style={styles.mobileDetailLabel}>Taxable</Text>
-                            <Text style={styles.mobileDetailValue}>
-                                {item.taxable_amount > 0 ? `₹${item.taxable_amount.toFixed(2)}` : '—'}
-                            </Text>
-                        </View>
-                        <View style={styles.mobileDetailItem}>
-                            <Text style={styles.mobileDetailLabel}>CGST / SGST</Text>
-                            <Text style={styles.mobileDetailValue}>
-                                {item.cgst_amount > 0 ? `₹${item.cgst_amount.toFixed(2)}` : '—'} / {item.sgst_amount > 0 ? `₹${item.sgst_amount.toFixed(2)}` : '—'}
-                            </Text>
-                        </View>
-                    </View>
                 </View>
 
                 {/* Card Footer: Actions */}
@@ -584,13 +633,24 @@ export default function PurchaseScreen({ route, navigation }) {
                             <Text style={styles.noBillText}>No Bill</Text>
                         </View>
                     )}
-                    <TouchableOpacity
-                        style={[styles.actionBtn, styles.actionBtnDanger]}
-                        onPress={() => confirmDelete(item._id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                        <Ionicons name="trash-outline" size={13} color={COLORS.error} />
-                    </TouchableOpacity>
+                    {item.status === 'processing' ? (
+                        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                           <ActivityIndicator size="small" color={COLORS.primary} style={{marginRight: 6}} />
+                           <Text style={{fontSize: 12, color: COLORS.primary}}>Processing...</Text>
+                        </View>
+                    ) : (item.status === 'pending' && item.source === 'auto_import' && item.needs_manual_review) ? (
+                        <TouchableOpacity style={[styles.btnPrimary, {height: 28, paddingHorizontal: 10}]} onPress={() => handleOpenReview(item)}>
+                            <Text style={styles.btnPrimaryText}>Ready for Review</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={[styles.actionBtn, styles.actionBtnDanger]}
+                            onPress={() => confirmDelete(item._id)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                            <Ionicons name="trash-outline" size={13} color={COLORS.error} />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         );
@@ -616,15 +676,6 @@ export default function PurchaseScreen({ route, navigation }) {
                         {item.supplier_name || <Text style={{ color: COLORS.textMuted, fontStyle: 'italic' }}>—</Text>}
                     </Text>
                     {item.supplier_gstin ? <Text style={styles.cellMuted}>{item.supplier_gstin}</Text> : null}
-                </View>
-                {/* Taxes (Taxable / CGST / SGST) */}
-                <View style={[styles.cell, { flex: 2 }]}>
-                    <Text style={styles.cellText}>
-                        Taxable: {item.taxable_amount > 0 ? `₹${item.taxable_amount.toFixed(2)}` : '—'}
-                    </Text>
-                    <Text style={styles.cellMuted}>
-                        CGST: {item.cgst_amount > 0 ? `₹${item.cgst_amount.toFixed(2)}` : '—'} | SGST: {item.sgst_amount > 0 ? `₹${item.sgst_amount.toFixed(2)}` : '—'}
-                    </Text>
                 </View>
                 {/* Items */}
                 <View style={[styles.cell, { flex: 0.8, alignItems: 'center' }]}>
@@ -670,13 +721,21 @@ export default function PurchaseScreen({ route, navigation }) {
                 </View>
                 {/* Actions */}
                 <View style={[styles.cell, { flex: 0.8, alignItems: 'center', borderRightWidth: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}>
-                    <TouchableOpacity
-                        style={[styles.actionBtn, styles.actionBtnDanger]}
-                        onPress={() => confirmDelete(item._id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                        <Ionicons name="trash-outline" size={13} color={COLORS.error} />
-                    </TouchableOpacity>
+                    {item.status === 'processing' ? (
+                        <ActivityIndicator size="small" color={COLORS.primary} />
+                    ) : (item.status === 'pending' && item.source === 'auto_import' && item.needs_manual_review) ? (
+                        <TouchableOpacity style={[styles.btnPrimary, {height: 26, paddingHorizontal: 8}]} onPress={() => handleOpenReview(item)}>
+                            <Text style={[styles.btnPrimaryText, {fontSize: 10}]}>Review</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={[styles.actionBtn, styles.actionBtnDanger]}
+                            onPress={() => confirmDelete(item._id)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                            <Ionicons name="trash-outline" size={13} color={COLORS.error} />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         );
@@ -819,9 +878,6 @@ export default function PurchaseScreen({ route, navigation }) {
                         </View>
                         <View style={[styles.thCell, { flex: 1.8 }]}>
                             <Text style={styles.th}>Supplier / GSTIN</Text>
-                        </View>
-                        <View style={[styles.thCell, { flex: 2 }]}>
-                            <Text style={styles.th}>Taxes</Text>
                         </View>
                         <View style={[styles.thCell, { flex: 0.8, alignItems: 'center' }]}>
                             <Text style={styles.th}>Items</Text>
@@ -1145,55 +1201,87 @@ export default function PurchaseScreen({ route, navigation }) {
                 </View>
             </Modal>
 
-            {/*  AUTO IMPORT NOTICE MODAL  */}
-            <Modal visible={autoImportNoticeVisible} animationType="fade" transparent>
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalCard, { width: r.pick({ small: '95%', medium: 450, large: 500, xlarge: 500 }), padding: 0, overflow: 'hidden' }]}>
-                        {/* Header */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                                <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: COLORS.warningLight, justifyContent: 'center', alignItems: 'center' }}>
-                                    <Ionicons name="information-circle-outline" size={24} color={COLORS.warning} />
-                                </View>
-                                <View>
-                                    <Text style={{ fontSize: 18, fontWeight: '700', color: COLORS.text }}>Notice</Text>
-                                    <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>Auto Import Unavailable</Text>
-                                </View>
+            {/* ─── REVIEW AUTO IMPORT MODAL ─── */}
+            <Modal visible={reviewModalVisible} transparent animationType="slide">
+                <View style={formStyles.overlay}>
+                    <View style={[formStyles.container, { width: '95%', maxWidth: 1000, maxHeight: '90%' }]}>
+                        <View style={formStyles.header}>
+                            <View>
+                                <Text style={formStyles.title}>Review Auto-Imported Purchase</Text>
+                                <Text style={formStyles.subtitle}>Supplier: {reviewMetadata.supplier_name || 'N/A'} | Total: ₹{reviewMetadata.total_amount || '0.00'}</Text>
                             </View>
-                            <TouchableOpacity onPress={() => setAutoImportNoticeVisible(false)}>
+                            <TouchableOpacity onPress={() => {
+                                setReviewModalVisible(false);
+                                setReviewPurchaseId(null);
+                                setReviewItems([]);
+                            }}>
                                 <Ionicons name="close" size={24} color={COLORS.textMuted} />
                             </TouchableOpacity>
                         </View>
-
-                        {/* Body */}
-                        <View style={{ padding: 24 }}>
-                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24 }}>
-                                We're very sorry for the inconvenience. The auto bill import feature is under repair. It will be available from 28.06.26.
-                            </Text>
-                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24, marginTop: 12 }}>
-                                Send the bill images via whatsapp to this number - <Text style={{ fontWeight: '700', color: COLORS.primary }}>8101402916</Text>. We will take care of the purchase entry and stock update.
-                            </Text>
-                            <Text style={{ fontSize: 15, color: COLORS.text, lineHeight: 24, marginTop: 12, fontWeight: '600' }}>
-                                OR, You can still add your bill through manual entry.
-                            </Text>
-                        </View>
-
-                        {/* Footer */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 20, paddingTop: 0, gap: 12 }}>
-                            <TouchableOpacity
-                                style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border }}
-                                onPress={() => setAutoImportNoticeVisible(false)}
-                            >
-                                <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.text }}>Close</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 6, backgroundColor: COLORS.primary }}
+                        <ScrollView style={formStyles.body}>
+                            {reviewItems.length === 0 ? (
+                                <View style={{ padding: 20, alignItems: 'center' }}>
+                                    <Text style={{ color: COLORS.textMuted }}>No items extracted to review.</Text>
+                                </View>
+                            ) : (
+                                <View style={{ gap: 10, marginBottom: 20 }}>
+                                    {reviewItems.map((item, idx) => (
+                                        <View key={idx} style={{ backgroundColor: '#F8FAFC', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                                                <Text style={{ fontSize: 12, fontWeight: '600', color: COLORS.textSecondary }}>Item #{idx + 1}</Text>
+                                                <TouchableOpacity onPress={() => handleReviewItemDelete(idx)}>
+                                                    <Ionicons name="trash-outline" size={16} color={COLORS.danger} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            <View style={{ flexDirection: r.isSmall ? 'column' : 'row', gap: 10, flexWrap: 'wrap' }}>
+                                                <View style={{ flex: 2, minWidth: 140 }}>
+                                                    <Text style={formStyles.label}>Product Name</Text>
+                                                    <TextInput style={formStyles.input} placeholder="Product Name" value={item.medicine_name || item.product_name} onChangeText={(t) => handleReviewItemChange(idx, 'medicine_name', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 60 }}>
+                                                    <Text style={formStyles.label}>MRP</Text>
+                                                    <TextInput style={formStyles.input} keyboardType="numeric" placeholder="0.00" value={String(item.mrp || '')} onChangeText={(t) => handleReviewItemChange(idx, 'mrp', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 50 }}>
+                                                    <Text style={formStyles.label}>Qty</Text>
+                                                    <TextInput style={formStyles.input} keyboardType="numeric" placeholder="0" value={String(item.quantity || '')} onChangeText={(t) => handleReviewItemChange(idx, 'quantity', t)} />
+                                                </View>
+                                                <View style={{ flex: 1.5, minWidth: 80 }}>
+                                                    <Text style={formStyles.label}>Batch</Text>
+                                                    <TextInput style={formStyles.input} placeholder="Batch" value={item.batch_number || ''} onChangeText={(t) => handleReviewItemChange(idx, 'batch_number', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 60 }}>
+                                                    <Text style={formStyles.label}>Expiry</Text>
+                                                    <TextInput style={formStyles.input} placeholder="YYYY-MM" value={item.expiry_date || ''} onChangeText={(t) => handleReviewItemChange(idx, 'expiry_date', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 60 }}>
+                                                    <Text style={formStyles.label}>HSN</Text>
+                                                    <TextInput style={formStyles.input} placeholder="HSN" value={item.hsn_code || ''} onChangeText={(t) => handleReviewItemChange(idx, 'hsn_code', t)} />
+                                                </View>
+                                                <View style={{ flex: 1, minWidth: 60 }}>
+                                                    <Text style={formStyles.label}>GST %</Text>
+                                                    <TextInput style={formStyles.input} keyboardType="numeric" placeholder="0" value={String(item.gst || '')} onChangeText={(t) => handleReviewItemChange(idx, 'gst', t)} />
+                                                </View>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+                        </ScrollView>
+                        <View style={formStyles.footer}>
+                            <TouchableOpacity 
+                                style={formStyles.cancelBtn} 
                                 onPress={() => {
-                                    setAutoImportNoticeVisible(false);
-                                    setManualPurchaseModalVisible(true);
-                                }}
+                                    setReviewModalVisible(false);
+                                    setReviewPurchaseId(null);
+                                    setReviewItems([]);
+                                }} 
+                                disabled={reviewLoading}
                             >
-                                <Text style={{ fontSize: 14, fontWeight: '600', color: COLORS.white }}>Manual Purchase Upload</Text>
+                                <Text style={formStyles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={formStyles.saveBtn} onPress={handleReviewConfirm} disabled={reviewLoading}>
+                                {reviewLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={formStyles.saveBtnText}>Confirm Import</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -1470,6 +1558,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     statusText: { fontSize: 9, fontWeight: '600', letterSpacing: 0.4 },
+    status_processing: { backgroundColor: '#E0F2FE', borderColor: '#0284C7' },
+    statusText_processing: { color: '#0284C7' },
+    status_failed: { backgroundColor: '#FEE2E2', borderColor: '#DC2626' },
+    statusText_failed: { color: '#DC2626' },
     status_pending: { backgroundColor: COLORS.warningLight, borderColor: COLORS.warning },
     statusText_pending: { color: COLORS.warning },
     status_received: { backgroundColor: COLORS.successLight, borderColor: COLORS.primary },
