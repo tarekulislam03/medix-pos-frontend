@@ -26,6 +26,7 @@ const linking = {
                     Returns: 'returns',
                     Purchase: 'purchase',
                     AdminPurchaseUpload: 'purchase/admin/upload',
+                    AdminAutoImportBills: 'purchase/bills/auto-import',
                     Settings: 'settings',
                     SalesAnalytics: 'analytics',
                     GstFiling: 'gst-filing',

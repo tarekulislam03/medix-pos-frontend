@@ -16,7 +16,15 @@ export const uploadPurchaseBill = async (formData) => {
  * Get all purchase records for the store.
  */
 export const getPurchases = async () => {
-    const response = await api.get('/purchase/');
+    const response = await api.get(`/purchase/?_t=${Date.now()}`);
+    return response.data;
+};
+
+/**
+ * Get auto-import purchase bills (Admin endpoint)
+ */
+export const getAutoImportBills = async () => {
+    const response = await api.get(`/purchase/admin/auto-import?_t=${Date.now()}`);
     return response.data;
 };
 
@@ -42,6 +50,11 @@ export const finalizePurchase = async (purchaseId, meta) => {
 
 export const createManualPurchase = async (purchaseData) => {
     const response = await api.post(`/purchase/manual`, purchaseData);
+    return response.data;
+};
+
+export const savePurchaseJson = async (id, payload) => {
+    const response = await api.patch(`/purchase/${id}/save-json`, payload);
     return response.data;
 };
 

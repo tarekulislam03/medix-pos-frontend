@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -172,17 +172,9 @@ export default function PurchaseScreen({ route, navigation }) {
 
     // Upload state
     const [uploading, setUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState('');  // status label
-
-    // Upload form modal state
-    const [uploadFormVisible, setUploadFormVisible] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState('');
+    const [uploadSuccessModalVisible, setUploadSuccessModalVisible] = useState(false);
     const [autoImportNoticeVisible, setAutoImportNoticeVisible] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [uploadForm, setUploadForm] = useState({
-        supplier_name: '',
-        bill_date: '',
-        total_amount: '',
-    });
 
     // Preview modal
     const [previewUrl, setPreviewUrl] = useState(null);
@@ -217,22 +209,52 @@ export default function PurchaseScreen({ route, navigation }) {
     const [reviewMetadata, setReviewMetadata] = useState({});
 
     // ─── FETCH ─────────────────────────────────────────────────────────────
-    const fetchPurchases = useCallback(async () => {
-        setLoading(true);
+    const previousPurchasesRef = useRef([]);
+    const initialLoadRef = useRef(true);
+
+    const fetchPurchases = useCallback(async (isPolling = false) => {
+        if (!isPolling) setLoading(true);
         try {
             const res = await getPurchases();
-            setPurchases(res?.data ?? []);
-            setFilteredPurchases(res?.data ?? []);
+            const newPurchases = res?.data ?? [];
+            setPurchases(newPurchases);
+            setFilteredPurchases(newPurchases);
+
+            if (!initialLoadRef.current) {
+                const oldPurchasesMap = new Map(previousPurchasesRef.current.map(p => [p._id, p]));
+                const newlyNeedsReview = newPurchases.filter(p => {
+                    const oldP = oldPurchasesMap.get(p._id);
+                    return p.needs_manual_review && (!oldP || !oldP.needs_manual_review);
+                });
+
+                if (newlyNeedsReview.length > 0) {
+                    // Alert logic moved to MainLayout bell icon
+                }
+            }
+
+            previousPurchasesRef.current = newPurchases;
+            initialLoadRef.current = false;
         } catch (err) {
             console.warn('Fetch purchases failed:', err.message);
-            setPurchases([]);
-            setFilteredPurchases([]);
+            if (!isPolling) {
+                setPurchases([]);
+                setFilteredPurchases([]);
+            }
         } finally {
-            setLoading(false);
+            if (!isPolling) setLoading(false);
         }
     }, []);
 
-    useEffect(() => { fetchPurchases(); }, [fetchPurchases]);
+    useEffect(() => {
+        fetchPurchases();
+        
+        // Poll every 10 seconds
+        const intervalId = setInterval(() => {
+            fetchPurchases(true);
+        }, 10000);
+
+        return () => clearInterval(intervalId);
+    }, [fetchPurchases]);
 
     useEffect(() => {
         if (route?.params?.openAddModal) {
@@ -420,62 +442,25 @@ export default function PurchaseScreen({ route, navigation }) {
 
             if (!file) return; // user cancelled
 
-            // Store the file and show the form modal
-            setSelectedFile(file);
-            setUploadForm({
-                supplier_name: '',
-                bill_date: new Date().toISOString().split('T')[0],
-                total_amount: '',
-            });
-            setUploadFormVisible(true);
-        } catch (err) {
-            console.error('File pick error:', err);
-        }
-    };
+            // Upload directly instead of opening modal
+            setUploading(true);
+            setUploadProgress('Uploading bill to cloud...');
 
-    // ─── UPLOAD (Step 2: Submit form → upload) ────────────────────────────
-    const handleUploadSubmit = async () => {
-        if (!selectedFile) return;
-
-        setUploadFormVisible(false);
-        setUploading(true);
-        setUploadProgress('Uploading bill to cloud...');
-
-        try {
             const formData = new FormData();
-            formData.append('bill', selectedFile, selectedFile.name);
+            formData.append('bill', file, file.name);
 
-            // Append manual fields
-            if (uploadForm.supplier_name.trim()) {
-                formData.append('supplier_name', uploadForm.supplier_name.trim());
-            }
-            if (uploadForm.bill_date) {
-                formData.append('bill_date', uploadForm.bill_date);
-            }
-            if (uploadForm.total_amount) {
-                formData.append('total_amount', uploadForm.total_amount);
-            }
+            await uploadPurchaseBill(formData);
 
-            await autoImportBill(formData);
-
-            setUploadProgress('Upload started! Processing in background...');
+            setUploadSuccessModalVisible(true);
             await fetchPurchases();
-        } catch (err) {
-            console.error('Upload error:', err);
-            Alert.alert('Upload Failed', err?.message || 'Could not start auto-import processing.');
-        } finally {
-            setTimeout(() => {
-                setUploading(false);
-                setUploadProgress('');
-                setSelectedFile(null);
-            }, 3000);
-        }
-    };
 
-    const handleUploadCancel = () => {
-        setUploadFormVisible(false);
-        setSelectedFile(null);
-        setUploadForm({ supplier_name: '', bill_date: '', total_amount: '' });
+        } catch (err) {
+            console.error('File pick or upload error:', err);
+            Alert.alert('Upload Failed', err?.message || 'Could not start upload processing.');
+        } finally {
+            setUploading(false);
+            setUploadProgress('');
+        }
     };
 
     // ─── REVIEW AUTO IMPORT ────────────────────────────────────────────────
@@ -509,15 +494,15 @@ export default function PurchaseScreen({ route, navigation }) {
 
         setReviewLoading(true);
         try {
-            // Confirm the items, hits product controller and creates/updates inventory
-            const confirmRes = await confirmAutoImport({ purchaseId: reviewPurchaseId, items: reviewItems });
-            
-            // Finalize the purchase record
-            const meta = {
-                ...reviewMetadata,
-                imported_items: confirmRes.imported_items || []
+            const payload = {
+                purchase_id: reviewPurchaseId,
+                items: reviewItems,
+                supplier_name: reviewMetadata.supplier_name,
+                total_amount: reviewMetadata.total_amount,
             };
-            await finalizePurchase(reviewPurchaseId, meta);
+            
+            // Confirm the items, creates/updates inventory and finalizes the purchase record
+            await createManualPurchase(payload);
 
             Alert.alert('Success', 'Import confirmed and stock updated.');
             setReviewModalVisible(false);
@@ -633,12 +618,7 @@ export default function PurchaseScreen({ route, navigation }) {
                             <Text style={styles.noBillText}>No Bill</Text>
                         </View>
                     )}
-                    {item.status === 'processing' ? (
-                        <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                           <ActivityIndicator size="small" color={COLORS.primary} style={{marginRight: 6}} />
-                           <Text style={{fontSize: 12, color: COLORS.primary}}>Processing...</Text>
-                        </View>
-                    ) : (item.status === 'pending' && item.source === 'auto_import' && item.needs_manual_review) ? (
+                    {(item.status === 'pending' && item.source === 'auto_import' && item.needs_manual_review) ? (
                         <TouchableOpacity style={[styles.btnPrimary, {height: 28, paddingHorizontal: 10}]} onPress={() => handleOpenReview(item)}>
                             <Text style={styles.btnPrimaryText}>Ready for Review</Text>
                         </TouchableOpacity>
@@ -721,9 +701,7 @@ export default function PurchaseScreen({ route, navigation }) {
                 </View>
                 {/* Actions */}
                 <View style={[styles.cell, { flex: 0.8, alignItems: 'center', borderRightWidth: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}>
-                    {item.status === 'processing' ? (
-                        <ActivityIndicator size="small" color={COLORS.primary} />
-                    ) : (item.status === 'pending' && item.source === 'auto_import' && item.needs_manual_review) ? (
+                    {(item.status === 'pending' && item.source === 'auto_import' && item.needs_manual_review) ? (
                         <TouchableOpacity style={[styles.btnPrimary, {height: 26, paddingHorizontal: 8}]} onPress={() => handleOpenReview(item)}>
                             <Text style={[styles.btnPrimaryText, {fontSize: 10}]}>Review</Text>
                         </TouchableOpacity>
@@ -756,6 +734,14 @@ export default function PurchaseScreen({ route, navigation }) {
                 <View style={[styles.headerActions, r.isSmall && styles.headerActionsMobile]}>
                     {/* Manual Purchase & Upload Bill */}
                     <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                            style={[styles.btnSecondary, r.isSmall && { height: 38 }]}
+                            onPress={() => fetchPurchases()}
+                        >
+                            <Ionicons name="refresh" size={14} color={COLORS.primary} style={{ marginRight: 6 }} />
+                            <Text style={[styles.btnSecondaryText, { color: COLORS.primary }]}>Refresh</Text>
+                        </TouchableOpacity>
+
                         <TouchableOpacity
                             style={[styles.btnSecondary, r.isSmall && { height: 38 }]}
                             onPress={() => setManualPurchaseModalVisible(true)}
@@ -964,6 +950,29 @@ export default function PurchaseScreen({ route, navigation }) {
                 </View>
             </Modal>
 
+            {/* ─── UPLOAD SUCCESS MODAL ─── */}
+            <Modal visible={uploadSuccessModalVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.deleteModal, r.isSmall && { width: '90%', maxWidth: 380 }]}>
+                        <View style={[styles.deleteIconBox, { backgroundColor: COLORS.successGhost }]}>
+                            <Ionicons name="checkmark-circle-outline" size={32} color={COLORS.success} />
+                        </View>
+                        <Text style={styles.deleteTitle}>Upload Successful!</Text>
+                        <Text style={[styles.deleteDesc, { textAlign: 'center' }]}>
+                            Bill uploaded successfully. The processing is in progress and it can take up to a few hours. You can close this and continue billing.
+                        </Text>
+                        <View style={styles.deleteActions}>
+                            <TouchableOpacity
+                                style={[styles.btnPrimary, { flex: 1, paddingVertical: 12, alignItems: 'center' }]}
+                                onPress={() => setUploadSuccessModalVisible(false)}
+                            >
+                                <Text style={styles.btnPrimaryText}>Got it</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             {/* ─── MANUAL PURCHASE MODAL ─── */}
             <Modal visible={manualPurchaseModalVisible} transparent animationType="slide">
                 <View style={formStyles.overlay}>
@@ -1093,108 +1102,6 @@ export default function PurchaseScreen({ route, navigation }) {
                             </TouchableOpacity>
                             <TouchableOpacity style={formStyles.saveBtn} onPress={handleSaveManualPurchase} disabled={manualPurchaseLoading}>
                                 {manualPurchaseLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={formStyles.saveBtnText}>Save Purchase</Text>}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* ─── UPLOAD FORM MODAL ─── */}
-            <Modal visible={uploadFormVisible} animationType="fade" transparent onRequestClose={handleUploadCancel}>
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.uploadFormModal, r.isSmall && { width: '92%', maxWidth: 400 }]}>
-                        {/* Modal Header */}
-                        <View style={styles.uploadFormHeader}>
-                            <View style={styles.uploadFormIconBox}>
-                                <Ionicons name="document-text-outline" size={24} color={COLORS.primary} />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.uploadFormTitle}>Bill Details</Text>
-                                <Text style={styles.uploadFormSubtitle}>
-                                    {selectedFile?.name || 'Selected file'}
-                                </Text>
-                            </View>
-                            <TouchableOpacity onPress={handleUploadCancel} style={styles.uploadFormCloseBtn}>
-                                <Ionicons name="close" size={18} color={COLORS.textMuted} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Form Fields */}
-                        <View style={styles.uploadFormBody}>
-                            {/* Supplier Name */}
-                            <View style={styles.formGroup}>
-                                <Text style={styles.formLabel}>Supplier Name</Text>
-                                <View style={styles.formInputRow}>
-                                    <Ionicons name="business-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
-                                    <TextInput
-                                        style={styles.formInput}
-                                        placeholder="Enter supplier name"
-                                        placeholderTextColor={COLORS.textMuted}
-                                        value={uploadForm.supplier_name}
-                                        onChangeText={(val) => setUploadForm(prev => ({ ...prev, supplier_name: val }))}
-                                    />
-                                </View>
-                            </View>
-
-                            {/* Invoice Date */}
-                            <View style={styles.formGroup}>
-                                <Text style={styles.formLabel}>Invoice Date</Text>
-                                <View style={styles.formInputRow}>
-                                    <Ionicons name="calendar-outline" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
-                                    {Platform.OS === 'web' ? (
-                                        <input
-                                            type="date"
-                                            value={uploadForm.bill_date}
-                                            onChange={(e) => setUploadForm(prev => ({ ...prev, bill_date: e.target.value }))}
-                                            style={{
-                                                flex: 1,
-                                                height: 34,
-                                                fontSize: 13,
-                                                fontFamily: 'Inter, sans-serif',
-                                                color: '#2E3B38',
-                                                backgroundColor: 'transparent',
-                                                border: 'none',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                            }}
-                                        />
-                                    ) : (
-                                        <TextInput
-                                            style={styles.formInput}
-                                            placeholder="YYYY-MM-DD"
-                                            placeholderTextColor={COLORS.textMuted}
-                                            value={uploadForm.bill_date}
-                                            onChangeText={(val) => setUploadForm(prev => ({ ...prev, bill_date: val }))}
-                                        />
-                                    )}
-                                </View>
-                            </View>
-
-                            {/* Total Amount */}
-                            <View style={styles.formGroup}>
-                                <Text style={styles.formLabel}>Total Amount (₹)</Text>
-                                <View style={styles.formInputRow}>
-                                    <Text style={{ fontSize: 15, color: COLORS.textMuted, marginRight: 8, fontWeight: '500' }}>₹</Text>
-                                    <TextInput
-                                        style={styles.formInput}
-                                        placeholder="0.00"
-                                        placeholderTextColor={COLORS.textMuted}
-                                        value={uploadForm.total_amount}
-                                        onChangeText={(val) => setUploadForm(prev => ({ ...prev, total_amount: val.replace(/[^0-9.]/g, '') }))}
-                                        keyboardType="decimal-pad"
-                                    />
-                                </View>
-                            </View>
-                        </View>
-
-                        {/* Modal Footer */}
-                        <View style={styles.uploadFormFooter}>
-                            <TouchableOpacity style={[styles.btnSecondary, { flex: 1 }]} onPress={handleUploadCancel}>
-                                <Text style={styles.btnSecondaryText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.btnPrimary, { flex: 1 }]} onPress={handleUploadSubmit}>
-                                <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
-                                <Text style={styles.btnPrimaryText}>Upload</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
