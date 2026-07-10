@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity, Modal, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, Text, Image, TouchableOpacity, Modal, Pressable, Alert, ScrollView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import Sidebar from '../components/Sidebar';
@@ -42,6 +43,26 @@ export default function MainLayout() {
     const [storeSettings, setStoreSettings] = useState(null);
     const [unseenPurchases, setUnseenPurchases] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showUpdatePopup, setShowUpdatePopup] = useState(false);
+
+    // ─── ONE-DAY UPDATE POPUP ─────────────────────────
+    // Change TARGET_DATE to the day you want the popup to appear.
+    // Format: "YYYY-MM-DD"
+    const UPDATE_POPUP_TARGET_DATE = "2026-07-11";
+    const UPDATE_POPUP_TITLE = "New Update Available!";
+    const UPDATE_POPUP_MESSAGE = `We've added new features and improvements to improve your experience:\n\n• Stock Ledger — There is now a dedicated page named "LEDGER". There you can track all inward & outward stock movements.\n• Auto Bill Import — The ai bill import is now avilable but in beta version. In purchase page you can upload bill images by clicking on "Upload Bill". The bill will be processed within few hours. You will get notification (in top right) when bill will be ready for review.\n• Bug Fixes — Various performance improvements and bug fixes.\n\nIf you face any issues, please reach out via WhatsApp.`;
+
+    useEffect(() => {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        if (today === UPDATE_POPUP_TARGET_DATE) {
+            setShowUpdatePopup(true);
+        }
+    }, []);
+
+    const dismissUpdatePopup = () => {
+        setShowUpdatePopup(false);
+    };
 
     useEffect(() => {
         const checkPurchases = async () => {
@@ -267,6 +288,30 @@ export default function MainLayout() {
                 </Modal>
             )}
 
+            {/* One-Day Update Popup */}
+            {showUpdatePopup && (
+                <Modal visible={true} transparent={true} animationType="fade" onRequestClose={dismissUpdatePopup}>
+                    <Pressable style={popupStyles.overlay} onPress={dismissUpdatePopup}>
+                        <Pressable style={popupStyles.card} onPress={(e) => e.stopPropagation()}>
+                            <View style={popupStyles.header}>
+                                <Text style={popupStyles.title}>{UPDATE_POPUP_TITLE}</Text>
+                                <Pressable onPress={dismissUpdatePopup} style={({ hovered }) => [popupStyles.closeBtn, hovered && { backgroundColor: 'rgba(0,0,0,0.1)' }]}>
+                                    <Ionicons name="close" size={18} color="#A0B2AD" />
+                                </Pressable>
+                            </View>
+                            <ScrollView style={popupStyles.body}>
+                                <Text style={popupStyles.message}>{UPDATE_POPUP_MESSAGE}</Text>
+                            </ScrollView>
+                            <View style={popupStyles.footer}>
+                                <Pressable style={({ hovered }) => [popupStyles.okBtn, hovered && { backgroundColor: '#17956F' }]} onPress={dismissUpdatePopup}>
+                                    <Text style={popupStyles.okBtnText}>Got it!</Text>
+                                </Pressable>
+                            </View>
+                        </Pressable>
+                    </Pressable>
+                </Modal>
+            )}
+
         </View>
     );
 }
@@ -392,4 +437,76 @@ storeDivider: {
     marginHorizontal: 10,
 },
 
+});
+
+const popupStyles = StyleSheet.create({
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+    },
+    card: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        width: 420,
+        maxWidth: '90%',
+        maxHeight: '80%',
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 10,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#E0E5E3',
+        backgroundColor: '#F4F7F6',
+    },
+    title: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1E2624',
+    },
+    closeBtn: {
+        width: 28,
+        height: 28,
+        borderRadius: 4,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    body: {
+        padding: 20,
+    },
+    message: {
+        fontSize: 14,
+        color: '#4A5C56',
+        lineHeight: 22,
+    },
+    footer: {
+        padding: 16,
+        borderTopWidth: 0.5,
+        borderTopColor: '#E0E5E3',
+        backgroundColor: '#F4F7F6',
+        alignItems: 'flex-end',
+    },
+    okBtn: {
+        backgroundColor: '#1DAB87',
+        paddingHorizontal: 24,
+        paddingVertical: 8,
+        borderRadius: 4,
+    },
+    okBtnText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '600',
+    },
 });

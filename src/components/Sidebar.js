@@ -14,6 +14,7 @@ const NAV_ITEMS = [
     { key: 'Customers', label: 'CUSTOMERS', icon: 'people-outline' },
     { key: 'Inventory', label: 'INVENTORY', icon: 'cube-outline' },
     { key: 'Purchase', label: 'PURCHASE', icon: 'card-outline' },
+    { key: 'StockLedger', label: 'LEDGER', icon: 'list-outline' },
     { key: 'SalesAnalytics', label: 'REPORTS', icon: 'bar-chart-outline' },
     { key: 'Returns', label: 'RETURNS', icon: 'return-down-back-outline' },
     { key: 'Settings', label: 'SETTINGS', icon: 'settings-outline' },
