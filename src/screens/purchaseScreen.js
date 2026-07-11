@@ -431,15 +431,10 @@ export default function PurchaseScreen({ route, navigation }) {
     const confirmUploadBill = async () => {
         setAutoImportNoticeVisible(false);
         try {
-            let file = null;
+            let file = nul;
 
-            if (Platform.OS === 'web') {
-                file = await pickFileWeb();
-            } else {
-                Alert.alert('Not Supported', 'File picker is only available on web browsers.');
-                return;
-            }
-
+            file = await pickFileWeb();
+            
             if (!file) return; // user cancelled
 
             // Upload directly instead of opening modal
