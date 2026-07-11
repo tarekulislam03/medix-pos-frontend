@@ -431,7 +431,7 @@ export default function PurchaseScreen({ route, navigation }) {
     const confirmUploadBill = async () => {
         setAutoImportNoticeVisible(false);
         try {
-            let file = nul;
+            let file = null;
 
             file = await pickFileWeb();
             
