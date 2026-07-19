@@ -31,6 +31,7 @@ const linking = {
                     SalesAnalytics: 'analytics',
                     GstFiling: 'gst-filing',
                     Invoices: 'invoices',
+                    Savings: 'savings',
                 },
             },
         },

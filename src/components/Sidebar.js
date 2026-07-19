@@ -16,6 +16,7 @@ const NAV_ITEMS = [
     { key: 'Purchase', label: 'PURCHASE', icon: 'card-outline' },
     { key: 'StockLedger', label: 'LEDGER', icon: 'list-outline' },
     { key: 'SalesAnalytics', label: 'REPORTS', icon: 'bar-chart-outline' },
+    { key: 'Savings', label: 'SAVINGS', icon: 'shield-checkmark-outline' },
     { key: 'Returns', label: 'RETURNS', icon: 'return-down-back-outline' },
     { key: 'Settings', label: 'SETTINGS', icon: 'settings-outline' },
     { key: 'Bored', label: 'ARE YOU BORED?', icon: 'game-controller-outline' },
