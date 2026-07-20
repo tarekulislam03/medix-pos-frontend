@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Image, TouchableOpacity, Modal, Pressable, Alert, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Image, TouchableOpacity, Modal, Pressable, Alert, ScrollView, TextInput, DeviceEventEmitter, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import Sidebar from '../components/Sidebar';
 import MainNavigator from '../navigation/MainNavigator';
+import BillingEnforcer from '../components/BillingEnforcer';
 
 import { COLORS } from '../constants/theme';
 import { useResponsive } from '../utils/responsive';
@@ -100,10 +101,12 @@ export default function MainLayout() {
     }, []);
 
     // Prepare notifications (bills only)
-    const notifications = [...unseenPurchases].map(p => ({ ...p, sortDate: p.createdAt || p.updatedAt || new Date() }));
-    notifications.sort((a, b) => new Date(b.sortDate) - new Date(a.sortDate));
-    const top5Notifications = notifications.slice(0, 5);
-    const totalCount = unseenPurchases.length;
+    const allNotifs = [
+        ...unseenPurchases.map(p => ({ ...p, type: 'purchase', sortDate: p.createdAt || p.updatedAt || new Date() }))
+    ];
+    allNotifs.sort((a, b) => new Date(b.sortDate) - new Date(a.sortDate));
+    const top5Notifications = allNotifs.slice(0, 5);
+    const totalCount = allNotifs.length;
 
     // Derive active route from the child navigator's state
     const activeRoute = useNavigationState((state) => {
@@ -130,6 +133,7 @@ export default function MainLayout() {
     };
 
     return (
+        <BillingEnforcer>
         <View style={styles.container}>
             {/* Top Bar */}
             <View style={styles.topBar}>
@@ -151,7 +155,6 @@ export default function MainLayout() {
                             }}
                             resizeMode="contain"
                         />
-
                     </View>
                 </View>
                 {!r.isSmall && (
@@ -219,7 +222,7 @@ export default function MainLayout() {
                                         <>
                                             {top5Notifications.map((n, idx) => (
                                                 <TouchableOpacity 
-                                                    key={`pur-${n._id || idx}`}
+                                                    key={`notif-${n._id || idx}`}
                                                     style={{
                                                         padding: 10,
                                                         backgroundColor: 'rgba(255,255,255,0.05)',
@@ -228,7 +231,9 @@ export default function MainLayout() {
                                                     }}
                                                     onPress={() => {
                                                         setShowNotifications(false);
-                                                        navigation.navigate('Main', { screen: 'Purchase' });
+                                                        if (n.type === 'purchase') {
+                                                            navigation.navigate('Main', { screen: 'Purchase' });
+                                                        }
                                                     }}
                                                 >
                                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -238,7 +243,7 @@ export default function MainLayout() {
                                                         </Text>
                                                     </View>
                                                     <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 4 }}>
-                                                        {n.supplier_name || 'A bill'} is ready for review
+                                                        {`${n.supplier_name || 'A bill'} is ready for review`}
                                                     </Text>
                                                 </TouchableOpacity>
                                             ))}
@@ -313,6 +318,7 @@ export default function MainLayout() {
             )}
 
         </View>
+        </BillingEnforcer>
     );
 }
 

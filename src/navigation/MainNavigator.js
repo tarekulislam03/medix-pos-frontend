@@ -15,6 +15,7 @@ import ComingSoonScreen from '../screens/ComingSoonScreen';
 import BoredScreen from '../screens/BoredScreen';
 import StockLedgerScreen from '../screens/StockLedgerScreen';
 import SavingsScreen from '../screens/SavingsScreen';
+import PaymentScreen from '../screens/PaymentScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -43,6 +44,7 @@ export default function MainNavigator() {
             <Stack.Screen name="Bored" component={BoredScreen} />
             <Stack.Screen name="StockLedger" component={StockLedgerScreen} />
             <Stack.Screen name="Savings" component={SavingsScreen} />
+            <Stack.Screen name="Payment" component={PaymentScreen} />
         </Stack.Navigator>
     );
 }

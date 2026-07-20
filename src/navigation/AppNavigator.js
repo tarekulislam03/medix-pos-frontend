@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthContext } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import MainLayout from '../screens/MainLayout';
+import AdminBillingPanel from '../screens/AdminBillingPanel';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,6 +18,7 @@ const linking = {
     config: {
         screens: {
             Login: 'login',
+            AdminBillingPanel: 'payment/admin',
             Main: {
                 path: '',
                 screens: {
@@ -32,6 +34,7 @@ const linking = {
                     GstFiling: 'gst-filing',
                     Invoices: 'invoices',
                     Savings: 'savings',
+                    Payment: 'payment/store',
                 },
             },
         },
@@ -69,6 +72,10 @@ export default function AppNavigator() {
                         component={LoginScreen}
                     />
                 )}
+                <Stack.Screen
+                    name="AdminBillingPanel"
+                    component={AdminBillingPanel}
+                />
             </Stack.Navigator>
         </NavigationContainer>
     );

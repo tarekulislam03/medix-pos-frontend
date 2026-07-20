@@ -19,6 +19,7 @@ const NAV_ITEMS = [
     { key: 'Savings', label: 'SAVINGS', icon: 'shield-checkmark-outline' },
     { key: 'Returns', label: 'RETURNS', icon: 'return-down-back-outline' },
     { key: 'Settings', label: 'SETTINGS', icon: 'settings-outline' },
+    { key: 'Payment', label: 'PAYMENT', icon: 'wallet-outline' },
     { key: 'Bored', label: 'ARE YOU BORED?', icon: 'game-controller-outline' },
 ];
 
