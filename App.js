@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Platform } from 'react-native';
-import { AuthContext } from './src/context/AuthContext';
-import { setAuthToken, loadStoredToken, setStoreData } from './src/services/api';
-import AppNavigator from './src/navigation/AppNavigator';
+import { AuthContext } from './src/core/context/AuthContext';
+import { setAuthToken, loadStoredToken, setStoreData } from './src/core/services/api';
+import AppNavigator from './src/core/navigation/AppNavigator';
 
 // Inject Inter font stack globally for web
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
