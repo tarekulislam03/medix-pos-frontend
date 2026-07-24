@@ -26,6 +26,7 @@ import MemoryCache from '../../../core/services/cacheService';
 import { printReceipt } from '../../../core/utils/printReceipt';
 import { useResponsive } from '../../../core/utils/responsive';
 import api from '../../../core/services/api';
+import RecommendationWidget from '../components/RecommendationWidget';
 
 // Helper to format expiry date safely and compactly
 const formatExpiryDate = (dateStr) => {
@@ -2712,9 +2713,9 @@ export default function BillingScreen({ navigation, route }) {
                             <Ionicons name="checkmark-circle" size={48} color={COLORS.success} />
                         </View>
 
-                        <Text style={printStyles.heading}>Sale Saved!</Text>
+                        <Text style={printStyles.heading}>Transaction Successful</Text>
                         <Text style={printStyles.sub}>
-                            The sale has been recorded successfully.{`\n`}What would you like to do next?
+                            Your sale has been securely recorded to the ledger.{`\n`}Choose how you want to proceed.
                         </Text>
 
                         <View style={printStyles.divider} />
@@ -2726,10 +2727,10 @@ export default function BillingScreen({ navigation, route }) {
                                 activeOpacity={0.8}
                             >
                                 <View style={printStyles.optionIconWrap}>
-                                    <Ionicons name="print-outline" size={28} color={COLORS.white} />
+                                    <Ionicons name="print-outline" size={24} color="#2DD4BF" />
                                 </View>
                                 <Text style={printStyles.optionLabel}>Print Bill</Text>
-                                <Text style={printStyles.optionSub}>Opens print dialog  •  Press <Text style={{ fontWeight: '700' }}>P</Text></Text>
+                                <Text style={printStyles.optionSub}>Opens print  •  Press <Text style={{ fontWeight: '700' }}>P</Text></Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -2738,10 +2739,10 @@ export default function BillingScreen({ navigation, route }) {
                                 activeOpacity={0.8}
                             >
                                 <View style={[printStyles.optionIconWrap, printStyles.optionIconSave]}>
-                                    <Ionicons name="save-outline" size={28} color={COLORS.primary} />
+                                    <Ionicons name="save-outline" size={24} color="#FFFFFF" />
                                 </View>
                                 <Text style={[printStyles.optionLabel, printStyles.optionLabelSave]}>Save Only</Text>
-                                <Text style={[printStyles.optionSub, { color: COLORS.textMuted }]}>No print  •  Press <Text style={{ fontWeight: '700' }}>S</Text></Text>
+                                <Text style={printStyles.optionSub}>No print  •  Press <Text style={{ fontWeight: '700' }}>S</Text></Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -2954,8 +2955,7 @@ export default function BillingScreen({ navigation, route }) {
                 </View>
             </Modal>
 
-
-
+            <RecommendationWidget />
         </View>
     );
 }
@@ -3622,84 +3622,94 @@ const printStyles = StyleSheet.create({
     },
     card: {
         width: '88%',
-        maxWidth: Math.min(420, Dimensions.get('window').width * 0.88),
-        backgroundColor: COLORS.white,
-        borderRadius: RADIUS.lg,
-        padding: SPACING.xl,
+        maxWidth: 400,
+        backgroundColor: '#24312E',
+        borderRadius: 16,
+        padding: 24,
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 15,
     },
     iconCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: RADIUS.lg,
-        backgroundColor: COLORS.successLight,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: SPACING.md,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     heading: {
-        fontSize: FONT_SIZES.xxl,
-        fontWeight: '500',
-        color: COLORS.textPrimary,
-        marginBottom: SPACING.xs,
+        fontSize: 22,
+        fontWeight: '600',
+        color: '#FFFFFF',
+        marginBottom: 8,
     },
     sub: {
-        fontSize: FONT_SIZES.md,
-        color: COLORS.textMuted,
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.6)',
         textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: SPACING.lg,
+        lineHeight: 20,
+        marginBottom: 24,
     },
     divider: {
-        height: 0.5,
-        backgroundColor: COLORS.borderLight,
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.05)',
         alignSelf: 'stretch',
-        marginBottom: SPACING.xl,
+        marginBottom: 24,
     },
     optionRow: {
         flexDirection: 'row',
-        gap: SPACING.md,
+        gap: 16,
         alignSelf: 'stretch',
     },
     optionBtn: {
         flex: 1,
-        borderRadius: RADIUS.lg,
-        paddingVertical: SPACING.xl,
-        paddingHorizontal: SPACING.md,
+        borderRadius: 12,
+        paddingVertical: 16,
+        paddingHorizontal: 12,
         alignItems: 'center',
-        gap: SPACING.sm,
+        gap: 8,
+        borderWidth: 1,
     },
     optionPrint: {
-        backgroundColor: COLORS.primary,
+        backgroundColor: '#1E2923',
+        borderColor: '#2DD4BF',
     },
     optionSave: {
-        backgroundColor: COLORS.white,
-        borderWidth: 0.5,
-        borderColor: COLORS.border,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderColor: 'rgba(255,255,255,0.1)',
     },
     optionIconWrap: {
-        width: 64,
-        height: 64,
-        borderRadius: RADIUS.lg,
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(45,212,191,0.1)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: SPACING.xs,
+        marginBottom: 4,
     },
     optionIconSave: {
-        backgroundColor: COLORS.primaryGhost,
+        backgroundColor: 'rgba(255,255,255,0.05)',
     },
     optionLabel: {
-        fontSize: FONT_SIZES.lg,
-        fontWeight: '500',
-        color: COLORS.white,
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#2DD4BF',
     },
     optionLabelSave: {
-        color: COLORS.textPrimary,
+        color: '#FFFFFF',
     },
     optionSub: {
-        fontSize: FONT_SIZES.sm,
-        color: 'rgba(255,255,255,0.75)',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.5)',
         fontWeight: '500',
     },
 });

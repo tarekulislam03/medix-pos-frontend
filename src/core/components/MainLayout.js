@@ -49,9 +49,9 @@ export default function MainLayout() {
     // ─── ONE-DAY UPDATE POPUP ─────────────────────────
     // Change TARGET_DATE to the day you want the popup to appear.
     // Format: "YYYY-MM-DD"
-    const UPDATE_POPUP_TARGET_DATE = "2026-07-11";
-    const UPDATE_POPUP_TITLE = "New Update Available!";
-    const UPDATE_POPUP_MESSAGE = `We've added new features and improvements to improve your experience:\n\n• Stock Ledger — There is now a dedicated page named "LEDGER". There you can track all inward & outward stock movements.\n• Auto Bill Import — The ai bill import is now avilable but in beta version. In purchase page you can upload bill images by clicking on "Upload Bill". The bill will be processed within few hours. You will get notification (in top right) when bill will be ready for review.\n• Bug Fixes — Various performance improvements and bug fixes.\n\nIf you face any issues, please reach out via WhatsApp.`;
+    const UPDATE_POPUP_TARGET_DATE = "2026-07-25";
+    const UPDATE_POPUP_TITLE = "New Update!";
+    const UPDATE_POPUP_MESSAGE = `We have added new features to improve your workflow:\n\n• Medix AI Assistant — A new smart chat widget is now available on the Billing screen at bottom left. It provides real-time insights on your inventory, top sellers, and dead stock to maximize profitability.\n\nPlease reach out via WhatsApp if you encounter any issues.`;
 
     useEffect(() => {
         const now = new Date();
@@ -300,16 +300,16 @@ export default function MainLayout() {
                         <Pressable style={popupStyles.card} onPress={(e) => e.stopPropagation()}>
                             <View style={popupStyles.header}>
                                 <Text style={popupStyles.title}>{UPDATE_POPUP_TITLE}</Text>
-                                <Pressable onPress={dismissUpdatePopup} style={({ hovered }) => [popupStyles.closeBtn, hovered && { backgroundColor: 'rgba(0,0,0,0.1)' }]}>
-                                    <Ionicons name="close" size={18} color="#A0B2AD" />
+                                <Pressable onPress={dismissUpdatePopup} style={({ hovered }) => [popupStyles.closeBtn, hovered && { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                                    <Ionicons name="close" size={18} color="#FFFFFF" />
                                 </Pressable>
                             </View>
                             <ScrollView style={popupStyles.body}>
                                 <Text style={popupStyles.message}>{UPDATE_POPUP_MESSAGE}</Text>
                             </ScrollView>
                             <View style={popupStyles.footer}>
-                                <Pressable style={({ hovered }) => [popupStyles.okBtn, hovered && { backgroundColor: '#17956F' }]} onPress={dismissUpdatePopup}>
-                                    <Text style={popupStyles.okBtnText}>Got it!</Text>
+                                <Pressable style={({ hovered }) => [popupStyles.okBtn, hovered && { backgroundColor: '#144439' }]} onPress={dismissUpdatePopup}>
+                                    <Text style={popupStyles.okBtnText}>Acknowledge</Text>
                                 </Pressable>
                             </View>
                         </Pressable>
@@ -448,21 +448,23 @@ storeDivider: {
 const popupStyles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.55)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 20,
     },
     card: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#24312E',
         borderRadius: 8,
-        width: 420,
+        width: 450,
         maxWidth: '90%',
         maxHeight: '80%',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.4,
         shadowRadius: 16,
         elevation: 10,
     },
@@ -471,21 +473,22 @@ const popupStyles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderBottomWidth: 0.5,
-        borderBottomColor: '#E0E5E3',
-        backgroundColor: '#F4F7F6',
+        paddingVertical: 16,
+        backgroundColor: 'rgba(0,0,0,0.15)',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.05)',
     },
     title: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1E2624',
+        fontSize: 15,
+        fontWeight: '500',
+        color: '#FFFFFF',
+        letterSpacing: 0.5,
     },
     closeBtn: {
         width: 28,
         height: 28,
         borderRadius: 4,
-        backgroundColor: 'rgba(0,0,0,0.05)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -494,25 +497,28 @@ const popupStyles = StyleSheet.create({
     },
     message: {
         fontSize: 14,
-        color: '#4A5C56',
-        lineHeight: 22,
+        color: 'rgba(255,255,255,0.85)',
+        lineHeight: 24,
     },
     footer: {
         padding: 16,
-        borderTopWidth: 0.5,
-        borderTopColor: '#E0E5E3',
-        backgroundColor: '#F4F7F6',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: 'rgba(0,0,0,0.1)',
         alignItems: 'flex-end',
     },
     okBtn: {
-        backgroundColor: '#1DAB87',
+        backgroundColor: '#1C5C4A',
         paddingHorizontal: 24,
-        paddingVertical: 8,
+        paddingVertical: 10,
         borderRadius: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
     },
     okBtnText: {
         color: '#FFFFFF',
         fontSize: 13,
-        fontWeight: '600',
+        fontWeight: '500',
+        letterSpacing: 0.5,
     },
 });

@@ -20,7 +20,7 @@ const NAV_ITEMS = [
     { key: 'Returns', label: 'RETURNS', icon: 'return-down-back-outline' },
     { key: 'Settings', label: 'SETTINGS', icon: 'settings-outline' },
     { key: 'Payment', label: 'PAYMENT', icon: 'wallet-outline' },
-    { key: 'Bored', label: 'ARE YOU BORED?', icon: 'game-controller-outline' },
+    { key: 'Bored', label: 'GAMES', icon: 'game-controller-outline' },
 ];
 
 export default function Sidebar({ activeScreen, onNavigate, onLogout }) {

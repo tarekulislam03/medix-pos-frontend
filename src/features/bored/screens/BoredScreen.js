@@ -19,7 +19,7 @@ export default function BoredScreen() {
             <View style={[styles.header, { padding: isMobile ? 12 : 20, marginBottom: isMobile ? 16 : 24 }]}>
                 <Ionicons name="game-controller" size={isMobile ? 24 : 28} color={COLORS.primary} />
                 <View style={{ marginLeft: 12 }}>
-                    <Text style={[styles.title, { fontSize: isMobile ? 18 : 22 }]}>Are You Bored?</Text>
+                    <Text style={[styles.title, { fontSize: isMobile ? 18 : 22 }]}>Games</Text>
                     <Text style={[styles.subtitle, { fontSize: isMobile ? 12 : 14 }]}>Take a quick break and play some mini-games!</Text>
                 </View>
             </View>

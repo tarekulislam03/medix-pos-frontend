@@ -134,3 +134,15 @@ export const getSaleById = async (saleId) => {
         throw error;
     }
 };
+
+/**
+ * Get billing recommendations for highest selling, order more, order less, dead stock
+ */
+export const getBillingRecommendations = async () => {
+    try {
+        const response = await api.get('/analytics/recommendations');
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
