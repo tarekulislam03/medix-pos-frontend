@@ -162,7 +162,7 @@ export default function MainLayout() {
                         <View style={styles.storeInfo}>
                             <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
                             <Text style={[styles.storeMeta, { marginLeft: 6, fontSize: 13 }]}>
-                                If you are facing any problem using the software or facing any technical problems, please whatsapp you problem to this number <Text style={{ fontWeight: '700', color: '#FFFFFF' }}>8101402916</Text>
+                                If you are facing any problem using the software or facing any technical problems, please whatsapp your problem to this number <Text style={{ fontWeight: '700', color: '#FFFFFF' }}>8101402916</Text>
                             </Text>
                         </View>
                     </View>
