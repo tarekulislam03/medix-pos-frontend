@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../core/services/api';
-import { COLORS } from '../../../core/constants/theme';
+import { COLORS, FONT_SIZES, SPACING, RADIUS } from '../../../core/constants/theme';
 import { useResponsive } from '../../../core/utils/responsive';
 
 export default function PaymentScreen() {
@@ -43,7 +43,7 @@ export default function PaymentScreen() {
     }
 
     const { planType, totalAmount, downpayment, schedules } = subscription;
-    const paidSchedules = schedules.filter(s => s.status === 'paid');
+    const paidSchedules = schedules.filter(s => s.status === 'paid' && !s.isCustom);
     const totalPaid = paidSchedules.reduce((acc, s) => acc + s.amount, 0);
     const totalDue = totalAmount - totalPaid;
 
@@ -98,7 +98,7 @@ export default function PaymentScreen() {
 
                 {/* Payment History / Schedules */}
                 <Text style={styles.sectionTitle}>Payment Schedule & History</Text>
-                {schedules.map((item, index) => {
+                {schedules.filter(s => !s.isCustom).map((item, index) => {
                     let statusColor = '#999';
                     let statusText = 'Pending';
                     let statusIcon = 'time-outline';
@@ -147,31 +147,64 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.bgDark },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgDark },
     emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgDark },
-    emptyText: { color: 'rgba(255,255,255,0.5)', marginTop: 15, fontSize: 16 },
-    header: { padding: 20, backgroundColor: '#24312E', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
-    headerTitle: { color: COLORS.white, fontSize: 20, fontWeight: 'bold' },
-    scrollContent: { padding: 20, paddingBottom: 60 },
+    emptyText: { color: COLORS.textMuted, marginTop: 15, fontSize: FONT_SIZES.md },
+    header: { 
+        paddingHorizontal: SPACING.xl,
+        paddingVertical: SPACING.lg,
+        backgroundColor: COLORS.bgCard,
+        borderBottomWidth: 1, 
+        borderBottomColor: COLORS.borderLight 
+    },
+    headerTitle: { color: COLORS.textPrimary, fontSize: FONT_SIZES.lg, fontWeight: '600' },
+    scrollContent: { padding: SPACING.xl, paddingBottom: 60 },
     
-    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-    summaryCard: { flex: 1, backgroundColor: '#24312E', padding: 20, borderRadius: 10, flexDirection: 'row', alignItems: 'center', marginHorizontal: 5 },
-    summaryIconBox: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(245, 166, 35, 0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-    summaryLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 4 },
-    summaryValue: { color: COLORS.white, fontSize: 24, fontWeight: 'bold' },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.xl },
+    summaryCard: { 
+        flex: 1, 
+        backgroundColor: COLORS.bgCard, 
+        padding: SPACING.lg, 
+        borderRadius: RADIUS.lg, 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginHorizontal: SPACING.xs,
+        borderWidth: 1,
+        borderColor: COLORS.borderLight
+    },
+    summaryIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.warningLight, justifyContent: 'center', alignItems: 'center', marginRight: SPACING.md },
+    summaryLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZES.xs, marginBottom: 4 },
+    summaryValue: { color: COLORS.textPrimary, fontSize: FONT_SIZES.lg, fontWeight: '600' },
     
-    detailsCard: { backgroundColor: '#24312E', borderRadius: 10, padding: 20, marginBottom: 30 },
-    cardTitle: { color: COLORS.white, fontSize: 16, fontWeight: 'bold', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)', paddingBottom: 10 },
-    detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    detailLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 14 },
-    detailValue: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+    detailsCard: { 
+        backgroundColor: COLORS.bgCard, 
+        borderRadius: RADIUS.lg, 
+        padding: SPACING.lg, 
+        marginBottom: SPACING.xxl,
+        borderWidth: 1,
+        borderColor: COLORS.borderLight
+    },
+    cardTitle: { color: COLORS.textPrimary, fontSize: FONT_SIZES.sm, fontWeight: '600', marginBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.borderLight, paddingBottom: SPACING.sm },
+    detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm },
+    detailLabel: { color: COLORS.textSecondary, fontSize: FONT_SIZES.xs },
+    detailValue: { color: COLORS.textPrimary, fontSize: FONT_SIZES.xs, fontWeight: '500' },
     
-    sectionTitle: { color: COLORS.white, fontSize: 18, fontWeight: 'bold', marginBottom: 15, marginLeft: 5 },
-    scheduleItem: { backgroundColor: '#24312E', borderRadius: 10, padding: 15, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    sectionTitle: { color: COLORS.textPrimary, fontSize: FONT_SIZES.md, fontWeight: '600', marginBottom: SPACING.lg, marginLeft: SPACING.xs },
+    scheduleItem: { 
+        backgroundColor: COLORS.bgCard, 
+        borderRadius: RADIUS.lg, 
+        padding: SPACING.lg, 
+        marginBottom: SPACING.md, 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderColor: COLORS.borderLight
+    },
     scheduleLeft: { flexDirection: 'row', alignItems: 'center' },
-    iconWrapper: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+    iconWrapper: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: SPACING.lg },
     scheduleInfo: { justifyContent: 'center' },
-    scheduleAmount: { color: COLORS.white, fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-    scheduleDate: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
-    scheduleUtr: { color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 4, fontStyle: 'italic' },
-    statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-    statusText: { fontSize: 12, fontWeight: 'bold' }
+    scheduleAmount: { color: COLORS.textPrimary, fontSize: FONT_SIZES.sm, fontWeight: '600', marginBottom: 2 },
+    scheduleDate: { color: COLORS.textSecondary, fontSize: FONT_SIZES.xs },
+    scheduleUtr: { color: COLORS.textMuted, fontSize: 10, marginTop: 4, fontStyle: 'italic' },
+    statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.lg, borderWidth: 1 },
+    statusText: { fontSize: 10, fontWeight: '600' }
 });

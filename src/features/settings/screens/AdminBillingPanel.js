@@ -22,7 +22,14 @@ export default function AdminBillingPanel() {
     const [downpayment, setDownpayment] = useState('0');
     const [timelineMonths, setTimelineMonths] = useState('1');
     const [fullPaidAmount, setFullPaidAmount] = useState('');
+    const [upiId, setUpiId] = useState('');
+    const [warningDays, setWarningDays] = useState('5');
+    const [blockDays, setBlockDays] = useState('10');
     const [submittingSetup, setSubmittingSetup] = useState(false);
+
+    // Custom Alert State
+    const [customAmount, setCustomAmount] = useState('');
+    const [customDueDate, setCustomDueDate] = useState('');
 
     // Pending State
     const [pendingApprovals, setPendingApprovals] = useState([]);
@@ -37,6 +44,7 @@ export default function AdminBillingPanel() {
     useEffect(() => {
         fetchStores();
         fetchPending();
+        fetchSubscriptions();
     }, []);
 
     const fetchStores = async () => {
@@ -98,8 +106,7 @@ export default function AdminBillingPanel() {
 
             if (due > 0) {
                 const dueDate = new Date();
-                // TEMPORARY FOR TESTING: Set due date to 15 days ago to trigger the BLOCK screen instantly.
-                dueDate.setDate(dueDate.getDate() - 15);
+                // Set due date to today for full payment due
                 schedules.push({
                     dueDate: dueDate,
                     amount: due,
@@ -111,20 +118,21 @@ export default function AdminBillingPanel() {
             const remaining = total - dp;
             const emiAmount = remaining / months;
             
-            // If downpayment exists, first schedule is downpayment (due in 15 days ago for testing)
+            // If downpayment exists, first schedule is downpayment (due today)
             if (dp > 0) {
                 const dpDate = new Date();
-                dpDate.setDate(dpDate.getDate() - 15); // TEMPORARY FOR TESTING
                 schedules.push({
                     dueDate: dpDate,
-                    amount: dp
+                    amount: dp,
+                    status: 'paid',
+                    paidDate: new Date()
                 });
             }
 
             for (let i = 0; i < months; i++) {
                 const date = new Date();
-                // Subsquent EMIs start from today + i months
-                date.setMonth(date.getMonth() + i);
+                // Subsequent EMIs start from exactly 1 month from now
+                date.setMonth(date.getMonth() + (i + 1));
                 schedules.push({
                     dueDate: date,
                     amount: parseFloat(emiAmount.toFixed(2))
@@ -140,7 +148,10 @@ export default function AdminBillingPanel() {
                 totalAmount: total,
                 downpayment: dp,
                 timelineMonths: months,
-                schedules
+                schedules,
+                upiId: upiId.trim(),
+                warningDays: parseInt(warningDays, 10) || 5,
+                blockDays: parseInt(blockDays, 10) || 10
             });
             Alert.alert("Success", "Subscription setup successfully.");
         } catch (error) {
@@ -148,6 +159,49 @@ export default function AdminBillingPanel() {
             Alert.alert("Error", "Failed to setup subscription.");
         }
         setSubmittingSetup(false);
+    };
+
+    const handleCustomAlert = async () => {
+        if (!selectedStore || !customAmount || !customDueDate) {
+            Alert.alert("Error", "Please fill required fields (Store, Amount, Due Date)");
+            return;
+        }
+
+        const date = new Date(customDueDate);
+        if (isNaN(date.getTime())) {
+            Alert.alert("Error", "Please enter a valid date.");
+            return;
+        }
+
+        setSubmittingSetup(true);
+        try {
+            await api.post('/admin/billing/custom-alert', {
+                storeId: selectedStore,
+                amount: parseFloat(customAmount),
+                dueDate: date
+            });
+            Alert.alert("Success", "Custom alert assigned successfully.");
+            fetchSubscriptions();
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Error", error.response?.data?.message || "Failed to setup custom alert");
+        } finally {
+            setSubmittingSetup(false);
+        }
+    };
+
+    const handleRemoveCustomAlert = async (storeId) => {
+        try {
+            setSubmittingSetup(true);
+            await api.delete(`/admin/billing/custom-alert/${storeId}`);
+            Alert.alert("Success", "Active custom alerts removed successfully.");
+            fetchSubscriptions();
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Error", error.response?.data?.message || "Failed to remove custom alert");
+        } finally {
+            setSubmittingSetup(false);
+        }
     };
 
     const handleConfirm = async (subId, schedId) => {
@@ -273,6 +327,12 @@ export default function AdminBillingPanel() {
                 >
                     <Text style={[styles.tabText, activeTab === 'manage' && styles.activeTabText]}>Manage Subscriptions</Text>
                 </TouchableOpacity>
+                <TouchableOpacity 
+                    style={[styles.tab, activeTab === 'custom' && styles.activeTab]}
+                    onPress={() => setActiveTab('custom')}
+                >
+                    <Text style={[styles.tabText, activeTab === 'custom' && styles.activeTabText]}>Custom Alert</Text>
+                </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.content}>
@@ -288,33 +348,6 @@ export default function AdminBillingPanel() {
                             </Text>
                             <Ionicons name="chevron-down" size={18} color="#999" />
                         </TouchableOpacity>
-
-                        {/* Store Selection Modal */}
-                        {storeDropdownVisible && (
-                            <Modal visible={true} transparent={true} animationType="fade" onRequestClose={() => setStoreDropdownVisible(false)}>
-                                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setStoreDropdownVisible(false)}>
-                                    <View style={styles.modalCard}>
-                                        <Text style={styles.modalTitle}>Select Store</Text>
-                                        <ScrollView style={styles.modalList}>
-                                            {stores.map(store => (
-                                                <TouchableOpacity 
-                                                    key={store._id} 
-                                                    style={styles.modalListItem}
-                                                    onPress={() => {
-                                                        setSelectedStore(store._id);
-                                                        setSelectedStoreName(`${store.storeName} (${store.contactNumber})`);
-                                                        setStoreDropdownVisible(false);
-                                                    }}
-                                                >
-                                                    <Text style={styles.modalListItemText}>{store.storeName}</Text>
-                                                    <Text style={styles.modalListItemSub}>{store.contactNumber}</Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </ScrollView>
-                                    </View>
-                                </TouchableOpacity>
-                            </Modal>
-                        )}
 
                         <Text style={styles.label}>Plan Type:</Text>
                         <View style={styles.radioGroup}>
@@ -380,9 +413,130 @@ export default function AdminBillingPanel() {
                             </>
                         )}
 
+                        <Text style={styles.label}>Admin UPI ID:</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            placeholder="e.g. admin@upi" 
+                            placeholderTextColor="#999"
+                            value={upiId}
+                            onChangeText={setUpiId}
+                        />
+
+                        <Text style={styles.label}>Warning Timeline (Days before due):</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            keyboardType="numeric" 
+                            placeholder="e.g. 3" 
+                            placeholderTextColor="#999"
+                            value={warningDays}
+                            onChangeText={setWarningDays}
+                        />
+
+                        <Text style={styles.label}>Block Timeline (Days after due):</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            keyboardType="numeric" 
+                            placeholder="e.g. 10" 
+                            placeholderTextColor="#999"
+                            value={blockDays}
+                            onChangeText={setBlockDays}
+                        />
+
                         <TouchableOpacity style={styles.submitBtn} onPress={handleSetup} disabled={submittingSetup}>
                             <Text style={styles.submitBtnText}>{submittingSetup ? "Saving..." : "Save Subscription"}</Text>
                         </TouchableOpacity>
+                    </View>
+                )}
+
+                {activeTab === 'custom' && (
+                    <View style={styles.formCard}>
+                        <Text style={styles.label}>Select Store:</Text>
+                        <TouchableOpacity 
+                            style={styles.dropdownBtn} 
+                            onPress={() => setStoreDropdownVisible(true)}
+                        >
+                            <Text style={[styles.dropdownBtnText, !selectedStoreName && { color: '#999' }]}>
+                                {selectedStoreName || "Tap to select a store"}
+                            </Text>
+                            <Ionicons name="chevron-down" size={18} color="#999" />
+                        </TouchableOpacity>
+
+                        <Text style={styles.label}>Payment Amount (₹):</Text>
+                        <TextInput 
+                            style={styles.input} 
+                            keyboardType="numeric" 
+                            placeholder="e.g. 1500" 
+                            placeholderTextColor="#999"
+                            value={customAmount}
+                            onChangeText={setCustomAmount}
+                        />
+
+                        <Text style={styles.label}>Safe Till Date:</Text>
+                        <View style={[styles.input, { justifyContent: 'center' }]}>
+                            {Platform.OS === 'web' ? (
+                                React.createElement('input', {
+                                    type: 'date',
+                                    value: customDueDate,
+                                    onChange: (e) => setCustomDueDate(e.target.value),
+                                    style: {
+                                        border: 'none',
+                                        outline: 'none',
+                                        fontSize: 14,
+                                        color: COLORS.textPrimary,
+                                        fontFamily: 'inherit',
+                                        width: '100%',
+                                        backgroundColor: 'transparent'
+                                    }
+                                })
+                            ) : (
+                                <TextInput
+                                    placeholder="YYYY-MM-DD"
+                                    placeholderTextColor="#999"
+                                    value={customDueDate}
+                                    onChangeText={setCustomDueDate}
+                                    style={{ color: COLORS.textPrimary }}
+                                />
+                            )}
+                        </View>
+
+                        <TouchableOpacity style={[styles.submitBtn, { marginTop: 15 }]} onPress={handleCustomAlert} disabled={submittingSetup}>
+                            <Text style={styles.submitBtnText}>{submittingSetup ? "Saving..." : "Save Custom Alert"}</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {activeTab === 'custom' && (
+                    <View style={[styles.listCard, { marginTop: 20 }]}>
+                        <Text style={styles.sectionTitle}>Active Custom Alerts</Text>
+                        {subscriptions.filter(sub => sub.schedules.some(s => s.isCustom && s.status === 'pending')).length === 0 ? (
+                            <Text style={styles.emptyText}>No active custom alerts.</Text>
+                        ) : (
+                            subscriptions.filter(sub => sub.schedules.some(s => s.isCustom && s.status === 'pending')).map((sub, idx) => {
+                                const customAlerts = sub.schedules.filter(s => s.isCustom && s.status === 'pending');
+                                return (
+                                    <View key={sub._id || idx} style={styles.listItem}>
+                                        <View style={styles.itemInfo}>
+                                            <Text style={styles.storeName}>{sub.storeId?.storeName || 'Unknown Store'}</Text>
+                                            <Text style={styles.storeContact}>{sub.storeId?.contactNumber}</Text>
+                                            {customAlerts.map(ca => (
+                                                <Text key={ca._id} style={{ color: COLORS.error, fontSize: 13, marginTop: 4 }}>
+                                                    Alert Due: {new Date(ca.dueDate).toDateString()} (₹{ca.amount})
+                                                </Text>
+                                            ))}
+                                        </View>
+                                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                                            <TouchableOpacity 
+                                                style={[styles.confirmBtn, { backgroundColor: COLORS.error }]} 
+                                                onPress={() => handleRemoveCustomAlert(sub.storeId?._id)}
+                                                disabled={submittingSetup}
+                                            >
+                                                <Text style={styles.confirmBtnText}>Stop Alert</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                );
+                            })
+                        )}
                     </View>
                 )}
 
@@ -418,7 +572,7 @@ export default function AdminBillingPanel() {
                             <Text style={styles.emptyText}>No active subscriptions found.</Text>
                         ) : (
                             subscriptions.map((sub, idx) => {
-                                const allPaid = sub.schedules.every(s => s.status === 'paid');
+                                const allPaid = sub.schedules.filter(s => !s.isCustom).every(s => s.status === 'paid');
                                 return (
                                     <View key={sub._id || idx} style={styles.listItem}>
                                         <View style={styles.itemInfo}>
@@ -443,6 +597,33 @@ export default function AdminBillingPanel() {
                             })
                         )}
                     </View>
+                )}
+
+                {/* Store Selection Modal (Shared across tabs) */}
+                {storeDropdownVisible && (
+                    <Modal visible={true} transparent={true} animationType="fade" onRequestClose={() => setStoreDropdownVisible(false)}>
+                        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setStoreDropdownVisible(false)}>
+                            <View style={styles.modalCard}>
+                                <Text style={styles.modalTitle}>Select Store</Text>
+                                <ScrollView style={styles.modalList}>
+                                    {stores.map(store => (
+                                        <TouchableOpacity 
+                                            key={store._id} 
+                                            style={styles.modalListItem}
+                                            onPress={() => {
+                                                setSelectedStore(store._id);
+                                                setSelectedStoreName(`${store.storeName} (${store.contactNumber})`);
+                                                setStoreDropdownVisible(false);
+                                            }}
+                                        >
+                                            <Text style={styles.modalListItemText}>{store.storeName}</Text>
+                                            <Text style={styles.modalListItemSub}>{store.contactNumber}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        </TouchableOpacity>
+                    </Modal>
                 )}
             </ScrollView>
 

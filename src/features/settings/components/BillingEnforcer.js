@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator, Alert, DeviceEventEmitter, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator, Alert, DeviceEventEmitter, Platform, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../core/services/api';
 import { COLORS } from '../../../core/constants/theme';
@@ -100,11 +100,36 @@ export default function BillingEnforcer({ children }) {
                             </View>
 
                             <View style={styles.body}>
-                                <Text style={styles.message}>
-                                    {billingStatus === 'blocked' 
-                                        ? "Your payment is overdue by more than 10 days. Please clear your dues to regain access to the app."
-                                        : "Your upcoming payment is due soon. Please ensure payment is made to avoid service interruption."}
-                                </Text>
+                                {(() => {
+                                    const dueDate = new Date(schedule.dueDate);
+                                    const blockDate = new Date(dueDate);
+                                    blockDate.setDate(dueDate.getDate() + (schedule.blockDays || 10));
+                                    
+                                    // Format dates like "31 Jul 2026"
+                                    const dateOptions = { day: '2-digit', month: 'short', year: 'numeric' };
+                                    const formattedDueDate = dueDate.toLocaleDateString('en-IN', dateOptions);
+                                    const formattedBlockDate = blockDate.toLocaleDateString('en-IN', dateOptions);
+
+                                    const now = new Date();
+                                    const diffDays = Math.ceil((now - dueDate) / (1000 * 60 * 60 * 24));
+                                    
+                                    let message = "";
+                                    if (schedule.isCustom) {
+                                        message = `Till ${formattedDueDate} you are safe. Please pay the due amount.`;
+                                    } else if (billingStatus === 'blocked') {
+                                        message = `Your payment was due on ${formattedDueDate}. Please clear your dues immediately to regain access to the app.`;
+                                    } else if (billingStatus === 'warning') {
+                                        if (diffDays > 0) {
+                                            message = `Your payment was due on ${formattedDueDate}. You have until ${formattedBlockDate} to pay before your app access is blocked.`;
+                                        } else if (diffDays === 0) {
+                                            message = `Your payment is due today, ${formattedDueDate}. You have until ${formattedBlockDate} to pay before app access is blocked.`;
+                                        } else {
+                                            message = `Your upcoming payment is due on ${formattedDueDate}. You will have until ${formattedBlockDate} to pay before app access is blocked.`;
+                                        }
+                                    }
+                                    
+                                    return <Text style={styles.message}>{message}</Text>;
+                                })()}
 
                                 <View style={styles.amountBox}>
                                     <Text style={styles.amountLabel}>Amount Due:</Text>
@@ -115,19 +140,29 @@ export default function BillingEnforcer({ children }) {
                                     <Text style={styles.amountValue}>{new Date(schedule.dueDate).toDateString()}</Text>
                                 </View>
 
-                                {schedule.paymentStatus === 'uploaded' ? (
+                                {schedule.isCustom ? null : schedule.paymentStatus === 'uploaded' ? (
                                     <View style={styles.waitingBox}>
                                         <Ionicons name="time-outline" size={24} color="#F5A623" />
                                         <Text style={styles.waitingText}>Payment UTR uploaded. Waiting for confirmation from Admin.</Text>
                                     </View>
                                 ) : (
                                     <View style={styles.paymentSection}>
-                                        <Text style={styles.payInstruction}>Please scan the QR or pay via UPI and enter the UTR number below:</Text>
+                                        {schedule.upiId ? (
+                                            <View style={styles.qrContainer}>
+                                                <Image 
+                                                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${schedule.upiId}&pn=Admin&am=${schedule.amount}&cu=INR`)}` }}
+                                                    style={styles.qrCode}
+                                                />
+                                                <Text style={styles.payInstruction}>Please scan the QR or pay via UPI ({schedule.upiId}) and enter the UTR number below:</Text>
+                                            </View>
+                                        ) : (
+                                            <Text style={styles.payInstruction}>Please pay via UPI and enter the UTR number below:</Text>
+                                        )}
                                         
                                         <TextInput
                                             style={styles.input}
                                             placeholder="Enter UTR Number"
-                                            placeholderTextColor="rgba(0,0,0,0.4)"
+                                            placeholderTextColor={COLORS.textMuted || '#7A8E89'}
                                             value={utrNumber}
                                             onChangeText={setUtrNumber}
                                         />
@@ -155,16 +190,18 @@ export default function BillingEnforcer({ children }) {
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.85)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
     },
     card: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        width: 450,
+        backgroundColor: COLORS.bgCard || '#FFFFFF',
+        borderRadius: 8,
+        width: 400,
         maxWidth: '95%',
+        borderWidth: 1,
+        borderColor: COLORS.border || '#CDD5D1',
         overflow: 'hidden',
         position: 'relative',
     },
@@ -176,87 +213,97 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        paddingTop: 30,
-        paddingBottom: 20,
-        backgroundColor: '#F4F7F6',
+        paddingTop: 20,
+        paddingBottom: 15,
         borderBottomWidth: 1,
-        borderBottomColor: '#E0E5E3',
+        borderBottomColor: COLORS.border || '#CDD5D1',
     },
     title: {
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#1E2624',
+        color: COLORS.textPrimary || '#1C2B2A',
     },
     body: {
-        padding: 24,
+        padding: 20,
     },
     message: {
-        fontSize: 15,
-        color: '#4A5C56',
-        lineHeight: 22,
+        fontSize: 13,
+        color: COLORS.textSecondary || '#4A5C58',
+        lineHeight: 20,
         textAlign: 'center',
-        marginBottom: 20,
+        marginBottom: 15,
     },
     amountBox: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#E0E5E3',
+        borderBottomColor: COLORS.border || '#CDD5D1',
     },
     amountLabel: {
-        fontSize: 16,
-        color: '#4A5C56',
+        fontSize: 14,
+        color: COLORS.textSecondary || '#4A5C58',
         fontWeight: '500',
     },
     amountValue: {
-        fontSize: 16,
-        color: '#1E2624',
+        fontSize: 14,
+        color: COLORS.textPrimary || '#1C2B2A',
         fontWeight: 'bold',
     },
     paymentSection: {
-        marginTop: 20,
+        marginTop: 15,
+    },
+    qrContainer: {
+        alignItems: 'center',
+        marginBottom: 15,
+    },
+    qrCode: {
+        width: 120,
+        height: 120,
+        marginBottom: 10,
     },
     payInstruction: {
-        fontSize: 14,
-        color: '#4A5C56',
+        fontSize: 13,
+        color: COLORS.textSecondary || '#4A5C58',
         marginBottom: 10,
         textAlign: 'center',
     },
     input: {
-        backgroundColor: '#F4F7F6',
+        backgroundColor: COLORS.bgInput || '#F8FAF9',
         borderWidth: 1,
-        borderColor: '#D1D8D6',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        color: '#1E2624',
+        borderColor: COLORS.border || '#CDD5D1',
+        borderRadius: 6,
+        padding: 10,
+        fontSize: 14,
+        color: COLORS.textPrimary || '#1C2B2A',
         marginBottom: 15,
     },
     submitBtn: {
         backgroundColor: COLORS.primary,
-        padding: 14,
-        borderRadius: 8,
+        padding: 12,
+        borderRadius: 6,
         alignItems: 'center',
     },
     submitBtnText: {
-        color: '#FFF',
-        fontSize: 16,
+        color: COLORS.white || '#FFFFFF',
+        fontSize: 14,
         fontWeight: '600',
     },
     waitingBox: {
-        marginTop: 20,
-        backgroundColor: '#FFF4E5',
-        padding: 15,
-        borderRadius: 8,
+        marginTop: 15,
+        backgroundColor: 'rgba(217, 119, 6, 0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(217, 119, 6, 0.3)',
+        padding: 12,
+        borderRadius: 6,
         flexDirection: 'row',
         alignItems: 'center',
     },
     waitingText: {
         flex: 1,
         marginLeft: 10,
-        color: '#D97706',
-        fontSize: 14,
+        color: '#FBBF24',
+        fontSize: 13,
         fontWeight: '500',
     }
 });
