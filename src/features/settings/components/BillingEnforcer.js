@@ -115,7 +115,7 @@ export default function BillingEnforcer({ children }) {
                                     
                                     let message = "";
                                     if (schedule.isCustom) {
-                                        message = `Till ${formattedDueDate} you are safe. Please pay the due amount.`;
+                                        message = `Please complete the payment within ${formattedDueDate}. Contact the admin to this number 8101402916 for payment details.`;
                                     } else if (billingStatus === 'blocked') {
                                         message = `Your payment was due on ${formattedDueDate}. Please clear your dues immediately to regain access to the app.`;
                                     } else if (billingStatus === 'warning') {
