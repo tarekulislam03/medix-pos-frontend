@@ -158,6 +158,43 @@ const previewStyles = StyleSheet.create({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ANIMATED PROGRESS BAR (SMOOTH INCREMENT)
+// ═══════════════════════════════════════════════════════════════════════════
+const AnimatedProgressBar = ({ baseProgress }) => {
+    const [displayProgress, setDisplayProgress] = useState(baseProgress || 0);
+
+    useEffect(() => {
+        if (baseProgress > displayProgress) {
+            setDisplayProgress(baseProgress);
+        }
+    }, [baseProgress]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDisplayProgress(prev => {
+                if (prev < 95 && prev >= (baseProgress || 0)) {
+                    return prev + 1; // Increment by 1% every 1.5s while waiting for next backend update
+                }
+                return prev;
+            });
+        }, 1500);
+        return () => clearInterval(interval);
+    }, [baseProgress]);
+
+    return (
+        <View style={{ width: '100%', minWidth: 70, maxWidth: 100, marginLeft: 'auto' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                <Text style={{ fontSize: 9, color: COLORS.textMuted }}>AI Processing</Text>
+                <Text style={{ fontSize: 9, color: COLORS.primary, fontWeight: '700' }}>{displayProgress}%</Text>
+            </View>
+            <View style={{ height: 4, backgroundColor: '#E2E8F0', borderRadius: 2, overflow: 'hidden' }}>
+                <View style={{ height: '100%', width: `${displayProgress}%`, backgroundColor: COLORS.primary }} />
+            </View>
+        </View>
+    );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN SCREEN
 // ═══════════════════════════════════════════════════════════════════════════
 export default function PurchaseScreen({ route, navigation }) {
@@ -175,6 +212,7 @@ export default function PurchaseScreen({ route, navigation }) {
     const [uploadProgress, setUploadProgress] = useState('');
     const [uploadSuccessModalVisible, setUploadSuccessModalVisible] = useState(false);
     const [autoImportNoticeVisible, setAutoImportNoticeVisible] = useState(false);
+    const [uploadHints, setUploadHints] = useState({ supplier_name: '', bill_date: '', total_amount: '' });
 
     // Preview modal
     const [previewUrl, setPreviewUrl] = useState(null);
@@ -424,8 +462,9 @@ export default function PurchaseScreen({ route, navigation }) {
         }
     };
 
-    const handleUploadBill = async () => {
-        confirmUploadBill();
+    const handleUploadBill = () => {
+        setUploadHints({ supplier_name: '', bill_date: '', total_amount: '' });
+        setAutoImportNoticeVisible(true);
     };
 
     const confirmUploadBill = async () => {
@@ -439,12 +478,15 @@ export default function PurchaseScreen({ route, navigation }) {
 
             // Upload directly instead of opening modal
             setUploading(true);
-            setUploadProgress('Uploading bill to cloud...');
+            setUploadProgress('Uploading bill to cloud for AI processing...');
 
             const formData = new FormData();
             formData.append('bill', file, file.name);
+            if (uploadHints.supplier_name) formData.append('supplier_name', uploadHints.supplier_name);
+            if (uploadHints.bill_date) formData.append('bill_date', uploadHints.bill_date);
+            if (uploadHints.total_amount) formData.append('total_amount', uploadHints.total_amount);
 
-            await uploadPurchaseBill(formData);
+            await autoImportBill(formData);
 
             setUploadSuccessModalVisible(true);
             await fetchPurchases();
@@ -560,11 +602,15 @@ export default function PurchaseScreen({ route, navigation }) {
                                 <Text style={[styles.statusText, { color: COLORS.warning }]}>REVIEW</Text>
                             </View>
                         )}
-                        <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
-                            <Text style={[styles.statusText, styles[`statusText_${item.status}`]]}>
-                                {statusLabel}
-                            </Text>
-                        </View>
+                        {item.status === 'processing' ? (
+                            <AnimatedProgressBar baseProgress={item.processing_progress} />
+                        ) : (
+                            <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
+                                <Text style={[styles.statusText, styles[`statusText_${item.status}`]]}>
+                                    {statusLabel}
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
 
@@ -688,11 +734,15 @@ export default function PurchaseScreen({ route, navigation }) {
                             <Text style={[styles.statusText, { color: COLORS.warning }]}>REVIEW</Text>
                         </View>
                     )}
-                    <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
-                        <Text style={[styles.statusText, styles[`statusText_${item.status}`]]}>
-                            {item.status?.toUpperCase() ?? 'PENDING'}
-                        </Text>
-                    </View>
+                    {item.status === 'processing' ? (
+                        <AnimatedProgressBar baseProgress={item.processing_progress} />
+                    ) : (
+                        <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
+                            <Text style={[styles.statusText, styles[`statusText_${item.status}`]]}>
+                                {item.status?.toUpperCase() ?? 'PENDING'}
+                            </Text>
+                        </View>
+                    )}
                 </View>
                 {/* Actions */}
                 <View style={[styles.cell, { flex: 0.8, alignItems: 'center', borderRightWidth: 0, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}>
@@ -750,8 +800,8 @@ export default function PurchaseScreen({ route, navigation }) {
                             onPress={handleUploadBill}
                             disabled={uploading}
                         >
-                            <Ionicons name="cloud-upload-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
-                            <Text style={styles.btnPrimaryText}>{uploading ? 'Uploading...' : 'Upload Bill'}</Text>
+                            <Ionicons name="sparkles" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                            <Text style={styles.btnPrimaryText}>{uploading ? 'Processing...' : 'AI Import Bill'}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -939,6 +989,74 @@ export default function PurchaseScreen({ route, navigation }) {
                                         <Text style={styles.btnDangerText}>Delete</Text>
                                     </>
                                 }
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* ─── AI IMPORT UPLOAD MODAL ─── */}
+            <Modal visible={autoImportNoticeVisible} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.uploadFormModal, r.isSmall && { width: '90%' }]}>
+                        <View style={styles.uploadFormHeader}>
+                            <View style={styles.uploadFormIconBox}>
+                                <Ionicons name="sparkles" size={20} color={COLORS.primary} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.uploadFormTitle}>AI Bill Import</Text>
+                                <Text style={styles.uploadFormSubtitle}>Optional hints to improve extraction accuracy.</Text>
+                            </View>
+                            <TouchableOpacity style={styles.uploadFormCloseBtn} onPress={() => setAutoImportNoticeVisible(false)}>
+                                <Ionicons name="close" size={18} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.uploadFormBody}>
+                            <View style={styles.formGroup}>
+                                <Text style={styles.formLabel}>Supplier Name</Text>
+                                <View style={styles.formInputRow}>
+                                    <TextInput
+                                        style={styles.formInput}
+                                        placeholder="e.g. Apollo Pharmacy"
+                                        placeholderTextColor={COLORS.textMuted}
+                                        value={uploadHints.supplier_name}
+                                        onChangeText={t => setUploadHints(h => ({ ...h, supplier_name: t }))}
+                                    />
+                                </View>
+                            </View>
+                            <View style={styles.formGroup}>
+                                <Text style={styles.formLabel}>Bill Date</Text>
+                                <View style={styles.formInputRow}>
+                                    <TextInput
+                                        style={styles.formInput}
+                                        placeholder="YYYY-MM-DD"
+                                        placeholderTextColor={COLORS.textMuted}
+                                        value={uploadHints.bill_date}
+                                        onChangeText={t => setUploadHints(h => ({ ...h, bill_date: t }))}
+                                    />
+                                </View>
+                            </View>
+                            <View style={styles.formGroup}>
+                                <Text style={styles.formLabel}>Total Amount</Text>
+                                <View style={styles.formInputRow}>
+                                    <TextInput
+                                        style={styles.formInput}
+                                        placeholder="0.00"
+                                        keyboardType="numeric"
+                                        placeholderTextColor={COLORS.textMuted}
+                                        value={uploadHints.total_amount}
+                                        onChangeText={t => setUploadHints(h => ({ ...h, total_amount: t }))}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                        <View style={styles.uploadFormFooter}>
+                            <TouchableOpacity style={[styles.btnSecondary, { flex: 1 }]} onPress={() => setAutoImportNoticeVisible(false)}>
+                                <Text style={styles.btnSecondaryText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.btnPrimary, { flex: 1 }]} onPress={confirmUploadBill}>
+                                <Ionicons name="image-outline" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                                <Text style={styles.btnPrimaryText}>Select Image</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
