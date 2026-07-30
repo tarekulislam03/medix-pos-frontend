@@ -16,6 +16,8 @@ import BoredScreen from '../../features/bored/screens/BoredScreen';
 import StockLedgerScreen from '../../features/stockMovement/screens/StockLedgerScreen';
 import SavingsScreen from '../../features/savings/screens/SavingsScreen';
 import PaymentScreen from '../../features/billing/screens/PaymentScreen';
+import LegalScreen from '../../features/legal/screens/LegalScreen';
+import AdminStoresScreen from '../../features/subscriptionAdmin/screens/AdminStoresScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,6 +37,7 @@ export default function MainNavigator() {
             <Stack.Screen name="Purchase" component={PurchaseScreen} />
             <Stack.Screen name="AdminPurchaseUpload" component={AdminPurchaseUploadScreen} />
             <Stack.Screen name="AdminAutoImportBills" component={AdminAutoImportBillsScreen} />
+            <Stack.Screen name="AdminStores" component={AdminStoresScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="SalesAnalytics" component={AnalyticsScreen} />
             <Stack.Screen name="GstFiling" component={GstFilingScreen} />
@@ -45,6 +48,7 @@ export default function MainNavigator() {
             <Stack.Screen name="StockLedger" component={StockLedgerScreen} />
             <Stack.Screen name="Savings" component={SavingsScreen} />
             <Stack.Screen name="Payment" component={PaymentScreen} />
+            <Stack.Screen name="Legal" component={LegalScreen} />
         </Stack.Navigator>
     );
 }

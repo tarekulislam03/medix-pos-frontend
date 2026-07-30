@@ -6,9 +6,11 @@ import { COLORS, FONTS } from '../../../core/constants/theme';
 import TicTacToe from '../components/games/TicTacToe';
 import DinoGame from '../components/games/DinoGame';
 import FlappyBirdBored from '../components/games/FlappyBirdBored';
+import SnakeGame from '../components/games/SnakeGame';
+import ShooterGame from '../components/games/ShooterGame';
 
 export default function BoredScreen() {
-    const [activeGame, setActiveGame] = useState('dino'); // 'dino', 'flappy', 'tictactoe'
+    const [activeGame, setActiveGame] = useState('shooter'); // 'shooter', 'flappy', 'tictactoe'
 
     const { width } = useWindowDimensions();
     const isMobile = width < 600;
@@ -27,6 +29,14 @@ export default function BoredScreen() {
             {/* Game Selector Tabs */}
             <View style={styles.tabsContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
+                    <TouchableOpacity
+                        style={[styles.tab, activeGame === 'shooter' && styles.activeTab]}
+                        onPress={() => setActiveGame('shooter')}
+                    >
+                        <Text style={{ fontSize: 18, marginRight: 8 }}>🎯</Text>
+                        <Text style={[styles.tabText, activeGame === 'shooter' && styles.activeTabText]}>Shooter</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         style={[styles.tab, activeGame === 'dino' && styles.activeTab]}
                         onPress={() => setActiveGame('dino')}
@@ -50,14 +60,24 @@ export default function BoredScreen() {
                         <Text style={{ fontSize: 18, marginRight: 8 }}>❌</Text>
                         <Text style={[styles.tabText, activeGame === 'tictactoe' && styles.activeTabText]}>Tic Tac Toe</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.tab, activeGame === 'snake' && styles.activeTab]}
+                        onPress={() => setActiveGame('snake')}
+                    >
+                        <Text style={{ fontSize: 18, marginRight: 8 }}>🐍</Text>
+                        <Text style={[styles.tabText, activeGame === 'snake' && styles.activeTabText]}>Snake</Text>
+                    </TouchableOpacity>
                 </ScrollView>
             </View>
 
             {/* Game Canvas Container */}
             <View style={[styles.gameContainer, { padding: isMobile ? 10 : 20 }]}>
+                {activeGame === 'shooter' && <ShooterGame />}
                 {activeGame === 'dino' && <DinoGame />}
                 {activeGame === 'flappy' && <FlappyBirdBored />}
                 {activeGame === 'tictactoe' && <TicTacToe />}
+                {activeGame === 'snake' && <SnakeGame />}
             </View>
         </View>
     );

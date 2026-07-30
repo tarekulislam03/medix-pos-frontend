@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, Image, TouchableOpacity, Modal, Pressable, Alert, ScrollView, TextInput, DeviceEventEmitter, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +38,23 @@ export default function MainLayout() {
     const navigation = useNavigation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
+    const tapCountRef = useRef(0);
+    const lastTapRef = useRef(0);
+
+    const handleLogoTap = () => {
+        const now = Date.now();
+        if (now - lastTapRef.current < 1000) {
+            tapCountRef.current += 1;
+            if (tapCountRef.current >= 5) {
+                tapCountRef.current = 0;
+                navigation.navigate('Main', { screen: 'Bored' });
+            }
+        } else {
+            tapCountRef.current = 1;
+        }
+        lastTapRef.current = now;
+    };
+
     const r = useResponsive();
 
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -45,6 +62,7 @@ export default function MainLayout() {
     const [unseenPurchases, setUnseenPurchases] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showUpdatePopup, setShowUpdatePopup] = useState(false);
+    const [secretTapCount, setSecretTapCount] = useState(0);
 
     // ─── ONE-DAY UPDATE POPUP ─────────────────────────
     // Change TARGET_DATE to the day you want the popup to appear.
@@ -132,6 +150,20 @@ export default function MainLayout() {
         }
     };
 
+    const isTrial = storeSettings?.isTrial;
+    const activeEndDate = storeSettings?.mercyEndDate || storeSettings?.trialEndDate;
+    let displayEndDate = '';
+    if (activeEndDate) {
+        try {
+            const dateObj = new Date(activeEndDate);
+            if (!isNaN(dateObj.getTime())) {
+                displayEndDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+            }
+        } catch (e) {
+            console.error('Invalid date format', e);
+        }
+    }
+
     return (
         <BillingEnforcer>
         <View style={styles.container}>
@@ -147,14 +179,16 @@ export default function MainLayout() {
                         </TouchableOpacity>
                     )}
                     <View style={styles.topBarBrand}>
-                        <Image
-                            source={require('../../../assets/web-logo.png')}
-                            style={{
-                                width: r.isSmall ? 80 : 100,
-                                height: r.isSmall ? 32 : 40,
-                            }}
-                            resizeMode="contain"
-                        />
+                        <TouchableOpacity activeOpacity={0.8} onPress={handleLogoTap}>
+                            <Image
+                                source={require('../../../assets/web-logo.png')}
+                                style={{
+                                    width: r.isSmall ? 80 : 100,
+                                    height: r.isSmall ? 32 : 40,
+                                }}
+                                resizeMode="contain"
+                            />
+                        </TouchableOpacity>
                     </View>
                 </View>
                 {!r.isSmall && (
@@ -170,6 +204,14 @@ export default function MainLayout() {
 
                 {/* Top Bar Right: Operational Info */}
                 <View style={[styles.topBarRight, { zIndex: 10 }]}>
+                    {isTrial && displayEndDate && (
+                        <View style={{ marginRight: 15, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: 'rgba(217, 119, 6, 0.2)', borderRadius: 4, borderWidth: 1, borderColor: '#D97706' }}>
+                            <Text style={{ color: '#FBBF24', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 }}>
+                                TRIAL EXPIRES: {displayEndDate}
+                            </Text>
+                        </View>
+                    )}
+
                     <TouchableOpacity 
                         onPress={() => setShowNotifications(!showNotifications)}
                         style={{ marginRight: 15, position: 'relative' }}

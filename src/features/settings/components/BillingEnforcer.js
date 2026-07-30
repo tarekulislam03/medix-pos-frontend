@@ -95,7 +95,7 @@ export default function BillingEnforcer({ children }) {
                                     style={{ marginBottom: 10 }}
                                 />
                                 <Text style={styles.title}>
-                                    {billingStatus === 'blocked' ? "App Access Blocked" : "Payment Reminder"}
+                                    {schedule.isManualBlock ? "App Disabled" : schedule.isTrialExpiration ? "Free Trial Expired" : (billingStatus === 'blocked' ? "App Access Blocked" : "Payment Reminder")}
                                 </Text>
                             </View>
 
@@ -114,7 +114,11 @@ export default function BillingEnforcer({ children }) {
                                     const diffDays = Math.ceil((now - dueDate) / (1000 * 60 * 60 * 24));
                                     
                                     let message = "";
-                                    if (schedule.isCustom) {
+                                    if (schedule.isManualBlock) {
+                                        message = `Your app access has been disabled by the administrator. Please contact support at 8101402916 for assistance.`;
+                                    } else if (schedule.isTrialExpiration) {
+                                        message = `Your free trial expired on ${formattedDueDate}. Please upgrade to a paid subscription to continue using Medix. Contact admin at 8101402916 to upgrade.`;
+                                    } else if (schedule.isCustom) {
                                         message = `Please complete the payment within ${formattedDueDate}. Contact the admin to this number 8101402916 for payment details.`;
                                     } else if (billingStatus === 'blocked') {
                                         message = `Your payment was due on ${formattedDueDate}. Please clear your dues immediately to regain access to the app.`;
@@ -131,16 +135,20 @@ export default function BillingEnforcer({ children }) {
                                     return <Text style={styles.message}>{message}</Text>;
                                 })()}
 
-                                <View style={styles.amountBox}>
-                                    <Text style={styles.amountLabel}>Amount Due:</Text>
-                                    <Text style={styles.amountValue}>₹{schedule.amount}</Text>
-                                </View>
-                                <View style={styles.amountBox}>
-                                    <Text style={styles.amountLabel}>Due Date:</Text>
-                                    <Text style={styles.amountValue}>{new Date(schedule.dueDate).toDateString()}</Text>
-                                </View>
+                                {!schedule.isTrialExpiration && !schedule.isManualBlock && (
+                                    <>
+                                        <View style={styles.amountBox}>
+                                            <Text style={styles.amountLabel}>Amount Due:</Text>
+                                            <Text style={styles.amountValue}>₹{schedule.amount}</Text>
+                                        </View>
+                                        <View style={styles.amountBox}>
+                                            <Text style={styles.amountLabel}>Due Date:</Text>
+                                            <Text style={styles.amountValue}>{new Date(schedule.dueDate).toDateString()}</Text>
+                                        </View>
+                                    </>
+                                )}
 
-                                {schedule.isCustom ? null : schedule.paymentStatus === 'uploaded' ? (
+                                {schedule.isManualBlock || schedule.isTrialExpiration || schedule.isCustom ? null : schedule.paymentStatus === 'uploaded' ? (
                                     <View style={styles.waitingBox}>
                                         <Ionicons name="time-outline" size={24} color="#F5A623" />
                                         <Text style={styles.waitingText}>Payment UTR uploaded. Waiting for confirmation from Admin.</Text>
