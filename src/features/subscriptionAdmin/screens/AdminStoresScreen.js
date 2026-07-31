@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../core/services/api';
 import { COLORS } from '../../../core/constants/theme';
@@ -18,6 +18,12 @@ export default function AdminStoresScreen({ navigation }) {
         endDate: '',
         mercyEndDate: ''
     });
+
+    // WhatsApp Modal State
+    const [waModalVisible, setWaModalVisible] = useState(false);
+    const [waLoading, setWaLoading] = useState(false);
+    const [waPhone, setWaPhone] = useState('');
+    const [waMessage, setWaMessage] = useState('');
 
     useEffect(() => {
         fetchStores();
@@ -105,6 +111,50 @@ export default function AdminStoresScreen({ navigation }) {
         );
     };
 
+    const openWhatsAppModal = async (store) => {
+        setSelectedStore(store);
+        setWaModalVisible(true);
+        setWaLoading(true);
+        setWaPhone('');
+        setWaMessage('');
+        
+        try {
+            const res = await api.get(`/analytics/whatsapp-report/${store._id || store.id}`);
+            if (res.data?.success) {
+                setWaPhone(res.data.data.phone || store.contactNumber || '');
+                setWaMessage(res.data.data.message || '');
+            } else {
+                Alert.alert('Error', 'Failed to generate report');
+            }
+        } catch (error) {
+            console.error('Failed to generate WA report', error);
+            Alert.alert('Error', 'Failed to fetch report from server');
+        } finally {
+            setWaLoading(false);
+        }
+    };
+
+    const sendWhatsAppMessage = () => {
+        if (!waPhone || !waMessage) {
+            Alert.alert('Validation Error', 'Phone and message are required');
+            return;
+        }
+
+        let cleaned = String(waPhone).replace(/[\s\-\+\(\)]/g, '');
+        if (cleaned.startsWith('0')) {
+            cleaned = cleaned.slice(1);
+        }
+        if (cleaned.length === 10) {
+            cleaned = '91' + cleaned;
+        }
+
+        const url = `https://wa.me/${cleaned}?text=${encodeURIComponent(waMessage)}`;
+        Linking.openURL(url).catch(err => {
+            console.error("Failed to open WhatsApp URL:", err);
+            Alert.alert('Error', 'Could not open WhatsApp.');
+        });
+    };
+
     const renderStore = ({ item }) => (
         <View style={styles.storeCard}>
             <View style={styles.storeInfo}>
@@ -140,6 +190,15 @@ export default function AdminStoresScreen({ navigation }) {
                         <Text style={styles.actionBtnText}>{item.isBlocked ? 'Resume App' : 'Block App'}</Text>
                     </TouchableOpacity>
                 </View>
+
+                <View style={styles.statusGroup}>
+                    <TouchableOpacity 
+                        style={[styles.actionBtn, { backgroundColor: '#25D366' }]} 
+                        onPress={() => openWhatsAppModal(item)}
+                    >
+                        <Text style={[styles.actionBtnText, { color: '#fff' }]}>WA Report</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -166,6 +225,7 @@ export default function AdminStoresScreen({ navigation }) {
                 />
             )}
 
+            {/* Trial Modal */}
             <Modal visible={trialModalVisible} transparent={true} animationType="fade">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
@@ -211,6 +271,53 @@ export default function AdminStoresScreen({ navigation }) {
                                 <Text style={styles.modalBtnText}>Save</Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* WhatsApp Modal */}
+            <Modal visible={waModalVisible} transparent={true} animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { width: 500, maxWidth: '95%' }]}>
+                        <Text style={styles.modalTitle}>Send WhatsApp Report</Text>
+                        
+                        {waLoading ? (
+                            <View style={{ padding: 40, alignItems: 'center' }}>
+                                <ActivityIndicator size="large" color="#25D366" />
+                                <Text style={{ color: COLORS.textMuted, marginTop: 10 }}>Generating report...</Text>
+                            </View>
+                        ) : (
+                            <>
+                                <Text style={styles.inputLabel}>Target Phone Number</Text>
+                                <TextInput 
+                                    style={styles.input} 
+                                    value={waPhone}
+                                    onChangeText={setWaPhone}
+                                    placeholder="e.g. 919876543210"
+                                    placeholderTextColor="#777"
+                                    keyboardType="phone-pad"
+                                />
+
+                                <Text style={styles.inputLabel}>Message Content</Text>
+                                <TextInput 
+                                    style={[styles.input, { height: 250, textAlignVertical: 'top' }]} 
+                                    value={waMessage}
+                                    onChangeText={setWaMessage}
+                                    multiline
+                                    placeholder="Type message..."
+                                    placeholderTextColor="#777"
+                                />
+
+                                <View style={styles.modalActions}>
+                                    <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#444' }]} onPress={() => setWaModalVisible(false)}>
+                                        <Text style={styles.modalBtnText}>Close</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#25D366' }]} onPress={sendWhatsAppMessage}>
+                                        <Text style={[styles.modalBtnText, { color: '#000' }]}>Open in WhatsApp Web</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        )}
                     </View>
                 </View>
             </Modal>
