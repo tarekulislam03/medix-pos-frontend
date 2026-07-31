@@ -44,7 +44,7 @@ export default function AnalyticsScreen({ navigation }) {
             });
         }, 3000);
     }, [toastOpacity]);
-    
+
     const [recentSales, setRecentSales] = useState([]);
     const [allSales, setAllSales] = useState([]);
     const [showAllSalesModal, setShowAllSalesModal] = useState(false);
@@ -134,8 +134,8 @@ export default function AnalyticsScreen({ navigation }) {
                         ? resData.invoices
                         : []));
 
-            setRecentSales(fullList.slice(0, 10)); 
-            setAllSales(fullList); 
+            setRecentSales(fullList.slice(0, 10));
+            setAllSales(fullList);
 
             if (overviewRes?.data) {
                 setDailyData(overviewRes.data.dailyData || []);
@@ -265,6 +265,20 @@ export default function AnalyticsScreen({ navigation }) {
                                 <Text style={styles.statValue}>
                                     ₹{Number(monthlySales).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </Text>
+                            </View>
+
+                            {/* Estimated Profit (20% of Monthly Sales — Std. Indian Pharmacy Margin) */}
+                            <View style={[styles.statCard, { flex: 1 }]}>
+                                <View style={styles.statHeader}>
+                                    <View style={[styles.iconBox, { backgroundColor: '#e8f5e9' }]}>
+                                        <Ionicons name="trending-up" size={16} color="#2e7d32" />
+                                    </View>
+                                    <Text style={styles.statLabel}>ESTIMATED PROFIT</Text>
+                                </View>
+                                <Text style={[styles.statValue, { color: '#2e7d32' }]}>
+                                    ₹{(Number(monthlySales) * 0.30).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Text>
+                                <Text style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>This is not accurate profit, it is calculated by 30% margin on monthly sales. Please do not consider it as real profit, it's for information purpose only</Text>
                             </View>
                         </View>
 
@@ -473,7 +487,7 @@ export default function AnalyticsScreen({ navigation }) {
                                             )}
                                         </View>
                                     </View>
-    
+
                                     <View style={[styles.tableContainer, { minHeight: 200, maxHeight: 300 }]}>
                                         <View style={styles.tableHeader}>
                                             <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.th}>Date</Text></View>
@@ -510,7 +524,7 @@ export default function AnalyticsScreen({ navigation }) {
                                             )}
                                         </View>
                                     </View>
-    
+
                                     <View style={[styles.tableContainer, { minHeight: 200, maxHeight: 300 }]}>
                                         <View style={styles.tableHeader}>
                                             <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.th}>Month</Text></View>
@@ -606,80 +620,80 @@ export default function AnalyticsScreen({ navigation }) {
                                 <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 50, flex: 1 }} />
                             ) : (
                                 <FlatList
-                                style={{ flex: 1 }}
-                                showsVerticalScrollIndicator={false}
-                                data={allSales.filter(sale => {
-                                    const q = allSalesSearch.toLowerCase();
-                                    if (!q) return true;
-                                    const inv = (sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6) || '').toLowerCase();
-                                    const amt = String(sale.grand_total || sale.total || '');
-                                    const method = (sale.payment_method || '').toLowerCase();
-                                    return inv.includes(q) || amt.includes(q) || method.includes(q);
-                                })}
-                                keyExtractor={(sale, idx) => sale._id || String(idx)}
-                                initialNumToRender={15}
-                                maxToRenderPerBatch={15}
-                                windowSize={5}
-                                removeClippedSubviews={true}
-                                ListEmptyComponent={
-                                    <View style={styles.centerBox}>
-                                        <Text style={styles.emptyText}>No sales found</Text>
-                                    </View>
-                                }
-                                renderItem={({ item: sale, index: idx }) => {
-                                    const invoiceNum = sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6).toUpperCase();
-                                    const method = String(sale.payment_method || 'CASH').toUpperCase();
-                                    const total = Number(sale.grand_total || sale.total || 0).toFixed(2);
-                                    const timeStr = new Date(sale.created_at || sale.createdAt || sale.date || new Date()).toLocaleString('en-IN', {
-                                        day: '2-digit', month: 'short', year: 'numeric',
-                                        hour: '2-digit', minute: '2-digit', hour12: true
-                                    });
-                                    return (
-                                        <View style={[styles.tableRow, idx % 2 === 1 && styles.tableRowAlt]}>
-                                            <View style={[styles.cell, { flex: 1.5 }]}>
-                                                <Text style={styles.cellName} numberOfLines={1}>{invoiceNum}</Text>
-                                            </View>
-                                            <View style={[styles.cell, { flex: 2 }]}>
-                                                <Text style={styles.cellText}>{timeStr}</Text>
-                                            </View>
-                                            <View style={[styles.cell, { flex: 1.2, alignItems: 'center' }]}>
-                                                <Text style={styles.cellText}>{method}</Text>
-                                            </View>
-                                            <View style={[styles.cell, { flex: 1.5, alignItems: 'flex-end' }]}>
-                                                <Text style={[styles.cellText, { fontWeight: '600', color: COLORS.primary }]}>₹{total}</Text>
-                                            </View>
-                                            <View style={[styles.cell, styles.actionsCell, { flex: 2, borderRightWidth: 0 }]}>
-                                                <TouchableOpacity
-                                                    style={[styles.actionBtn, { borderColor: COLORS.warning, backgroundColor: COLORS.warningLight }]}
-                                                    onPress={() => { setShowAllSalesModal(false); navigation.navigate('Billing', { invoice: sale }); }}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <Ionicons name="pencil-outline" size={14} color={COLORS.warning} />
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={[styles.actionBtn, styles.actionBtnDanger]}
-                                                    onPress={() => handleDeleteSale(sale)}
-                                                    activeOpacity={0.7}
-                                                    disabled={deletingId === sale._id}
-                                                >
-                                                    {deletingId === sale._id ? (
-                                                        <ActivityIndicator size="small" color={COLORS.error} />
-                                                    ) : (
-                                                        <Ionicons name="trash-outline" size={14} color={COLORS.error} />
-                                                    )}
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={styles.actionBtn}
-                                                    onPress={() => printReceipt(sale)}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <Ionicons name="print-outline" size={14} color={COLORS.primary} />
-                                                </TouchableOpacity>
-                                            </View>
+                                    style={{ flex: 1 }}
+                                    showsVerticalScrollIndicator={false}
+                                    data={allSales.filter(sale => {
+                                        const q = allSalesSearch.toLowerCase();
+                                        if (!q) return true;
+                                        const inv = (sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6) || '').toLowerCase();
+                                        const amt = String(sale.grand_total || sale.total || '');
+                                        const method = (sale.payment_method || '').toLowerCase();
+                                        return inv.includes(q) || amt.includes(q) || method.includes(q);
+                                    })}
+                                    keyExtractor={(sale, idx) => sale._id || String(idx)}
+                                    initialNumToRender={15}
+                                    maxToRenderPerBatch={15}
+                                    windowSize={5}
+                                    removeClippedSubviews={true}
+                                    ListEmptyComponent={
+                                        <View style={styles.centerBox}>
+                                            <Text style={styles.emptyText}>No sales found</Text>
                                         </View>
-                                    );
-                                }}
-                            />)}
+                                    }
+                                    renderItem={({ item: sale, index: idx }) => {
+                                        const invoiceNum = sale.invoice_number ? `#${sale.invoice_number}` : sale._id?.slice(-6).toUpperCase();
+                                        const method = String(sale.payment_method || 'CASH').toUpperCase();
+                                        const total = Number(sale.grand_total || sale.total || 0).toFixed(2);
+                                        const timeStr = new Date(sale.created_at || sale.createdAt || sale.date || new Date()).toLocaleString('en-IN', {
+                                            day: '2-digit', month: 'short', year: 'numeric',
+                                            hour: '2-digit', minute: '2-digit', hour12: true
+                                        });
+                                        return (
+                                            <View style={[styles.tableRow, idx % 2 === 1 && styles.tableRowAlt]}>
+                                                <View style={[styles.cell, { flex: 1.5 }]}>
+                                                    <Text style={styles.cellName} numberOfLines={1}>{invoiceNum}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 2 }]}>
+                                                    <Text style={styles.cellText}>{timeStr}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 1.2, alignItems: 'center' }]}>
+                                                    <Text style={styles.cellText}>{method}</Text>
+                                                </View>
+                                                <View style={[styles.cell, { flex: 1.5, alignItems: 'flex-end' }]}>
+                                                    <Text style={[styles.cellText, { fontWeight: '600', color: COLORS.primary }]}>₹{total}</Text>
+                                                </View>
+                                                <View style={[styles.cell, styles.actionsCell, { flex: 2, borderRightWidth: 0 }]}>
+                                                    <TouchableOpacity
+                                                        style={[styles.actionBtn, { borderColor: COLORS.warning, backgroundColor: COLORS.warningLight }]}
+                                                        onPress={() => { setShowAllSalesModal(false); navigation.navigate('Billing', { invoice: sale }); }}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons name="pencil-outline" size={14} color={COLORS.warning} />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={[styles.actionBtn, styles.actionBtnDanger]}
+                                                        onPress={() => handleDeleteSale(sale)}
+                                                        activeOpacity={0.7}
+                                                        disabled={deletingId === sale._id}
+                                                    >
+                                                        {deletingId === sale._id ? (
+                                                            <ActivityIndicator size="small" color={COLORS.error} />
+                                                        ) : (
+                                                            <Ionicons name="trash-outline" size={14} color={COLORS.error} />
+                                                        )}
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
+                                                        style={styles.actionBtn}
+                                                        onPress={() => printReceipt(sale)}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons name="print-outline" size={14} color={COLORS.primary} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+                                        );
+                                    }}
+                                />)}
                         </View>
 
                         {/* Modal Footer */}
