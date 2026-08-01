@@ -28,6 +28,7 @@ export default function AnalyticsScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
     const [deleteConfirmSale, setDeleteConfirmSale] = useState(null);
+    const [viewItemsSale, setViewItemsSale] = useState(null);
     const [toastMessage, setToastMessage] = useState('');
     const [toastType, setToastType] = useState('success');
     const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -341,6 +342,13 @@ export default function AnalyticsScreen({ navigation }) {
                                                     <Text style={[styles.cellText, { fontWeight: '600', color: COLORS.primary }]}>₹{total}</Text>
                                                 </View>
                                                 <View style={[styles.cell, styles.actionsCell, { flex: 2, borderRightWidth: 0 }]}>
+                                                    <TouchableOpacity
+                                                        style={[styles.actionBtn, { borderColor: COLORS.info, backgroundColor: COLORS.infoLight }]}
+                                                        onPress={() => setViewItemsSale(sale)}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons name="eye-outline" size={14} color={COLORS.info} />
+                                                    </TouchableOpacity>
                                                     <TouchableOpacity
                                                         style={[styles.actionBtn, { borderColor: COLORS.warning, backgroundColor: COLORS.warningLight }]}
                                                         onPress={() => navigation.navigate('Billing', { invoice: sale })}
@@ -664,6 +672,13 @@ export default function AnalyticsScreen({ navigation }) {
                                                 </View>
                                                 <View style={[styles.cell, styles.actionsCell, { flex: 2, borderRightWidth: 0 }]}>
                                                     <TouchableOpacity
+                                                        style={[styles.actionBtn, { borderColor: COLORS.info, backgroundColor: COLORS.infoLight }]}
+                                                        onPress={() => setViewItemsSale(sale)}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        <Ionicons name="eye-outline" size={14} color={COLORS.info} />
+                                                    </TouchableOpacity>
+                                                    <TouchableOpacity
                                                         style={[styles.actionBtn, { borderColor: COLORS.warning, backgroundColor: COLORS.warningLight }]}
                                                         onPress={() => { setShowAllSalesModal(false); navigation.navigate('Billing', { invoice: sale }); }}
                                                         activeOpacity={0.7}
@@ -764,6 +779,85 @@ export default function AnalyticsScreen({ navigation }) {
                     <Text style={styles.toastText}>{toastMessage}</Text>
                 </Animated.View>
             )}
+
+            {/* ─── SALES ITEM VIEWER MODAL ─── */}
+            <Modal
+                visible={!!viewItemsSale}
+                animationType="fade"
+                transparent
+                onRequestClose={() => setViewItemsSale(null)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalCard, { width: r.pick({ small: '95%', medium: 450, large: 500, xlarge: 500 }), maxHeight: '80%' }]}>
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalHeaderLeft}>
+                                <View style={[styles.modalIcon, { backgroundColor: COLORS.infoLight }]}>
+                                    <Ionicons name="list-outline" size={18} color={COLORS.info} />
+                                </View>
+                                <Text style={styles.modalTitle}>Sale Items Overview</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setViewItemsSale(null)} style={styles.modalCloseBtn}>
+                                <Ionicons name="close" size={18} color={COLORS.textMuted} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={{ padding: 12 }}>
+                            {/* Medicine Items */}
+                            {viewItemsSale?.items?.length > 0 && (
+                                <View style={{ marginBottom: 16 }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 8 }}>Cart Items</Text>
+                                    <View style={{ borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: 4, overflow: 'hidden' }}>
+                                        {viewItemsSale.items.map((item, idx) => (
+                                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 8, borderBottomWidth: idx === viewItemsSale.items.length - 1 ? 0 : 1, borderBottomColor: COLORS.borderLight, backgroundColor: idx % 2 === 0 ? COLORS.bgCard : COLORS.bgCardHover }}>
+                                                <Text style={{ fontSize: 12, color: COLORS.textPrimary, flex: 1 }} numberOfLines={2}>{item.medicine_name}</Text>
+                                                <Text style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: '600', marginLeft: 10, textAlign: 'right' }}>Qty: {item.quantity}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* OTC Items */}
+                            {viewItemsSale?.otc_items?.length > 0 && (
+                                <View style={{ marginBottom: 16 }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 8 }}>OTC Items</Text>
+                                    <View style={{ borderWidth: 1, borderColor: COLORS.borderLight, borderRadius: 4, overflow: 'hidden' }}>
+                                        {viewItemsSale.otc_items.map((otc, idx) => (
+                                            <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 8, borderBottomWidth: idx === viewItemsSale.otc_items.length - 1 ? 0 : 1, borderBottomColor: COLORS.borderLight, backgroundColor: idx % 2 === 0 ? COLORS.bgCard : COLORS.bgCardHover }}>
+                                                <Text style={{ fontSize: 12, color: COLORS.textPrimary, flex: 1 }} numberOfLines={2}>{otc.name}</Text>
+                                                <Text style={{ fontSize: 12, color: COLORS.primary, fontWeight: '600', marginLeft: 10, width: 60, textAlign: 'right' }}>₹{Number(otc.price || 0).toFixed(2)}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* Doctor Fee */}
+                            {Number(viewItemsSale?.doctor_fee || 0) > 0 && (
+                                <View style={{ marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.infoLight, padding: 10, borderRadius: 4 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Ionicons name="medical-outline" size={16} color={COLORS.info} style={{ marginRight: 8 }} />
+                                        <Text style={{ fontSize: 13, fontWeight: '600', color: COLORS.info }}>Doctor Fee</Text>
+                                    </View>
+                                    <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.info }}>₹{Number(viewItemsSale.doctor_fee).toFixed(2)}</Text>
+                                </View>
+                            )}
+
+                            {(!viewItemsSale?.items?.length && !viewItemsSale?.otc_items?.length && !Number(viewItemsSale?.doctor_fee)) && (
+                                <View style={{ padding: 20, alignItems: 'center' }}>
+                                    <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>No items found in this sale.</Text>
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity style={[styles.btnSecondary, { flex: 1 }]} onPress={() => setViewItemsSale(null)}>
+                                <Text style={styles.btnSecondaryText}>Close Viewer</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
